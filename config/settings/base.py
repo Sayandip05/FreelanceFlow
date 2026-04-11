@@ -17,20 +17,24 @@ env = environ.Env(
     REDIS_URL=(str, "redis://localhost:6379/0"),
     CELERY_BROKER_URL=(str, "redis://localhost:6379/0"),
     CELERY_RESULT_BACKEND=(str, "redis://localhost:6379/0"),
-    STRIPE_SECRET_KEY=(str, ""),
-    STRIPE_WEBHOOK_SECRET=(str, ""),
-    STRIPE_PLATFORM_ACCOUNT=(str, ""),
+    RAZORPAY_KEY_ID=(str, ""),
+    RAZORPAY_KEY_SECRET=(str, ""),
+    RAZORPAY_WEBHOOK_SECRET=(str, ""),
     AWS_ACCESS_KEY_ID=(str, ""),
     AWS_SECRET_ACCESS_KEY=(str, ""),
     AWS_STORAGE_BUCKET_NAME=(str, ""),
     AWS_S3_REGION_NAME=(str, "us-east-1"),
-    ANTHROPIC_API_KEY=(str, ""),
+    GROQ_API_KEY=(str, ""),
+    LANGSMITH_API_KEY=(str, ""),
+    LANGSMITH_PROJECT=(str, "freelanceflow"),
+    LANGSMITH_TRACING=(bool, False),
     ELASTICSEARCH_URL=(str, "http://localhost:9200"),
     EMAIL_HOST=(str, "localhost"),
     EMAIL_PORT=(int, 587),
     EMAIL_HOST_USER=(str, ""),
     EMAIL_HOST_PASSWORD=(str, ""),
     DEFAULT_FROM_EMAIL=(str, "noreply@freelanceflow.com"),
+    FRONTEND_URL=(str, "http://localhost:3000"),
     PLATFORM_CUT_PERCENTAGE=(int, 10),
     SENTRY_DSN=(str, ""),
 )
@@ -61,10 +65,6 @@ THIRD_PARTY_APPS = [
     "django_elasticsearch_dsl",
     "django_extensions",
     "django_axes",
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
 ]
 
 LOCAL_APPS = [
@@ -204,10 +204,10 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
-# Stripe
-STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET")
-STRIPE_PLATFORM_ACCOUNT = env("STRIPE_PLATFORM_ACCOUNT")
+# Razorpay
+RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET")
+RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET")
 
 # AWS S3
 AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
@@ -217,8 +217,21 @@ AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
 AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None
 
-# Anthropic
-ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY")
+# Groq (for AI chat and reports)
+GROQ_API_KEY = env("GROQ_API_KEY")
+
+# LangSmith (for AI tracing and monitoring)
+LANGSMITH_API_KEY = env("LANGSMITH_API_KEY")
+LANGSMITH_PROJECT = env("LANGSMITH_PROJECT")
+LANGSMITH_TRACING = env("LANGSMITH_TRACING")
+
+# Set LangSmith environment variables for tracing
+if LANGSMITH_TRACING and LANGSMITH_API_KEY:
+    import os
+
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
+    os.environ["LANGCHAIN_PROJECT"] = LANGSMITH_PROJECT
 
 # Elasticsearch
 ELASTICSEARCH_URL = env("ELASTICSEARCH_URL")
@@ -237,6 +250,9 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = env("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+
+# Frontend URL (for email links)
+FRONTEND_URL = env("FRONTEND_URL")
 
 # Platform Settings
 PLATFORM_CUT_PERCENTAGE = env("PLATFORM_CUT_PERCENTAGE")
@@ -265,20 +281,7 @@ AXES_LOCK_OUT = True
 # Authentication Backends
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
 ]
-
-# Allauth Settings
-ACCOUNT_AUTHENTICATION_METHOD = "email"
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_EMAIL_VERIFICATION = "none"
-SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "SCOPE": ["profile", "email"],
-        "AUTH_PARAMS": {"access_type": "online"},
-    }
-}
 
 # Session Settings
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"

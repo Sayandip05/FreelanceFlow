@@ -1,5 +1,6 @@
-﻿from django.contrib import admin
+from django.contrib import admin
 from django.urls import include, path
+from django.conf import settings
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -12,3 +13,10 @@ urlpatterns = [
     path("api/notifications/", include("apps.notifications.urls")),
     path("api/search/", include("apps.search.urls")),
 ]
+
+if settings.DEBUG:
+    from django.views.generic import RedirectView
+
+    urlpatterns += [
+        path("", RedirectView.as_view(url="/admin/")),
+    ]

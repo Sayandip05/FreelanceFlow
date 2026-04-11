@@ -189,3 +189,62 @@ class ChangePasswordSerializer(serializers.Serializer):
             )
         
         return attrs
+
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Serializer for password reset request."""
+    email = serializers.EmailField(required=True)
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Serializer for password reset confirmation."""
+    token = serializers.CharField(required=True)
+    uid = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+    new_password_confirm = serializers.CharField(required=True, write_only=True)
+    
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "Passwords do not match."}
+            )
+        
+        try:
+            validate_password(attrs['new_password'])
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(
+                {"new_password": e.messages}
+            )
+        
+        return attrs
+
+
+class EmailVerificationSerializer(serializers.Serializer):
+    """Serializer for email verification."""
+    token = serializers.CharField(required=True)
+    uid = serializers.CharField(required=True)
+
+
+
+class AvatarUploadSerializer(serializers.Serializer):
+    """Serializer for avatar upload."""
+    avatar_url = serializers.URLField(required=True, max_length=500)
+
+
+class AvailabilityToggleSerializer(serializers.Serializer):
+    """Serializer for freelancer availability toggle."""
+    is_available = serializers.BooleanField(required=True)
+
+
+class AccountDeactivationSerializer(serializers.Serializer):
+    """Serializer for account deactivation."""
+    password = serializers.CharField(required=True, write_only=True)
+    confirmation = serializers.CharField(required=True)
+    
+    def validate_confirmation(self, value):
+        if value != "DEACTIVATE":
+            raise serializers.ValidationError(
+                'Please type "DEACTIVATE" to confirm.'
+            )
+        return value

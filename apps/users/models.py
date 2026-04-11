@@ -14,6 +14,13 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.FREELANCER)
     
+    # Account deactivation
+    is_deactivated = models.BooleanField(
+        default=False,
+        help_text="User has deactivated their account (soft delete)"
+    )
+    deactivated_at = models.DateTimeField(null=True, blank=True)
+    
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["first_name", "last_name"]
     
@@ -59,6 +66,24 @@ class FreelancerProfile(models.Model):
         decimal_places=2, 
         default=0
     )
+    
+    # New fields
+    avatar = models.URLField(
+        max_length=500,
+        blank=True,
+        help_text="Profile photo URL"
+    )
+    is_available = models.BooleanField(
+        default=True,
+        help_text="Whether freelancer is available for new projects"
+    )
+    average_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        default=0
+    )
+    total_reviews = models.IntegerField(default=0)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -84,6 +109,20 @@ class ClientProfile(models.Model):
         decimal_places=2, 
         default=0
     )
+    
+    # New fields
+    avatar = models.URLField(
+        max_length=500,
+        blank=True,
+        help_text="Profile photo URL"
+    )
+    average_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        default=0
+    )
+    total_reviews = models.IntegerField(default=0)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
