@@ -2,6 +2,7 @@
 
 from .models import Project, ProjectSkill
 from apps.users.serializers import UserSerializer
+from core.sanitizers import sanitize_html
 
 
 class ProjectSkillSerializer(serializers.ModelSerializer):
@@ -90,6 +91,14 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("Budget must be greater than 0.")
         return value
+    
+    def validate_title(self, value):
+        """Sanitize title to prevent XSS."""
+        return sanitize_html(value, allow_basic_formatting=False)
+    
+    def validate_description(self, value):
+        """Sanitize description to prevent XSS."""
+        return sanitize_html(value, allow_basic_formatting=True)
 
 
 class ProjectUpdateSerializer(serializers.ModelSerializer):
@@ -112,4 +121,16 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
     def validate_budget(self, value):
         if value is not None and value <= 0:
             raise serializers.ValidationError("Budget must be greater than 0.")
+        return value
+    
+    def validate_title(self, value):
+        """Sanitize title to prevent XSS."""
+        if value:
+            return sanitize_html(value, allow_basic_formatting=False)
+        return value
+    
+    def validate_description(self, value):
+        """Sanitize description to prevent XSS."""
+        if value:
+            return sanitize_html(value, allow_basic_formatting=True)
         return value
