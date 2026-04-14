@@ -25,10 +25,15 @@ class Payment(models.Model):
         choices=Status.choices,
         default=Status.PENDING
     )
-    stripe_payment_intent_id = models.CharField(
+    razorpay_order_id = models.CharField(
         max_length=255,
         blank=True,
-        help_text="Stripe PaymentIntent ID"
+        help_text="Razorpay Order ID"
+    )
+    razorpay_payment_id = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Razorpay Payment ID"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -82,14 +87,14 @@ class PlatformEarning(models.Model):
 
 class PaymentEvent(models.Model):
     """
-    Payment event log for Stripe webhook idempotency.
+    Payment event log for Razorpay webhook idempotency.
     """
     payment = models.ForeignKey(
         Payment,
         on_delete=models.CASCADE,
         related_name="events"
     )
-    stripe_event_id = models.CharField(max_length=255, unique=True)
+    razorpay_event_id = models.CharField(max_length=255, unique=True)
     event_type = models.CharField(max_length=100)
     processed_at = models.DateTimeField(auto_now_add=True)
     
@@ -97,4 +102,4 @@ class PaymentEvent(models.Model):
         db_table = "payment_events"
     
     def __str__(self):
-        return f"Event: {self.stripe_event_id}"
+        return f"Event: {self.razorpay_event_id}"

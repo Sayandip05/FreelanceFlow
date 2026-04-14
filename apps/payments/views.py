@@ -11,7 +11,13 @@ from .serializers import (
     ReleasePaymentSerializer,
     PaymentHistorySerializer,
 )
-from .services import create_escrow, release_payment, process_stripe_webhook
+from .services import (
+    create_escrow,
+    confirm_escrow_payment,
+    release_payment,
+    process_razorpay_webhook,
+    verify_razorpay_signature,
+)
 from .selectors import (
     get_payment_by_id,
     get_payment_by_contract,
@@ -73,7 +79,9 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
                 {
                     "message": "Escrow created successfully.",
                     "payment": PaymentSerializer(payment).data,
-                    "client_secret": payment.stripe_payment_intent_id,
+                    "razorpay_order_id": payment.razorpay_order_id,
+                    "amount": int(payment.total_amount * 100),  # Amount in paise
+                    "currency": "INR",
                 },
                 status=status.HTTP_201_CREATED,
             )
@@ -145,16 +153,66 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.AllowAny])
-def stripe_webhook(request):
+@permission_classes([permissions.IsAuthenticated])
+def verify_payment(request):
     """
-    Stripe webhook endpoint for payment events.
+    Verify Razorpay payment after client completes payment on frontend.
     """
-    payload = request.body
-    sig_header = request.headers.get('Stripe-Signature')
+    razorpay_order_id = request.data.get('razorpay_order_id')
+    razorpay_payment_id = request.data.get('razorpay_payment_id')
+    razorpay_signature = request.data.get('razorpay_signature')
+    
+    if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+        return Response(
+            {"error": "Missing payment verification data", "code": "invalid_data"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     
     try:
-        process_stripe_webhook(payload, sig_header)
+        # Verify signature
+        if not verify_razorpay_signature(razorpay_order_id, razorpay_payment_id, razorpay_signature):
+            return Response(
+                {"error": "Invalid payment signature", "code": "invalid_signature"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Confirm escrow payment
+        payment = confirm_escrow_payment(razorpay_order_id, razorpay_payment_id)
+        
+        return Response(
+            {
+                "message": "Payment verified successfully.",
+                "payment": PaymentSerializer(payment).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+    except ValidationError as e:
+        return Response(
+            {"error": e.message, "code": e.code},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def razorpay_webhook(request):
+    """
+    Razorpay webhook endpoint for payment events.
+    """
+    import json
+    
+    # Get raw body for signature verification
+    raw_body = request.body
+    payload = json.loads(raw_body)
+    sig_header = request.headers.get('X-Razorpay-Signature')
+    
+    try:
+        process_razorpay_webhook(payload, raw_body, sig_header)
         return Response({"status": "success"}, status=status.HTTP_200_OK)
     except ValidationError as e:
         return Response(
