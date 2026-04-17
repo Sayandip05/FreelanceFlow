@@ -3,22 +3,76 @@
 services:
   db:
     image: postgres:15
+    stop_grace_period: 10s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
   redis:
     image: redis:7
+    stop_grace_period: 10s
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
+    stop_grace_period: 30s
+    stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+  
   daphne:
     build: .
     command: daphne -b 0.0.0.0 -p 8001 config.asgi:application
+    stop_grace_period: 30s
+    stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health/live/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+  
   celery:
     build: .
-    command: celery -A config worker -l info
+    command: celery -A config worker -l info --max-tasks-per-child=1000
+    stop_grace_period: 60s
+    stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+  
   celery-beat:
     build: .
     command: celery -A config beat -l info
+    stop_grace_period: 30s
+    stop_signal: SIGTERM
+  
   flower:
     build: .
     command: celery -A config flower
+    stop_grace_period: 20s
+    stop_signal: SIGTERM
+  
   elastic:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
