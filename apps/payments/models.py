@@ -42,6 +42,18 @@ class Payment(models.Model):
         blank=True,
         help_text="RazorpayX Payout ID"
     )
+    razorpay_refund_id = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Razorpay Refund ID"
+    )
+    refund_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Amount refunded to client (if any)"
+    )
     payout_error = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -64,6 +76,13 @@ class Escrow(models.Model):
         related_name="escrow"
     )
     held_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    refund_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Amount refunded from escrow to client"
+    )
     released_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
