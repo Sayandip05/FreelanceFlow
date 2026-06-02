@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models import Sum, Q
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action, api_view, permission_classes
@@ -29,6 +31,8 @@ from .selectors import (
 from .permissions import IsPaymentParticipant, IsPaymentClient
 from apps.bidding.models import Contract
 from core.exceptions import ValidationError
+
+logger = logging.getLogger("apps.payments.views")
 
 
 class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
@@ -203,25 +207,56 @@ def verify_payment(request):
 def razorpay_webhook(request):
     """
     Razorpay webhook endpoint for payment events.
+
+    IMPORTANT: Razorpay retries webhooks that do not receive HTTP 200.
+    - Invalid signature  → log and return 200 (do nothing, but don't retry).
+    - Missing event ID   → 400 so Razorpay retries with a corrected payload.
+    - Any other error    → 200 (logged internally) to avoid infinite retries.
     """
     import json
-    
-    # Get raw body for signature verification
+    from core.exceptions import PermissionDeniedError
+
     raw_body = request.body
-    payload = json.loads(raw_body)
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError:
+        return Response(
+            {"error": "Invalid JSON payload", "code": "invalid_payload"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     sig_header = request.headers.get('X-Razorpay-Signature')
     event_id = request.headers.get('X-Razorpay-Event-Id')
-    
+
     try:
         process_razorpay_webhook(payload, raw_body, sig_header, event_id)
         return Response({"status": "success"}, status=status.HTTP_200_OK)
+
+    except PermissionDeniedError:
+        # Invalid signature — log the attempt and acknowledge so Razorpay
+        # doesn't retry (retries on non-200 would flood our endpoint).
+        logger.warning(
+            "Razorpay webhook rejected: invalid signature. "
+            "event_id=%s sig=%s",
+            event_id,
+            sig_header,
+        )
+        return Response(
+            {"status": "ignored", "reason": "invalid_signature"},
+            status=status.HTTP_200_OK,
+        )
+
     except ValidationError as e:
+        # Missing or malformed event ID — tell Razorpay to retry.
         return Response(
             {"error": e.message, "code": e.code},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
     except Exception as e:
+        logger.exception("Unexpected error processing Razorpay webhook: %s", e)
+        # Return 200 so Razorpay doesn't flood us with retries.
         return Response(
-            {"error": str(e)},
-            status=status.HTTP_400_BAD_REQUEST,
+            {"status": "error", "reason": "internal_error"},
+            status=status.HTTP_200_OK,
         )
