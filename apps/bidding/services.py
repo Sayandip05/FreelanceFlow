@@ -1,3 +1,4 @@
+import logging
 from django.db import transaction
 from django.utils import timezone
 
@@ -5,6 +6,8 @@ from .models import Bid, Contract
 from apps.projects.models import Project
 from apps.projects.services import mark_project_in_progress
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
+
+logger = logging.getLogger("apps.bidding")
 
 
 def submit_bid(
@@ -72,8 +75,12 @@ def submit_bid(
             cover_letter=cover_letter,
             status=Bid.Status.PENDING,
         )
-        
-        return bid
+
+    logger.info(
+        "Bid submitted: bid_id=%s project_id=%s freelancer_id=%s amount=%s",
+        bid.id, project.id, freelancer.id, amount,
+    )
+    return bid
 
 
 def accept_bid(bid_id: int, client) -> Contract:
@@ -129,12 +136,16 @@ def accept_bid(bid_id: int, client) -> Contract:
         
         # Update project status
         mark_project_in_progress(bid.project)
-        
+
         # Schedule notification after commit
         transaction.on_commit(
             lambda: notify_freelancer_bid_accepted.delay(contract.id)
         )
-        
+
+        logger.info(
+            "Bid accepted: bid_id=%s contract_id=%s project_id=%s client_id=%s freelancer_id=%s",
+            bid.id, contract.id, bid.project.id, client.id, bid.freelancer.id,
+        )
         return contract
 
 
@@ -166,7 +177,11 @@ def reject_bid(bid_id: int, client) -> Bid:
     
     bid.status = Bid.Status.REJECTED
     bid.save()
-    
+
+    logger.info(
+        "Bid rejected: bid_id=%s project_id=%s client_id=%s",
+        bid.id, bid.project.id, client.id,
+    )
     return bid
 
 
@@ -196,7 +211,11 @@ def withdraw_bid(bid_id: int, freelancer) -> Bid:
     
     bid.status = Bid.Status.WITHDRAWN
     bid.save()
-    
+
+    logger.info(
+        "Bid withdrawn: bid_id=%s project_id=%s freelancer_id=%s",
+        bid.id, bid.project.id, freelancer.id,
+    )
     return bid
 
 
@@ -219,5 +238,9 @@ def complete_contract(contract_id: int) -> Contract:
     contract.is_active = False
     contract.end_date = timezone.now()
     contract.save()
-    
+
+    logger.info(
+        "Contract completed: contract_id=%s project_id=%s",
+        contract.id, contract.bid.project.id,
+    )
     return contract
