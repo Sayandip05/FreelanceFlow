@@ -1,8 +1,11 @@
+import logging
 from django.db import transaction
 from django.db.models import QuerySet
 
 from .models import Project, ProjectSkill
 from core.exceptions import ValidationError, PermissionDeniedError
+
+logger = logging.getLogger("apps.projects")
 
 
 def create_project(
@@ -49,16 +52,19 @@ def create_project(
             budget=budget,
             deadline=deadline,
         )
-        
-        # Create skills
+
         if skills:
             ProjectSkill.objects.bulk_create([
                 ProjectSkill(project=project, skill_name=skill.strip())
                 for skill in skills
                 if skill.strip()
             ])
-        
-        return project
+
+    logger.info(
+        "Project created: project_id=%s client_id=%s title=%r budget=%s",
+        project.id, client.id, title, budget,
+    )
+    return project
 
 
 def update_project(
@@ -96,8 +102,7 @@ def update_project(
             project.deadline = deadline
         
         project.save()
-        
-        # Update skills if provided
+
         if skills is not None:
             project.skills.all().delete()
             ProjectSkill.objects.bulk_create([
@@ -105,8 +110,12 @@ def update_project(
                 for skill in skills
                 if skill.strip()
             ])
-        
-        return project
+
+    logger.info(
+        "Project updated: project_id=%s updated_by=%s",
+        project.id, user.id,
+    )
+    return project
 
 
 def close_project(project: Project, user) -> Project:
@@ -121,7 +130,11 @@ def close_project(project: Project, user) -> Project:
     
     project.status = Project.Status.CANCELLED
     project.save()
-    
+
+    logger.info(
+        "Project cancelled: project_id=%s closed_by=%s",
+        project.id, user.id,
+    )
     return project
 
 
@@ -134,7 +147,8 @@ def mark_project_in_progress(project: Project) -> Project:
     
     project.status = Project.Status.IN_PROGRESS
     project.save()
-    
+
+    logger.info("Project moved to IN_PROGRESS: project_id=%s", project.id)
     return project
 
 
@@ -147,5 +161,6 @@ def mark_project_completed(project: Project) -> Project:
     
     project.status = Project.Status.COMPLETED
     project.save()
-    
+
+    logger.info("Project completed: project_id=%s", project.id)
     return project
