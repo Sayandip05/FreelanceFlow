@@ -1,9 +1,12 @@
+import logging
 from django.db import transaction
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .models import User, FreelancerProfile, ClientProfile
 from core.exceptions import ValidationError, BusinessError
+
+logger = logging.getLogger("apps.users")
 
 
 def create_user(
@@ -58,9 +61,10 @@ def create_user(
             last_name=last_name,
             **extra_fields
         )
-        
         # Profile is created via signal
-        return user
+
+    logger.info("User created: user_id=%s role=%s", user.id, role)
+    return user
 
 
 def update_profile(user: User, data: dict) -> User:
@@ -99,7 +103,8 @@ def update_profile(user: User, data: dict) -> User:
             if 'company_name' in data:
                 profile.company_name = data['company_name']
             profile.save()
-        
+
+        logger.info("Profile updated: user_id=%s role=%s", user.id, user.role)
         return user
 
 
@@ -121,9 +126,14 @@ def update_subscription_tier(user: User, tier: str) -> FreelancerProfile:
         raise ValidationError("Invalid subscription tier.", field="tier")
     
     profile = user.freelancer_profile
+    old_tier = profile.subscription_tier
     profile.subscription_tier = tier
     profile.save()
-    
+
+    logger.info(
+        "Subscription tier updated: user_id=%s %s -> %s",
+        user.id, old_tier, tier,
+    )
     return profile
 
 
@@ -149,7 +159,9 @@ def change_password(user: User, old_password: str, new_password: str) -> User:
     
     user.set_password(new_password)
     user.save()
-    
+
+    # Security audit: log password changes. Never log the password value itself.
+    logger.info("Password changed: user_id=%s", user.id)
     return user
 
 
@@ -208,7 +220,8 @@ def send_password_reset_email(email: str) -> bool:
         [email],
         fail_silently=False,
     )
-    
+
+    logger.info("Password reset email sent: user_id=%s", user.id)
     return True
 
 
@@ -244,7 +257,8 @@ def reset_password(uid: str, token: str, new_password: str) -> User:
     
     user.set_password(new_password)
     user.save()
-    
+
+    logger.info("Password reset completed: user_id=%s", user.id)
     return user
 
 
@@ -327,7 +341,8 @@ def verify_email(uid: str, token: str) -> User:
     
     user.is_active = True
     user.save()
-    
+
+    logger.info("Email verified: user_id=%s", user.id)
     return user
 
 
@@ -420,7 +435,9 @@ FreelanceFlow Team
             recipient_list=[user.email],
             fail_silently=True,
         )
-    
+
+    # Security audit: this is a critical lifecycle event.
+    logger.warning("Account deactivated: user_id=%s", user.id)
     return user
 
 
@@ -441,6 +458,7 @@ def reactivate_account(user: User) -> User:
     user.deactivated_at = None
     user.is_active = True
     user.save()
-    
+
+    logger.info("Account reactivated: user_id=%s", user.id)
     return user
  
