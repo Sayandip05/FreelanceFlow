@@ -1,7 +1,7 @@
 from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 
-from .models import Bid, Contract
+from apps.bidding.models import Bid, Contract
 
 
 def get_bid_by_id(bid_id: int) -> Bid:

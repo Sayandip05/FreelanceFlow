@@ -3,7 +3,7 @@ URL Configuration for Extended Bidding Features
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views_extended import (
+from apps.bidding.views import (
     WorklogApprovalViewSet,
     BidRetractionViewSet,
     CounterOfferViewSet

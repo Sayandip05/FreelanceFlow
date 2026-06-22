@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-from .models import Bid, Contract
+from apps.bidding.models import Bid, Contract
 
 
 class IsBidOwner(permissions.BasePermission):

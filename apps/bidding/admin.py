@@ -1,7 +1,7 @@
 from django.contrib import admin
-from apps.bidding.models import Bid, Contract
-from apps.bidding.models_review import Review, ReviewResponse
-from apps.bidding.models_termination import ContractTerminationRequest
+from apps.bidding.models import (
+    Bid, Contract, Review, ReviewResponse, ContractTerminationRequest
+)
 
 
 @admin.register(Bid)

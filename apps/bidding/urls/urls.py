@@ -1,8 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import BidViewSet, ContractViewSet
-from .views_review import ReviewViewSet
+from apps.bidding.views import BidViewSet, ContractViewSet, ReviewViewSet
 
 
 router = DefaultRouter()
