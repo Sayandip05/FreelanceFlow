@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Bid, Contract
+from apps.bidding.models import Bid, Contract
 from apps.users.serializers import UserSerializer
 from apps.projects.serializers import ProjectListSerializer
 from core.sanitizers import sanitize_html

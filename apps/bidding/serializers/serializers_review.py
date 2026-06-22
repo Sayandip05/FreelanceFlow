@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-from .models_review import Review, ReviewResponse
+from apps.bidding.models import Review, ReviewResponse
 from apps.users.serializers import UserSerializer
 from core.sanitizers import sanitize_html
 

@@ -2,7 +2,7 @@
 Serializers for Extended Bidding Features
 """
 from rest_framework import serializers
-from .models_extended import WorklogApproval, BidRetraction, CounterOffer
+from apps.bidding.models import WorklogApproval, BidRetraction, CounterOffer
 
 
 # ============= Worklog Approval Serializers =============
