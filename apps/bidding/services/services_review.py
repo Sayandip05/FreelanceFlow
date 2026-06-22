@@ -2,8 +2,8 @@
 from django.db import transaction
 from django.db.models import Avg, Count, Q
 
-from .models import Contract
-from .models_review import Review, ReviewResponse
+from apps.bidding.models import Contract
+from apps.bidding.models import Review, ReviewResponse
 from apps.users.models import User
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
 

@@ -6,7 +6,7 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from apps.worklogs.models import WorkLog
-from .models_extended import WorklogApproval
+from apps.bidding.models import WorklogApproval
 
 
 @transaction.atomic

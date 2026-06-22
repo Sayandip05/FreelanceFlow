@@ -5,8 +5,8 @@ Allows clients to make counter-offers on bids
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from decimal import Decimal
-from .models import Bid
-from .models_extended import CounterOffer
+from apps.bidding.models import Bid
+from apps.bidding.models import CounterOffer
 
 
 @transaction.atomic

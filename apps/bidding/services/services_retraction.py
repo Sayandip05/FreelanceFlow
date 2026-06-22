@@ -5,8 +5,8 @@ Allows freelancers to retract bids before acceptance
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from .models import Bid
-from .models_extended import BidRetraction
+from apps.bidding.models import Bid
+from apps.bidding.models import BidRetraction
 
 
 @transaction.atomic

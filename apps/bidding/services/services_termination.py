@@ -2,7 +2,7 @@
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Contract
+from apps.bidding.models import Contract
 from apps.users.models import User
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
 
@@ -54,7 +54,7 @@ def request_contract_termination(
     if hasattr(contract, 'termination_request'):
         raise ValidationError("Termination request already exists.")
     
-    from .models_termination import ContractTerminationRequest
+    from apps.bidding.models import ContractTerminationRequest
     
     with transaction.atomic():
         termination_request = ContractTerminationRequest.objects.create(
@@ -103,7 +103,7 @@ def approve_contract_termination(
     Returns:
         Terminated Contract instance
     """
-    from .models_termination import ContractTerminationRequest
+    from apps.bidding.models import ContractTerminationRequest
     
     try:
         termination_request = ContractTerminationRequest.objects.select_related(
@@ -188,7 +188,7 @@ def reject_contract_termination(
         rejector: User rejecting the termination
         rejection_reason: Reason for rejection
     """
-    from .models_termination import ContractTerminationRequest
+    from apps.bidding.models import ContractTerminationRequest
     
     try:
         termination_request = ContractTerminationRequest.objects.select_related(

@@ -3,8 +3,8 @@ from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
 
-from .models import Contract
-from .models_amendment import ContractAmendment
+from apps.bidding.models import Contract
+from apps.bidding.models import ContractAmendment
 from apps.users.models import User
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
 
