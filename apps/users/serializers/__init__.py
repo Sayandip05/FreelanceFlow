@@ -1,0 +1,26 @@
+from .serializers import (
+    FreelancerProfileSerializer,
+    ClientProfileSerializer,
+    UserSerializer,
+    UserRegistrationSerializer,
+    UserProfileUpdateSerializer,
+    ChangePasswordSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
+    EmailVerificationSerializer,
+    AvatarUploadSerializer,
+    AvailabilityToggleSerializer,
+    AccountDeactivationSerializer,
+)
+from .serializers_extended import (
+    Enable2FASerializer,
+    Verify2FASerializer,
+    Disable2FASerializer,
+    TwoFactorAuthStatusSerializer,
+    Enable2FAResponseSerializer,
+    ActivityLogSerializer,
+    ActivitySummarySerializer,
+    UserOnlineStatusSerializer,
+    UpdateStatusMessageSerializer,
+    OnlineUsersSerializer,
+)
