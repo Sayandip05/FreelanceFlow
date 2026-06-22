@@ -7,20 +7,20 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
 
-from .serializers_extended import (
+from apps.bidding.serializers import (
     WorklogApprovalSerializer, ApproveWorklogSerializer, RejectWorklogSerializer,
     BidRetractionSerializer, RetractionDetailSerializer,
     CounterOfferSerializer, CounterOfferResponseSerializer,
     CounterOfferStatsSerializer
 )
-from .services_worklog_approval import (
+from apps.bidding.services import (
     submit_worklog_for_approval, approve_worklog, reject_worklog,
     get_pending_approvals, get_worklog_approval_status, get_approval_stats
 )
-from .services_retraction import (
+from apps.bidding.services import (
     retract_bid, can_retract_bid, get_retracted_bids, get_retraction_details
 )
-from .services_counter_offer import (
+from apps.bidding.services import (
     create_counter_offer, accept_counter_offer, reject_counter_offer,
     get_counter_offers_for_bid, get_pending_counter_offers, get_counter_offer_stats
 )
@@ -153,7 +153,7 @@ class BidRetractionViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['get'], url_path='can-retract')
     def can_retract(self, request, pk=None):
         """Check if bid can be retracted"""
-        from .models import Bid
+        from apps.bidding.models import Bid
         
         try:
             bid = Bid.objects.get(id=pk)
@@ -168,13 +168,12 @@ class BidRetractionViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
     
-    @action(detail=False, methods=['get'])
     def list(self, request):
         """Get retracted bids for current user"""
         bids = get_retracted_bids(request.user, limit=20)
         # Use existing bid serializer
-        from .serializers import BidSerializer
-        serializer = BidSerializer(bids, many=True)
+        from apps.bidding.serializers import BidListSerializer
+        serializer = BidListSerializer(bids, many=True)
         return Response(serializer.data)
     
     @action(detail=True, methods=['get'])
@@ -234,10 +233,10 @@ class CounterOfferViewSet(viewsets.ViewSet):
         """Accept a counter-offer"""
         try:
             bid = accept_counter_offer(pk, request.user)
-            from .serializers import BidSerializer
+            from apps.bidding.serializers import BidDetailSerializer
             return Response({
                 'message': 'Counter-offer accepted',
-                'bid': BidSerializer(bid).data
+                'bid': BidDetailSerializer(bid).data
             }, status=status.HTTP_200_OK)
         except ValidationError as e:
             return Response(

@@ -4,15 +4,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import models
 
-from .models_review import Review, ReviewResponse
-from .serializers_review import (
+from apps.bidding.models import Review, ReviewResponse
+from apps.bidding.serializers import (
     ReviewSerializer,
     ReviewCreateSerializer,
     ReviewResponseSerializer,
     ReviewResponseCreateSerializer,
     UserRatingsSummarySerializer,
 )
-from .services_review import (
+from apps.bidding.services import (
     create_review,
     update_review,
     delete_review,

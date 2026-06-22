@@ -2,21 +2,21 @@ from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Bid, Contract
-from .serializers import (
+from apps.bidding.models import Bid, Contract
+from apps.bidding.serializers import (
     BidListSerializer,
     BidDetailSerializer,
     BidCreateSerializer,
     ContractSerializer,
     ContractListSerializer,
 )
-from .services import (
+from apps.bidding.services import (
     submit_bid,
     accept_bid,
     reject_bid,
     withdraw_bid,
 )
-from .selectors import (
+from apps.bidding.selectors import (
     get_bid_by_id,
     get_project_bids,
     get_freelancer_bids,
@@ -24,7 +24,7 @@ from .selectors import (
     get_client_active_contracts,
     get_contract_by_id,
 )
-from .permissions import (
+from apps.bidding.permissions import (
     IsBidOwner,
     IsProjectClient,
     IsContractParticipant,
