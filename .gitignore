@@ -17,3 +17,5 @@ frontend/dist/
 .cache/
 .fontconfig/
 
+# Refactoring script
+scripts/commit_refactor.sh
