@@ -366,3 +366,128 @@ CSRF_COOKIE_NAME = "ff_csrftoken"
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_USE_SESSIONS = False
+
+# =============================================================================
+# LOGGING — Centralized config (all environments)
+# =============================================================================
+# All app logs go to ONE rotating file: logs/freelanceflow.log
+# Each app has its own named logger (apps.bidding, apps.payments, etc.)
+# Production overrides the handler to use JSON format.
+# =============================================================================
+
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "formatters": {
+        # Plain text — used in local dev
+        "standard": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+        # JSON — overridden in production.py
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        },
+    },
+
+    "handlers": {
+        # Console — always on
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+        # Single rotating file — ALL app logs go here
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOGS_DIR / "freelanceflow.log",
+            "maxBytes": 10 * 1024 * 1024,   # 10 MB
+            "backupCount": 5,
+            "formatter": "standard",
+            "encoding": "utf-8",
+        },
+    },
+
+    # Root logger — catches anything not matched below
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "WARNING",
+    },
+
+    "loggers": {
+        # ── FreelanceFlow apps ─────────────────────────────────────────────
+        "apps.users": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "apps.projects": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "apps.bidding": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "apps.payments": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "apps.worklogs": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "apps.messaging": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "apps.notifications": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "apps.search": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # ── Django internals ───────────────────────────────────────────────
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console", "file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        # ── Third-party noise suppression ──────────────────────────────────
+        "celery": {
+            "handlers": ["console", "file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "environ": {
+            "handlers": [],
+            "level": "CRITICAL",
+            "propagate": False,
+        },
+    },
+}
+

@@ -24,36 +24,11 @@ STATICFILES_STORAGE = "storages.backends.s3boto3.S3Storage"
 # S3 CloudFront is configured in base.py from env variable
 
 # Logging
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "json": {
-            "class": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "format": "%(asctime)s %(levelname)s %(name)s %(message)s %(user_id)s %(ip)s %(path)s",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "json",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-        },
-        "django.db.backends": {
-            "handlers": ["console"],
-            "level": "WARNING",
-        },
-    },
-}
+# Logging — override base.py to use JSON formatter in production
+# The file handler (logs/freelanceflow.log) and all loggers are
+# inherited from base.py; we only swap the formatter here.
+LOGGING["handlers"]["console"]["formatter"] = "json"
+LOGGING["handlers"]["file"]["formatter"] = "json"
 
 # Sentry
 SENTRY_DSN = env("SENTRY_DSN", default="")

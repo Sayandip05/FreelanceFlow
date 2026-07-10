@@ -19,3 +19,7 @@ frontend/dist/
 
 # Refactoring script
 scripts/commit_refactor.sh
+
+# Application logs
+logs/
+*.log

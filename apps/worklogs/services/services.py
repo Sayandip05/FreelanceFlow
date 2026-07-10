@@ -1,3 +1,4 @@
+import logging
 import json
 from django.db import transaction
 from django.utils import timezone
@@ -10,6 +11,8 @@ from apps.users.models import User
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
 from core.utils import generate_report_id
 from .groq_service import get_groq_service
+
+logger = logging.getLogger("apps.worklogs")
 
 
 def create_worklog(
@@ -88,12 +91,15 @@ def create_worklog(
             screenshot_url=screenshot_url,
             reference_url=reference_url,
         )
-        
-        # Schedule notification to client
+
         transaction.on_commit(
             lambda: notify_client_log_submitted.delay(log.id)
         )
-        
+
+        logger.info(
+            "Worklog created: id=%s contract_id=%s freelancer_id=%s date=%s hours=%s",
+            log.id, contract.id, freelancer.id, log_date, hours_worked,
+        )
         return log
 
 
@@ -134,6 +140,10 @@ def update_worklog(
         log.reference_url = reference_url
     
     log.save()
+    logger.info(
+        "Worklog updated: id=%s freelancer_id=%s",
+        log.id, freelancer.id,
+    )
     return log
 
 
@@ -141,8 +151,10 @@ def delete_worklog(log: WorkLog, freelancer) -> None:
     """Delete a work log."""
     if log.freelancer != freelancer:
         raise PermissionDeniedError("You can only delete your own logs.")
-    
+
+    log_id = log.id
     log.delete()
+    logger.info("Worklog deleted: id=%s freelancer_id=%s", log_id, freelancer.id)
 
 
 def generate_delivery_proof(contract_id: int) -> DeliveryProof:
