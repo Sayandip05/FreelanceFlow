@@ -13,10 +13,8 @@ Covered endpoints:
 """
 from django.test import TestCase
 from django.urls import reverse
-
 from rest_framework.test import APIClient
 from rest_framework import status
-
 from apps.users.tests.factories import make_freelancer, make_client
 
 
@@ -29,6 +27,7 @@ class UserRegistrationAPITest(TestCase):
         resp = self.client.post("/api/users/register/", {
             "email": "newfl@test.com",
             "password": "StrongPass#123",
+            "password_confirm": "StrongPass#123",
             "role": "FREELANCER",
             "first_name": "New",
             "last_name": "Dev",
@@ -39,6 +38,7 @@ class UserRegistrationAPITest(TestCase):
         resp = self.client.post("/api/users/register/", {
             "email": "newcl@test.com",
             "password": "StrongPass#123",
+            "password_confirm": "StrongPass#123",
             "role": "CLIENT",
             "first_name": "New",
             "last_name": "Buyer",

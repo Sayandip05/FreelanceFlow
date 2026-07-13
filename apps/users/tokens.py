@@ -1,7 +1,5 @@
 """Token generators for password reset and email verification."""
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-
-
 class AccountActivationTokenGenerator(PasswordResetTokenGenerator):
     """Token generator for email verification."""
     

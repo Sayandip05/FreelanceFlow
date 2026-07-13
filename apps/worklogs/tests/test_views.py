@@ -3,16 +3,12 @@ Tests for apps.worklogs views (WorkLogViewSet, WeeklyReportViewSet, DeliverableV
 """
 from datetime import date, timedelta
 from unittest.mock import patch
-
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from apps.bidding.models import Bid
 from apps.projects.tests.factories import make_client, make_freelancer, make_project, make_bid, make_contract
 from apps.worklogs.models import WorkLog, WeeklyReport, Deliverable
-
-
 def auth(user):
     return f"Bearer {RefreshToken.for_user(user).access_token}"
 

@@ -4,7 +4,6 @@ Covers: create_worklog, update_worklog, delete_worklog, generate_delivery_proof
 """
 from datetime import date, timedelta
 from unittest.mock import patch
-
 from django.test import TestCase
 
 from apps.bidding.models import Bid
@@ -12,8 +11,6 @@ from apps.projects.tests.factories import make_client, make_freelancer, make_pro
 from apps.worklogs.models import WorkLog, DeliveryProof
 from apps.worklogs.services import create_worklog, update_worklog, delete_worklog, generate_delivery_proof
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
-
-
 def _make_contract():
     client = make_client()
     freelancer = make_freelancer()

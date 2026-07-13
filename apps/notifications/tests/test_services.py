@@ -8,7 +8,6 @@ Coverage:
 - delete_notification: deletes own, returns False for other user's notification
 """
 from django.test import TestCase
-
 from apps.notifications.services import (
     create_notification,
     mark_notification_as_read,
@@ -17,8 +16,6 @@ from apps.notifications.services import (
 )
 from apps.notifications.models import Notification
 from apps.users.tests.factories import make_freelancer, make_client
-
-
 class CreateNotificationTest(TestCase):
 
     def setUp(self):

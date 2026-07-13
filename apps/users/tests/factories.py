@@ -6,8 +6,6 @@ dependency list minimal. Every test that needs a User should import
 from here so fixture creation is consistent and DRY.
 """
 from apps.users.models import User, FreelancerProfile, ClientProfile
-
-
 def make_freelancer(
     email: str = "freelancer@test.com",
     password: str = "StrongPass#123",

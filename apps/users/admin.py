@@ -1,8 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from apps.users.models import User, FreelancerProfile, ClientProfile
-
-
 class FreelancerProfileInline(admin.StackedInline):
     """Inline admin for FreelancerProfile."""
     model = FreelancerProfile

@@ -1,7 +1,5 @@
 """Add refund and dispute fields to Payment model."""
 from django.db import migrations, models
-
-
 class Migration(migrations.Migration):
 
     dependencies = [

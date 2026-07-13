@@ -5,7 +5,6 @@ Covers: search endpoint, autocomplete, history, saved searches.
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from apps.projects.tests.factories import make_client, make_freelancer, make_project
 
 

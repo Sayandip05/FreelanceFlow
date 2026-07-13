@@ -1,7 +1,5 @@
 from django.contrib import admin
 from apps.messaging.models import Conversation, Message
-
-
 class MessageInline(admin.TabularInline):
     """Inline admin for messages in a conversation."""
     model = Message

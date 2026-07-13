@@ -3,12 +3,10 @@ Tests for apps.bidding views (BidViewSet, ContractViewSet).
 Covers: list, create, accept, reject, withdraw endpoints.
 """
 from unittest.mock import patch
-
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from apps.bidding.models import Bid, Contract
 from apps.projects.tests.factories import (
     make_client,
@@ -18,8 +16,6 @@ from apps.projects.tests.factories import (
     make_contract,
 )
 from apps.projects.models import Project
-
-
 def auth_header(user):
     token = RefreshToken.for_user(user)
     return {"HTTP_AUTHORIZATION": f"Bearer {token.access_token}"}

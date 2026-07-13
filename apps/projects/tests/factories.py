@@ -5,12 +5,9 @@ Provides a single `ProjectFactory` and related helpers so fixture
 creation is consistent across the entire test suite.
 """
 from datetime import date, timedelta
-
 from apps.users.models import User
 from apps.projects.models import Project, ProjectSkill
 from apps.bidding.models import Bid, Contract
-
-
 def make_freelancer(email="fl@proj.test", password="StrongPass#123"):
     return User.objects.create_user(
         email=email,

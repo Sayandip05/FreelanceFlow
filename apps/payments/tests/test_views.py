@@ -10,11 +10,9 @@ NOTE: Razorpay API calls are mocked. These tests validate permission enforcement
 and request/response contracts, not the actual payment processing.
 """
 from unittest.mock import patch, MagicMock
-
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
-
 from apps.payments.models import Payment
 from apps.projects.tests.factories import (
     make_client, make_freelancer, make_project, make_bid, make_contract,

@@ -12,7 +12,6 @@ import hmac
 
 from django.test import TestCase, override_settings
 from unittest.mock import patch, MagicMock
-
 from apps.payments.models import Payment, PaymentEvent
 from apps.payments.services import (
     process_razorpay_webhook,
@@ -27,8 +26,6 @@ from apps.projects.tests.factories import (
     make_contract,
 )
 from core.exceptions import PermissionDeniedError, ValidationError
-
-
 def _make_payment(contract):
     return Payment.objects.create(
         contract=contract,

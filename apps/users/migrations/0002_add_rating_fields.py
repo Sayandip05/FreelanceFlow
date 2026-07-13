@@ -1,7 +1,5 @@
 """Add rating fields to user profiles."""
 from django.db import migrations, models
-
-
 class Migration(migrations.Migration):
 
     dependencies = [

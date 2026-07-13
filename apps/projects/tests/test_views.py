@@ -11,11 +11,8 @@ Covered endpoints:
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
-
 from apps.projects.models import Project
 from apps.projects.tests.factories import make_client, make_freelancer, make_project
-
-
 def _get_token(api_client, email, password):
     resp = api_client.post("/api/users/token/", {"email": email, "password": password}, format="json")
     return resp.data.get("access", "")

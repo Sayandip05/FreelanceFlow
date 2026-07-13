@@ -1,7 +1,5 @@
 from django.contrib import admin
 from apps.projects.models import Project, ProjectSkill
-
-
 class ProjectSkillInline(admin.TabularInline):
     """Inline admin for project skills."""
     model = ProjectSkill

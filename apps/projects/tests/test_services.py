@@ -9,7 +9,6 @@ Coverage:
 - mark_project_completed: only IN_PROGRESS project transitions
 """
 from django.test import TestCase
-
 from apps.projects.models import Project, ProjectSkill
 from apps.projects.services import (
     create_project,
@@ -20,8 +19,6 @@ from apps.projects.services import (
 )
 from apps.projects.tests.factories import make_client, make_freelancer, make_project
 from core.exceptions import ValidationError, PermissionDeniedError
-
-
 class CreateProjectServiceTest(TestCase):
 
     def setUp(self):

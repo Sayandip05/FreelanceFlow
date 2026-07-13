@@ -10,7 +10,6 @@ Coverage:
 - deactivate_account / reactivate_account: full soft-delete lifecycle
 """
 from unittest.mock import patch
-
 from django.test import TestCase
 
 from apps.users.models import User, FreelancerProfile
@@ -25,8 +24,6 @@ from apps.users.services import (
 )
 from apps.users.tests.factories import make_freelancer, make_client
 from core.exceptions import ValidationError, BusinessError
-
-
 class CreateUserServiceTest(TestCase):
 
     def test_create_freelancer_succeeds(self):

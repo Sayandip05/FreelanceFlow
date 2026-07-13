@@ -4,14 +4,11 @@ Covers: WorkLog, WeeklyReport, Deliverable, DeliveryProof model properties.
 """
 from datetime import date, timedelta
 from decimal import Decimal
-
 from django.test import TestCase
 
 from apps.bidding.models import Bid, Contract
 from apps.projects.tests.factories import make_client, make_freelancer, make_project, make_bid, make_contract
 from apps.worklogs.models import WorkLog, WeeklyReport, Deliverable, DeliveryProof
-
-
 def make_worklog(contract, freelancer, log_date=None, hours=8.0, description="Working on the feature implementation today."):
     return WorkLog.objects.create(
         contract=contract,

@@ -8,7 +8,6 @@ Coverage:
 - list_clients: returns queryset
 """
 from django.test import TestCase
-
 from apps.users.selectors import (
     get_user_by_email,
     get_freelancer_profile,
@@ -17,8 +16,6 @@ from apps.users.selectors import (
     list_clients,
 )
 from apps.users.tests.factories import make_freelancer, make_client
-
-
 class GetUserByEmailTest(TestCase):
 
     def test_returns_user_if_found(self):

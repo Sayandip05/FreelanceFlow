@@ -7,14 +7,11 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.test import TestCase
-
 from apps.bidding.models import Bid
 from apps.messaging.models import Conversation, Message
 from apps.messaging.services import get_or_create_conversation, send_message, mark_messages_as_read
 from apps.projects.tests.factories import make_client, make_freelancer, make_project, make_bid, make_contract
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
-
-
 def auth(user):
     return f"Bearer {RefreshToken.for_user(user).access_token}"
 

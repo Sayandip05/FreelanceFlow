@@ -1,6 +1,12 @@
 from django.contrib import admin
-from apps.payments.models import Payment, Escrow, PlatformEarning, PaymentEvent
-from apps.payments.models_dispute import PaymentDispute, DisputeMessage
+from apps.payments.models import (
+    Payment,
+    Escrow,
+    PlatformEarning,
+    PaymentEvent,
+    PaymentDispute,
+    DisputeMessage,
+)
 
 
 @admin.register(Payment)

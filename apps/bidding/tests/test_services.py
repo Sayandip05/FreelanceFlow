@@ -3,7 +3,6 @@ Tests for apps.bidding.services
 Covers: submit_bid, accept_bid, reject_bid, withdraw_bid, complete_contract
 """
 from unittest.mock import patch
-
 from django.test import TestCase
 
 from apps.bidding.models import Bid, Contract
@@ -17,8 +16,6 @@ from apps.bidding.services import (
 from apps.projects.tests.factories import make_client, make_freelancer, make_project, make_bid, make_contract
 from apps.projects.models import Project
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
-
-
 class SubmitBidTests(TestCase):
     def setUp(self):
         self.client_user = make_client()

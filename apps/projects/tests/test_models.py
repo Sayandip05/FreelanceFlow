@@ -7,11 +7,8 @@ Coverage:
 """
 from django.test import TestCase
 from django.db import IntegrityError
-
 from apps.projects.models import Project, ProjectSkill
 from apps.projects.tests.factories import make_client, make_project
-
-
 class ProjectModelTest(TestCase):
 
     def setUp(self):
@@ -42,7 +39,7 @@ class ProjectSkillModelTest(TestCase):
 
     def test_skill_str(self):
         skill = self.project.skills.first()
-        self.assertEqual(str(skill), "My Test Project - Python")
+        self.assertEqual(str(skill), "Test Project - Python")
 
     def test_skill_name_stored_correctly(self):
         skill = self.project.skills.get(skill_name="Python")

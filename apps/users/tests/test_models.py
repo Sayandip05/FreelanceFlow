@@ -10,11 +10,8 @@ Coverage:
 """
 from django.test import TestCase
 from django.db import IntegrityError
-
 from apps.users.models import User, FreelancerProfile, ClientProfile
 from apps.users.tests.factories import make_freelancer, make_client
-
-
 class UserModelTest(TestCase):
 
     def test_create_freelancer_creates_freelancer_profile(self):
