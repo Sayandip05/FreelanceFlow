@@ -1,10 +1,7 @@
 """Models for Contract Termination."""
 from django.db import models
-
 from apps.users.models import User
-from .models import Contract
-
-
+from apps.bidding.models import Contract
 class ContractTerminationRequest(models.Model):
     """
     Request to terminate a contract early.

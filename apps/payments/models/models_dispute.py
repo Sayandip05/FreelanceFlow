@@ -1,10 +1,7 @@
 """Models for Payment Disputes."""
 from django.db import models
-
 from apps.users.models import User
-from .models import Payment
-
-
+from apps.payments.models import Payment
 class PaymentDispute(models.Model):
     """
     Payment dispute for a contract.

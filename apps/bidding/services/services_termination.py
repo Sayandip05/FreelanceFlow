@@ -1,12 +1,9 @@
 """Services for Contract Termination."""
 from django.db import transaction
 from django.utils import timezone
-
 from apps.bidding.models import Contract
 from apps.users.models import User
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
-
-
 class ContractTerminationReason:
     """Reasons for contract termination."""
     CLIENT_REQUEST = "CLIENT_REQUEST"
@@ -55,7 +52,6 @@ def request_contract_termination(
         raise ValidationError("Termination request already exists.")
     
     from apps.bidding.models import ContractTerminationRequest
-    
     with transaction.atomic():
         termination_request = ContractTerminationRequest.objects.create(
             contract=contract,
@@ -104,7 +100,6 @@ def approve_contract_termination(
         Terminated Contract instance
     """
     from apps.bidding.models import ContractTerminationRequest
-    
     try:
         termination_request = ContractTerminationRequest.objects.select_related(
             'contract'
@@ -155,7 +150,6 @@ def approve_contract_termination(
         
         # Notify both parties
         from apps.notifications.services import create_notification
-        
         create_notification(
             recipient=termination_request.requester,
             title="Contract Termination Approved",
@@ -189,7 +183,6 @@ def reject_contract_termination(
         rejection_reason: Reason for rejection
     """
     from apps.bidding.models import ContractTerminationRequest
-    
     try:
         termination_request = ContractTerminationRequest.objects.select_related(
             'contract'
@@ -268,7 +261,6 @@ def force_terminate_contract(
         
         # Notify both parties
         from apps.notifications.services import create_notification
-        
         for user in [contract.bid.freelancer, contract.bid.project.client]:
             create_notification(
                 recipient=user,

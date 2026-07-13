@@ -1,6 +1,4 @@
 from rest_framework import permissions
-
-
 class IsConversationParticipant(permissions.BasePermission):
     """
     Permission that allows only the freelancer or client of a conversation.

@@ -1,10 +1,8 @@
 import logging
 from django.db import transaction
 from django.db.models import QuerySet
-
-from .models import Project, ProjectSkill
+from apps.projects.models import Project, ProjectSkill
 from core.exceptions import ValidationError, PermissionDeniedError
-
 logger = logging.getLogger("apps.projects")
 
 
@@ -31,7 +29,6 @@ def create_project(
         Created Project instance
     """
     from apps.users.models import User
-    
     if client.role != User.Roles.CLIENT:
         raise PermissionDeniedError("Only clients can create projects.")
     

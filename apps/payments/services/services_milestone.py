@@ -7,8 +7,8 @@ from django.db.models import Max, Sum
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from decimal import Decimal
-from .models_milestone import PaymentMilestone
-from .models import Payment
+from apps.payments.models.models_milestone import PaymentMilestone
+from apps.payments.models import Payment
 from apps.bidding.models import Contract
 
 
@@ -112,8 +112,7 @@ def release_milestone_payment(milestone_id, client):
     Returns:
         Payment instance
     """
-    from .services import release_payment
-    
+    from apps.payments.services import release_payment
     try:
         milestone = PaymentMilestone.objects.select_related(
             'contract', 'contract__bid', 'contract__bid__project'
@@ -169,7 +168,6 @@ def get_milestone_progress(contract_id):
         Dict with total/completed/paid amounts and counts
     """
     from django.db.models import Sum, Count, Q
-    
     stats = PaymentMilestone.objects.filter(
         contract_id=contract_id
     ).aggregate(
@@ -192,7 +190,6 @@ def get_upcoming_milestones(user, days=30, limit=10):
     
     # Get contracts where user is involved
     from apps.bidding.models import Bid
-    
     if user.role == 'CLIENT':
         contract_ids = Contract.objects.filter(
             bid__project__client=user

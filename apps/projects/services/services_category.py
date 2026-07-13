@@ -2,8 +2,7 @@
 Project Category Services
 """
 from django.db import transaction
-from .models_extended import ProjectCategory
-
+from apps.projects.models.models_extended import ProjectCategory
 
 @transaction.atomic
 def create_category(name, slug, description=None, icon=None):

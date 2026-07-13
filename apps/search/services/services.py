@@ -1,7 +1,6 @@
 import logging
 
 from elasticsearch_dsl import Q
-
 from apps.search.documents import ProjectDocument, FreelancerDocument
 
 logger = logging.getLogger(__name__)
@@ -114,7 +113,6 @@ def reindex_all():
     Useful after data migration or index corruption.
     """
     from django.core.management import call_command
-
     logger.info("Starting full Elasticsearch reindex...")
     try:
         call_command("search_index", "--rebuild", "-f")

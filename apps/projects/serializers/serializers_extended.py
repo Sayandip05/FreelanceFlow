@@ -2,9 +2,7 @@
 Serializers for Extended Project Features
 """
 from rest_framework import serializers
-from .models_extended import ProjectBookmark
-
-
+from apps.projects.models.models_extended import ProjectBookmark
 class ProjectBookmarkSerializer(serializers.ModelSerializer):
     """Serializer for project bookmarks"""
     project_id = serializers.IntegerField(source='project.id', read_only=True)

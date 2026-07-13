@@ -1,1 +1,1 @@
-from .views import SearchView, ProjectSearchView, FreelancerSearchView
+from .views import SearchView, ProjectSearchView, FreelancerSearchView, AutocompleteView

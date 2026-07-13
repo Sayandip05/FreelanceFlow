@@ -1,7 +1,6 @@
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
 from apps.bidding.models import Bid, Contract
 from apps.bidding.serializers import (
     BidListSerializer,
@@ -31,8 +30,6 @@ from apps.bidding.permissions import (
 )
 from apps.users.permissions import IsFreelancer, IsClient
 from core.exceptions import ValidationError
-
-
 class BidViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Bid operations.

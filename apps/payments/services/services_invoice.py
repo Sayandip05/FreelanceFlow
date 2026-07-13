@@ -1,15 +1,11 @@
 """Invoice generation service."""
 from django.template.loader import render_to_string
 from django.conf import settings
-from weasyprint import HTML
 import os
 from datetime import datetime
-
-from .models import Payment
+from apps.payments.models import Payment
 from apps.bidding.models import Contract
 from core.exceptions import NotFoundError
-
-
 def generate_invoice_pdf(payment_id: int) -> str:
     """
     Generate PDF invoice for a payment.

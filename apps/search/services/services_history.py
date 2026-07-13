@@ -2,8 +2,7 @@
 Search History Services
 """
 from django.db import transaction
-from .models_extended import SearchHistory
-
+from apps.search.models.models_extended import SearchHistory
 
 @transaction.atomic
 def log_search(user, query, filters=None, results_count=0):
@@ -24,7 +23,6 @@ def get_search_history(user, limit=20):
 def get_popular_searches(limit=10):
     """Get most popular search queries"""
     from django.db.models import Count
-    
     return SearchHistory.objects.values('query').annotate(
         count=Count('id')
     ).order_by('-count')[:limit]

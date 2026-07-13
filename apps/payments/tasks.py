@@ -1,15 +1,12 @@
 from decimal import Decimal
 import logging
-
 from celery import shared_task
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 import razorpay
-
-from .models import Payment, PlatformEarning
-from .services import confirm_escrow_payment, record_payment_event, _get_razorpay_client
-
+from apps.payments.models import Payment, PlatformEarning
+from apps.payments.services.services import confirm_escrow_payment, record_payment_event, _get_razorpay_client
 logger = logging.getLogger("apps.payments.tasks")
 
 @shared_task
@@ -150,7 +147,6 @@ def razorpay_transfer_to_freelancer_task(self, payment_id: int, amount: float):
         from apps.notifications.models import Notification
         from apps.notifications.services import create_notification
         from apps.worklogs.services import generate_delivery_proof
-
         create_notification(
             recipient=freelancer,
             title="Payment Released",
@@ -179,7 +175,6 @@ def process_razorpay_refund_task(self, payment_id: int, refund_amount: float):
     Retries up to 3 times on transient errors.
     """
     from .services import process_refund
-
     logger.info(
         "Starting refund task: payment_id=%s refund_amount=%s",
         payment_id, refund_amount,

@@ -6,7 +6,6 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
-
 from apps.bidding.serializers import (
     WorklogApprovalSerializer, ApproveWorklogSerializer, RejectWorklogSerializer,
     BidRetractionSerializer, RetractionDetailSerializer,
@@ -154,7 +153,6 @@ class BidRetractionViewSet(viewsets.ViewSet):
     def can_retract(self, request, pk=None):
         """Check if bid can be retracted"""
         from apps.bidding.models import Bid
-        
         try:
             bid = Bid.objects.get(id=pk)
             can_retract, reason = can_retract_bid(bid, request.user)

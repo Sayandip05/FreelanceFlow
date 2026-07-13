@@ -1,12 +1,10 @@
 import logging
 from django.db import transaction
 from django.utils import timezone
-
 from apps.bidding.models import Bid, Contract
 from apps.projects.models import Project
 from apps.projects.services import mark_project_in_progress
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
-
 logger = logging.getLogger("apps.bidding")
 
 
@@ -29,7 +27,6 @@ def submit_bid(
         Created Bid instance
     """
     from apps.users.models import User
-    
     if freelancer.role != User.Roles.FREELANCER:
         raise PermissionDeniedError("Only freelancers can submit bids.")
     

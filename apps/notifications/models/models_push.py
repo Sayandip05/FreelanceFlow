@@ -1,8 +1,6 @@
 """Models for Push Notifications."""
 from django.db import models
 from apps.users.models import User
-
-
 class PushSubscription(models.Model):
     """
     Store user's push notification subscriptions.

@@ -1,11 +1,8 @@
 """Models for Contract Amendments."""
 from django.db import models
 from django.core.validators import MinValueValidator
-
 from apps.users.models import User
-from .models import Contract
-
-
+from apps.bidding.models import Contract
 class ContractAmendment(models.Model):
     """
     Contract amendment for scope/budget changes.

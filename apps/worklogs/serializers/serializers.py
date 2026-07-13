@@ -1,10 +1,7 @@
 from rest_framework import serializers
-
-from .models import WorkLog, WeeklyReport, DeliveryProof, Deliverable
+from apps.worklogs.models import WorkLog, WeeklyReport, DeliveryProof, Deliverable
 from apps.users.serializers import UserSerializer
 from apps.bidding.serializers import ContractSerializer
-
-
 class WorkLogSerializer(serializers.ModelSerializer):
     """Serializer for work logs."""
     freelancer = UserSerializer(read_only=True)

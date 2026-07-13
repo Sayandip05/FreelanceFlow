@@ -1,9 +1,8 @@
 from celery import shared_task
 from datetime import date, timedelta
-
-from .models import WorkLog, WeeklyReport, DeliveryProof
-from .ai_service import generate_weekly_report
-from .pdf_service import generate_weekly_report_pdf, generate_delivery_proof_pdf
+from apps.worklogs.models import WorkLog, WeeklyReport, DeliveryProof
+from apps.worklogs.services.ai_service import generate_weekly_report
+from apps.worklogs.services.pdf_service import generate_weekly_report_pdf, generate_delivery_proof_pdf
 
 
 @shared_task
@@ -55,7 +54,6 @@ def notify_freelancer_report_ready(report_id: int):
     Notify freelancer that weekly report is ready.
     """
     from apps.notifications.services import create_notification
-    
     try:
         report = WeeklyReport.objects.get(id=report_id)
         
@@ -75,7 +73,6 @@ def notify_client_log_submitted(log_id: int):
     Notify client that a work log was submitted.
     """
     from apps.notifications.services import create_notification
-    
     try:
         log = WorkLog.objects.get(id=log_id)
         

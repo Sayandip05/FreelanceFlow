@@ -1,7 +1,5 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
-
-
 class UserManager(BaseUserManager):
     """Custom manager for User model with email as the unique identifier."""
 

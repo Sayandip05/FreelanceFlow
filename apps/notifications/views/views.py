@@ -2,7 +2,6 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-
 from apps.notifications.models import Notification
 from apps.notifications.selectors import (
     get_user_notifications,
@@ -16,8 +15,6 @@ from apps.notifications.services import (
 )
 from apps.notifications.serializers import NotificationSerializer, NotificationMarkReadSerializer
 from core.pagination import StandardResultsPagination
-
-
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for managing user notifications.

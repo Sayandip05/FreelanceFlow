@@ -3,9 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from asgiref.sync import sync_to_async
-
-from .models import WorkLog, WeeklyReport, DeliveryProof, Deliverable
-from .serializers import (
+from apps.worklogs.models import WorkLog, WeeklyReport, DeliveryProof, Deliverable
+from apps.worklogs.serializers import (
     WorkLogSerializer,
     WorkLogCreateSerializer,
     WorkLogUpdateSerializer,
@@ -18,7 +17,7 @@ from .serializers import (
     AIChatResponseSerializer,
     FileUploadSerializer,
 )
-from .services import (
+from apps.worklogs.services import (
     create_worklog,
     update_worklog,
     delete_worklog,
@@ -31,13 +30,13 @@ from .services import (
     process_ai_chat_message,
     generate_deliverable_from_chat,
 )
-from .selectors import (
+from apps.worklogs.selectors import (
     get_worklog_by_id,
     get_contract_worklogs,
     get_contract_weekly_reports,
     get_delivery_proof_by_contract,
 )
-from .permissions import (
+from apps.worklogs.permissions import (
     IsWorkLogFreelancer,
     IsContractParticipant,
     IsContractFreelancer,
@@ -45,8 +44,6 @@ from .permissions import (
 )
 from apps.bidding.models import Contract
 from core.exceptions import ValidationError
-
-
 class WorkLogViewSet(viewsets.ModelViewSet):
     """
     ViewSet for WorkLog operations.

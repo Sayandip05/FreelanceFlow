@@ -1,10 +1,7 @@
 from rest_framework import serializers
-
-from .models import Project, ProjectSkill
+from apps.projects.models import Project, ProjectSkill
 from apps.users.serializers import UserSerializer
 from core.sanitizers import sanitize_html
-
-
 class ProjectSkillSerializer(serializers.ModelSerializer):
     """Serializer for project skills."""
     

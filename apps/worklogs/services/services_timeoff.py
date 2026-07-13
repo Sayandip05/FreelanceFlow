@@ -2,8 +2,7 @@
 Time-off Tracking Services
 """
 from django.db import transaction
-from .models_extended import TimeOff
-
+from apps.worklogs.models.models_extended import TimeOff
 
 @transaction.atomic
 def request_timeoff(freelancer, start_date, end_date, reason=None, contract=None):

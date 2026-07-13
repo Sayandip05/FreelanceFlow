@@ -169,7 +169,6 @@ def get_approval_stats(contract_id):
         Dict with approved/rejected/pending counts
     """
     from django.db.models import Count, Q
-    
     stats = WorklogApproval.objects.filter(
         worklog__contract_id=contract_id
     ).aggregate(

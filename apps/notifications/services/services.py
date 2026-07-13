@@ -1,8 +1,6 @@
 from django.db import transaction
 from apps.notifications.models import Notification
 from apps.notifications.tasks import send_notification_email
-
-
 def create_notification(
     recipient,
     title: str,

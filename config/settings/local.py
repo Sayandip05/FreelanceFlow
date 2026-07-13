@@ -2,7 +2,7 @@ from .base import *
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".ngrok.io", ".ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver", ".ngrok.io", ".ngrok-free.app"]
 
 # Email backend for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
@@ -30,3 +30,14 @@ ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "django_elasticsearch_dsl.signals.BaseSigna
 # Logging — inherited from base.py (console + file handler)
 # No override needed for local development.
 
+# ── Database override for local dev / testing ─────────────────────────────────
+# Use SQLite so tests work without a running PostgreSQL instance.
+# This overrides the DATABASE_URL from .env when running locally.
+import os as _os
+if _os.environ.get("USE_SQLITE", "true").lower() != "false":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }

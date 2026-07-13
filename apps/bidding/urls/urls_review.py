@@ -1,7 +1,6 @@
 """URL patterns for Review system."""
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-
 from apps.bidding.views import ReviewViewSet
 
 router = DefaultRouter()

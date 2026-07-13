@@ -1,12 +1,10 @@
 import logging
 from typing import List
-
 from django.db import transaction
 
-from .models import Conversation, Message
+from apps.messaging.models import Conversation, Message
 from apps.bidding.models import Contract
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
-
 logger = logging.getLogger(__name__)
 
 

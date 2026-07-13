@@ -2,8 +2,7 @@
 Search Autocomplete Services
 """
 from django.db import transaction
-from .models_extended import SearchSuggestion
-
+from apps.search.models.models_extended import SearchSuggestion
 
 @transaction.atomic
 def record_search_term(term, category=None):

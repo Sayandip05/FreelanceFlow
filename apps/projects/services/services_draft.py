@@ -2,8 +2,7 @@
 Project Draft Services
 """
 from django.db import transaction
-from .models_extended import ProjectDraft
-
+from apps.projects.models.models_extended import ProjectDraft
 
 @transaction.atomic
 def save_draft(client, title=None, description=None, budget=None, deadline=None, draft_data=None):
@@ -36,7 +35,7 @@ def get_user_drafts(client):
 @transaction.atomic
 def publish_draft(draft_id):
     """Convert draft to published project"""
-    from .models import Project
+    from apps.projects.models import Project
     draft = ProjectDraft.objects.get(id=draft_id)
     
     project = Project.objects.create(

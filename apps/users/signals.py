@@ -3,10 +3,8 @@ import logging
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
 from .models import User, FreelancerProfile, ClientProfile
 from .tasks import send_welcome_email_task
-
 logger = logging.getLogger(__name__)
 
 

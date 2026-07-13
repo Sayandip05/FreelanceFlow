@@ -3,8 +3,6 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
-
-
 def send_notification_email(
     recipient_email: str,
     subject: str,

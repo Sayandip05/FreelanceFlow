@@ -1,11 +1,8 @@
 """Review and Rating models for completed contracts."""
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-
 from apps.users.models import User
-from .models import Contract
-
-
+from apps.bidding.models import Contract
 class Review(models.Model):
     """
     Review and rating for a completed contract.

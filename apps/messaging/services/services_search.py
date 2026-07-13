@@ -2,14 +2,12 @@
 Message Search Services
 """
 from django.db import transaction
-from .models_extended import MessageSearch
-
+from apps.messaging.models.models_extended import MessageSearch
 
 @transaction.atomic
 def index_message(message):
     """Index message for search"""
     from django.contrib.postgres.search import SearchVector
-    
     MessageSearch.objects.create(
         message=message,
         conversation=message.conversation,
@@ -20,7 +18,6 @@ def index_message(message):
 def search_messages(conversation_id, query):
     """Search messages in a conversation"""
     from django.contrib.postgres.search import SearchQuery
-    
     search_query = SearchQuery(query)
     
     return MessageSearch.objects.filter(

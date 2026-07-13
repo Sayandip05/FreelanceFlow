@@ -1,5 +1,4 @@
 from rest_framework import permissions
-
 from .models import WorkLog, WeeklyReport, DeliveryProof, Deliverable
 
 

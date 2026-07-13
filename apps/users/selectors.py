@@ -1,7 +1,5 @@
 from django.shortcuts import get_object_or_404
 from .models import User, FreelancerProfile, ClientProfile
-
-
 def get_user_by_id(user_id: int) -> User:
     """Get user by ID."""
     return get_object_or_404(User, id=user_id)
@@ -43,11 +41,16 @@ def list_freelancers(skills: list[str] | None = None, limit: int = 50):
         QuerySet of FreelancerProfile
     """
     queryset = FreelancerProfile.objects.select_related('user').all()
-    
+
     if skills:
-        # Filter freelancers who have any of the specified skills
-        queryset = queryset.filter(skills__overlap=skills)
-    
+        # Filter freelancers who have any of the specified skills.
+        # skills__overlap is PostgreSQL-only; use contains-based OR filter for DB portability.
+        from django.db.models import Q
+        skill_filter = Q()
+        for skill in skills:
+            skill_filter |= Q(skills__contains=skill)
+        queryset = queryset.filter(skill_filter)
+
     return queryset[:limit]
 
 

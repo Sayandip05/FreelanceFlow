@@ -2,29 +2,26 @@ from django.db.models import Q
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
-from .models import Project
-from .serializers import (
+from apps.projects.models import Project
+from apps.projects.serializers import (
     ProjectListSerializer,
     ProjectDetailSerializer,
     ProjectCreateSerializer,
     ProjectUpdateSerializer,
 )
-from .services import (
+from apps.projects.services import (
     create_project,
     update_project,
     close_project,
 )
-from .selectors import (
+from apps.projects.selectors import (
     get_project_by_id,
     get_open_projects,
     get_client_projects,
 )
-from .permissions import IsProjectOwner
+from apps.projects.permissions import IsProjectOwner
 from apps.users.permissions import IsClient
 from core.exceptions import ValidationError
-
-
 class ProjectViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Project CRUD operations.

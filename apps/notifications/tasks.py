@@ -11,7 +11,6 @@ def send_notification_email(self, notification_id: int):
     Called asynchronously when in-app notification is created.
     """
     from apps.notifications.models import Notification
-    
     try:
         notification = Notification.objects.select_related('recipient').get(id=notification_id)
         user = notification.recipient

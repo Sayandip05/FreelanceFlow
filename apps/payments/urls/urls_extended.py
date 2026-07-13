@@ -3,8 +3,7 @@ URL Configuration for Extended Payment Features
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views_extended import PaymentMilestoneViewSet
-
+from apps.payments.views.views_extended import PaymentMilestoneViewSet
 router = DefaultRouter()
 router.register(r'milestones', PaymentMilestoneViewSet, basename='milestone')
 

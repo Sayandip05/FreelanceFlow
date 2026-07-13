@@ -1,9 +1,7 @@
 """Extended messaging models - Search, Typing Indicators."""
 from django.db import models
 from apps.users.models import User
-from .models import Conversation
-
-
+from apps.messaging.models import Conversation
 class MessageSearch(models.Model):
     """
     Indexed message content for search.

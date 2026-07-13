@@ -7,13 +7,11 @@ from django.db import transaction
 from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth import get_user_model
-
-from .models import Payment, Escrow, PlatformEarning, PaymentEvent
+from apps.payments.models import Payment, Escrow, PlatformEarning, PaymentEvent
 from apps.bidding.models import Contract
 from apps.projects.services import mark_project_completed
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
 from core.utils import calculate_platform_cut
-
 User = get_user_model()
 logger = logging.getLogger("apps.payments")
 
@@ -146,7 +144,6 @@ def release_payment(contract: Contract, client) -> Payment:
         Updated Payment instance
     """
     from apps.payments.tasks import razorpay_transfer_to_freelancer_task
-    
     if contract.client != client:
         raise PermissionDeniedError("Only the client can release payment.")
 
@@ -238,8 +235,7 @@ def process_razorpay_webhook(
     Returns:
         True if processed successfully
     """
-    from .tasks import process_razorpay_webhook_task
-    
+    from apps.payments.tasks import process_razorpay_webhook_task    
     # Verify webhook signature using raw request body
     try:
         _get_razorpay_client().utility.verify_webhook_signature(
@@ -296,7 +292,6 @@ def process_contract_termination_payment(
         refund_percentage: Percentage to refund to client (0-100)
     """
     from decimal import Decimal
-    
     if payment.status != Payment.Status.ESCROWED:
         raise ValidationError("Payment is not in escrow.")
 
@@ -432,8 +427,7 @@ def initiate_payment_dispute(
     if hasattr(payment, 'dispute'):
         raise ValidationError("Dispute already exists for this payment.")
     
-    from .models_dispute import PaymentDispute
-    
+    from apps.payments.models.models_dispute import PaymentDispute
     with transaction.atomic():
         dispute = PaymentDispute.objects.create(
             payment=payment,

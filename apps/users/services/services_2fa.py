@@ -6,9 +6,7 @@ import pyotp
 import secrets
 from django.db import transaction
 from django.utils import timezone
-from .models_extended import TwoFactorAuth
-
-
+from apps.users.models.models_extended import TwoFactorAuth
 def generate_2fa_secret():
     """Generate a new TOTP secret key"""
     return pyotp.random_base32()

@@ -2,8 +2,7 @@
 Typing Indicator Services
 """
 from django.db import transaction
-from .models_extended import TypingIndicator
-
+from apps.messaging.models.models_extended import TypingIndicator
 
 @transaction.atomic
 def set_typing(conversation_id, user, is_typing=True):

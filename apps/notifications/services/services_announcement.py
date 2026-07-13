@@ -2,8 +2,7 @@
 System Announcement Services
 """
 from django.db import transaction
-from .models_extended import SystemAnnouncement
-
+from apps.notifications.models.models_extended import SystemAnnouncement
 
 @transaction.atomic
 def create_announcement(title, content, announcement_type='INFO', target_role=None, start_date=None, end_date=None):

@@ -1,9 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-
-from .models import User, FreelancerProfile, ClientProfile
-
+from apps.users.models import User, FreelancerProfile, ClientProfile
 
 class FreelancerProfileSerializer(serializers.ModelSerializer):
     """Serializer for freelancer profiles."""

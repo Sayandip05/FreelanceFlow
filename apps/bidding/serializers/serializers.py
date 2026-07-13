@@ -1,11 +1,8 @@
 from rest_framework import serializers
-
 from apps.bidding.models import Bid, Contract
 from apps.users.serializers import UserSerializer
 from apps.projects.serializers import ProjectListSerializer
 from core.sanitizers import sanitize_html
-
-
 class BidListSerializer(serializers.ModelSerializer):
     """Serializer for bid list view."""
     freelancer = UserSerializer(read_only=True)

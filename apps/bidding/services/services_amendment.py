@@ -2,13 +2,10 @@
 from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
-
 from apps.bidding.models import Contract
 from apps.bidding.models import ContractAmendment
 from apps.users.models import User
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
-
-
 def propose_contract_amendment(
     contract_id: int,
     proposer: User,
@@ -142,7 +139,6 @@ def approve_contract_amendment(
         
         # Notify both parties
         from apps.notifications.services import create_notification
-        
         create_notification(
             recipient=amendment.proposed_by,
             title="Contract Amendment Approved",

@@ -4,8 +4,7 @@ Tracks user activities for audit and security purposes
 """
 from django.db import transaction
 from django.utils import timezone
-from .models_extended import ActivityLog
-
+from apps.users.models.models_extended import ActivityLog
 
 @transaction.atomic
 def log_activity(user, action, resource_type=None, resource_id=None, 

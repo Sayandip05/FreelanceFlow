@@ -1,8 +1,6 @@
 """Extended search models - History, Saved Searches, Autocomplete."""
 from django.db import models
 from apps.users.models import User
-
-
 class SearchHistory(models.Model):
     """
     User search history.

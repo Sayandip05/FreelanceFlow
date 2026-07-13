@@ -1,8 +1,6 @@
 """Push notification service using Web Push."""
 from django.conf import settings
 import json
-
-
 class PushNotificationService:
     """Service for sending web push notifications."""
     
@@ -40,7 +38,6 @@ class PushNotificationService:
         
         try:
             from pywebpush import webpush, WebPushException
-            
             payload = {
                 'title': title,
                 'body': body,
@@ -85,8 +82,7 @@ def send_push_to_user(user, title: str, body: str, data: dict = None):
         body: Notification body
         data: Additional data
     """
-    from .models import PushSubscription
-    
+    from apps.notifications.models import PushSubscription    
     # Get user's push subscriptions
     subscriptions = PushSubscription.objects.filter(
         user=user,

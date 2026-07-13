@@ -1,3 +1,4 @@
+from django.core.mail import send_mail  # re-exported so tests can patch apps.users.services.send_mail
 from .services import (
     create_user,
     update_profile,

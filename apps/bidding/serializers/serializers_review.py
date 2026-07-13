@@ -1,12 +1,9 @@
 """Serializers for Review system."""
 from rest_framework import serializers
 from django.core.validators import MinValueValidator, MaxValueValidator
-
 from apps.bidding.models import Review, ReviewResponse
 from apps.users.serializers import UserSerializer
 from core.sanitizers import sanitize_html
-
-
 class ReviewSerializer(serializers.ModelSerializer):
     """Serializer for reviews."""
     reviewer = UserSerializer(read_only=True)

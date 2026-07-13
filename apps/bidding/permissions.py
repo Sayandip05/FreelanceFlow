@@ -1,5 +1,4 @@
 from rest_framework import permissions
-
 from apps.bidding.models import Bid, Contract
 
 

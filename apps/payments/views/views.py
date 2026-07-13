@@ -4,23 +4,22 @@ from django.db.models import Sum, Q
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-
-from .models import Payment
-from .serializers import (
+from apps.payments.models import Payment
+from apps.payments.serializers import (
     PaymentSerializer,
     PaymentListSerializer,
     CreateEscrowSerializer,
     ReleasePaymentSerializer,
     PaymentHistorySerializer,
 )
-from .services import (
+from apps.payments.services import (
     create_escrow,
     confirm_escrow_payment,
     release_payment,
     process_razorpay_webhook,
     verify_razorpay_signature,
 )
-from .selectors import (
+from apps.payments.selectors import (
     get_payment_by_id,
     get_payment_by_contract,
     get_client_payment_history,
@@ -28,10 +27,9 @@ from .selectors import (
     get_client_total_spent,
     get_freelancer_total_earned,
 )
-from .permissions import IsPaymentParticipant, IsPaymentClient
+from apps.payments.permissions import IsPaymentParticipant, IsPaymentClient
 from apps.bidding.models import Contract
 from core.exceptions import ValidationError
-
 logger = logging.getLogger("apps.payments.views")
 
 
@@ -215,7 +213,6 @@ def razorpay_webhook(request):
     """
     import json
     from core.exceptions import PermissionDeniedError
-
     raw_body = request.body
     try:
         payload = json.loads(raw_body)

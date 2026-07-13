@@ -23,10 +23,13 @@ STATICFILES_STORAGE = "storages.backends.s3boto3.S3Storage"
 
 # S3 CloudFront is configured in base.py from env variable
 
-# Logging
 # Logging — override base.py to use JSON formatter in production
 # The file handler (logs/freelanceflow.log) and all loggers are
-# inherited from base.py; we only swap the formatter here.
+# inherited from base.py; we define the json formatter and swap it here.
+LOGGING["formatters"]["json"] = {
+    "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+    "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+}
 LOGGING["handlers"]["console"]["formatter"] = "json"
 LOGGING["handlers"]["file"]["formatter"] = "json"
 

@@ -5,7 +5,6 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib.auth.models import AnonymousUser
 from rest_framework_simplejwt.tokens import AccessToken
-
 from .services import (
     get_or_create_conversation,
     mark_messages_as_read_returning_ids,

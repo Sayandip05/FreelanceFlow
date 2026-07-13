@@ -1,8 +1,6 @@
 """Extended user models - 2FA, Activity Logging."""
 from django.db import models
 from apps.users.models import User
-
-
 class TwoFactorAuth(models.Model):
     """
     Two-factor authentication settings.

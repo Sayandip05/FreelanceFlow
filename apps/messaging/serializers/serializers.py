@@ -1,10 +1,7 @@
 from rest_framework import serializers
-
-from .models import Conversation, Message
+from apps.messaging.models import Conversation, Message
 from apps.users.serializers import UserSerializer
 from apps.bidding.serializers import ContractSerializer
-
-
 class MessageSerializer(serializers.ModelSerializer):
     """Serializer for messages."""
     sender = UserSerializer(read_only=True)

@@ -3,9 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.throttling import AnonRateThrottle
-
-from .models import User
-from .serializers import (
+from apps.users.models import User
+from apps.users.serializers import (
     UserSerializer,
     UserRegistrationSerializer,
     UserProfileUpdateSerializer,
@@ -17,11 +16,9 @@ from .serializers import (
     AvailabilityToggleSerializer,
     AccountDeactivationSerializer,
 )
-from .services import create_user, update_profile, change_password
-from .selectors import get_user_by_id
+from apps.users.services import create_user, update_profile, change_password
+from apps.users.selectors import get_user_by_id
 from core.exceptions import ValidationError
-
-
 class AuthRateThrottle(AnonRateThrottle):
     """Custom rate throttle for authentication endpoints."""
     rate = '5/minute'
@@ -150,8 +147,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
     throttle_classes = [AuthRateThrottle]
     
     def post(self, request, *args, **kwargs):
-        from .services import send_password_reset_email
-        
+        from apps.users.services import send_password_reset_email
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -173,8 +169,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
     throttle_classes = [AuthRateThrottle]
     
     def post(self, request, *args, **kwargs):
-        from .services import reset_password
-        
+        from apps.users.services import reset_password
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -205,8 +200,7 @@ class EmailVerificationView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     
     def post(self, request, *args, **kwargs):
-        from .services import verify_email
-        
+        from apps.users.services import verify_email
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -239,8 +233,7 @@ class ResendVerificationEmailView(generics.GenericAPIView):
     throttle_classes = [AuthRateThrottle]
     
     def post(self, request, *args, **kwargs):
-        from .services import send_verification_email
-        
+        from apps.users.services import send_verification_email
         user = request.user
         
         if user.is_active:
@@ -267,8 +260,7 @@ class UpdateAvatarView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, *args, **kwargs):
-        from .services import update_avatar
-        
+        from apps.users.services import update_avatar
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -295,8 +287,7 @@ class ToggleAvailabilityView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, *args, **kwargs):
-        from .services import toggle_freelancer_availability
-        
+        from apps.users.services import toggle_freelancer_availability
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -329,8 +320,7 @@ class DeactivateAccountView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, *args, **kwargs):
-        from .services import deactivate_account
-        
+        from apps.users.services import deactivate_account
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -359,7 +349,7 @@ class ReactivateAccountView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     
     def post(self, request, *args, **kwargs):
-        from .services import reactivate_account
+        from apps.users.services import reactivate_account
         from django.contrib.auth import get_user_model
         
         email = request.data.get('email')

@@ -2,8 +2,7 @@
 Project Bookmark Services
 """
 from django.db import transaction
-from .models_extended import ProjectBookmark
-
+from apps.projects.models.models_extended import ProjectBookmark
 
 @transaction.atomic
 def bookmark_project(user, project):

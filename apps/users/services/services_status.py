@@ -5,8 +5,7 @@ Tracks user online/offline status and last seen
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
-from .models_extended import UserOnlineStatus
-
+from apps.users.models.models_extended import UserOnlineStatus
 
 @transaction.atomic
 def update_online_status(user, is_online=True, status_message=None):
@@ -98,8 +97,7 @@ def get_online_users(limit=100):
     Returns:
         QuerySet of User objects
     """
-    from .models import User
-    
+    from apps.users.models import User    
     # Users online in last 5 minutes
     time_threshold = timezone.now() - timedelta(minutes=5)
     

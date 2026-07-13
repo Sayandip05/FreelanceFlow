@@ -1,15 +1,15 @@
 """
 PDF Service for generating weekly reports and delivery proofs.
 Uses WeasyPrint for HTML to PDF conversion.
+WeasyPrint requires libgobject (part of GLib/GTK) — available in Docker/production.
+On macOS without the system library the module still loads; PDF generation
+will raise at call-time (not at import time).
 """
 import boto3
 from django.conf import settings
 from django.template.loader import render_to_string
-from weasyprint import HTML
 from io import BytesIO
-
-from .models import WeeklyReport, DeliveryProof, WorkLog
-
+from apps.worklogs.models import WeeklyReport, DeliveryProof, WorkLog
 
 def generate_weekly_report_pdf(report_id: int) -> str:
     """
@@ -45,6 +45,7 @@ def generate_weekly_report_pdf(report_id: int) -> str:
     })
     
     # Generate PDF
+    from weasyprint import HTML
     html = HTML(string=html_string)
     pdf_bytes = html.write_pdf()
     
@@ -97,6 +98,7 @@ def generate_delivery_proof_pdf(proof_id: int) -> str:
     })
     
     # Generate PDF
+    from weasyprint import HTML
     html = HTML(string=html_string)
     pdf_bytes = html.write_pdf()
     

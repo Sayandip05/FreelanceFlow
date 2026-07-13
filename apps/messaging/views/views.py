@@ -1,27 +1,24 @@
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
-from .models import Conversation, Message
-from .serializers import (
+from apps.messaging.models import Conversation, Message
+from apps.messaging.serializers import (
     ConversationSerializer,
     MessageSerializer,
     SendMessageSerializer,
 )
-from .services import (
+from apps.messaging.services import (
     get_or_create_conversation,
     send_message,
     mark_messages_as_read,
 )
-from .selectors import (
+from apps.messaging.selectors import (
     get_user_conversations,
     get_conversation_messages,
     get_conversation_by_contract,
 )
 from core.exceptions import ValidationError
 from core.pagination import StandardResultsPagination
-
-
 class ConversationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for Conversation operations.

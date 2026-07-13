@@ -2,8 +2,7 @@
 Serializers for Extended User Features
 """
 from rest_framework import serializers
-from .models_extended import TwoFactorAuth, ActivityLog, UserOnlineStatus
-
+from apps.users.models.models_extended import TwoFactorAuth, ActivityLog, UserOnlineStatus
 
 # ============= 2FA Serializers =============
 

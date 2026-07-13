@@ -1,9 +1,7 @@
 """Extended payment models - Tax Documents, Multi-Currency."""
 from django.db import models
 from apps.users.models import User
-from .models import Payment
-
-
+from apps.payments.models import Payment
 class TaxDocument(models.Model):
     """
     Tax documents (1099, etc.) for freelancers.

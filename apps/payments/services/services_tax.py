@@ -4,14 +4,12 @@ Generates tax documents (1099, etc.) for freelancers
 """
 from django.db import transaction
 from decimal import Decimal
-from .models_extended import TaxDocument
-
+from apps.payments.models.models_extended import TaxDocument
 
 @transaction.atomic
 def generate_tax_document(user, year, document_type='1099'):
     """Generate tax document for a user"""
-    from .models import Payment
-    
+    from apps.payments.models import Payment    
     # Calculate total earnings for the year
     earnings = Payment.objects.filter(
         contract__bid__freelancer=user,

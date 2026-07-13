@@ -3,8 +3,7 @@ Project Share Services
 """
 from django.db import transaction
 import secrets
-from .models_extended import ProjectShare
-
+from apps.projects.models.models_extended import ProjectShare
 
 @transaction.atomic
 def generate_share_link(project, expires_at=None):
@@ -22,7 +21,6 @@ def generate_share_link(project, expires_at=None):
 def get_project_by_token(token):
     """Get project by share token"""
     from django.utils import timezone
-    
     share = ProjectShare.objects.select_related('project').get(
         share_token=token,
         is_active=True

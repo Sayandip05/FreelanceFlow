@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
-
 from apps.bidding.models import Contract
 
 
@@ -124,6 +123,7 @@ class WeeklyReport(models.Model):
             date__range=[self.week_start, self.week_end]
         ).aggregate(total=Sum('hours_worked'))
         return result['total'] or 0
+
 
 
 class Deliverable(models.Model):

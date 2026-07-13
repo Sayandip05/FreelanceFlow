@@ -11,16 +11,22 @@ import logging
 
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-
 from apps.projects.models import Project, ProjectSkill
 from apps.users.models import FreelancerProfile
 from apps.search.documents import ProjectDocument, FreelancerDocument
-
 logger = logging.getLogger(__name__)
+
+
+def _es_enabled() -> bool:
+    """Return True only when Elasticsearch sync is explicitly enabled."""
+    from django.conf import settings
+    return getattr(settings, "ELASTICSEARCH_DSL_AUTOSYNC", True)
 
 
 def _es_update(document_cls, instance, *, label: str) -> None:
     """Best-effort ES index update — logs but never raises on connection errors."""
+    if not _es_enabled():
+        return
     try:
         document_cls().update(instance)
     except Exception as exc:
@@ -35,6 +41,8 @@ def _es_update(document_cls, instance, *, label: str) -> None:
 
 def _es_delete(document_cls, instance, *, label: str) -> None:
     """Best-effort ES index delete — logs but never raises on connection errors."""
+    if not _es_enabled():
+        return
     try:
         document_cls().delete(instance, ignore=404)
     except Exception as exc:

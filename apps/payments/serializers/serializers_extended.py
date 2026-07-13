@@ -2,9 +2,7 @@
 Serializers for Extended Payment Features
 """
 from rest_framework import serializers
-from .models_milestone import PaymentMilestone
-
-
+from apps.payments.models.models_milestone import PaymentMilestone
 class PaymentMilestoneSerializer(serializers.ModelSerializer):
     """Serializer for payment milestones"""
     contract_id = serializers.IntegerField(source='contract.id', read_only=True)

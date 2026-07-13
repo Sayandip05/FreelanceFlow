@@ -1,9 +1,6 @@
 from rest_framework import serializers
-
-from .models import Payment, Escrow, PlatformEarning
+from apps.payments.models import Payment, Escrow, PlatformEarning
 from apps.bidding.serializers import ContractSerializer
-
-
 class EscrowSerializer(serializers.ModelSerializer):
     """Serializer for escrow."""
     

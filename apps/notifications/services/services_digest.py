@@ -2,8 +2,7 @@
 Digest Email Services
 """
 from django.db import transaction
-from .models_extended import DigestEmail
-
+from apps.notifications.models.models_extended import DigestEmail
 
 @transaction.atomic
 def create_digest_subscription(user, frequency='WEEKLY'):
@@ -18,7 +17,6 @@ def create_digest_subscription(user, frequency='WEEKLY'):
 def get_pending_digests():
     """Get digests that need to be sent"""
     from django.utils import timezone
-    
     return DigestEmail.objects.filter(
         is_enabled=True,
         next_send_at__lte=timezone.now()
@@ -29,7 +27,6 @@ def get_pending_digests():
 def send_digest(digest_id):
     """Send digest email"""
     from datetime import timedelta
-    
     digest = DigestEmail.objects.get(id=digest_id)
     
     # Send email logic here

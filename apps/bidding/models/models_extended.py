@@ -1,9 +1,7 @@
 """Extended bidding models - Bid Retraction, Counter-Offers."""
 from django.db import models
 from apps.users.models import User
-from .models import Bid, Contract
-
-
+from apps.bidding.models import Bid, Contract
 class BidRetraction(models.Model):
     """
     Bid retraction before deadline.

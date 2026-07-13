@@ -2,8 +2,6 @@
 from django.db import models
 from apps.users.models import User
 from apps.bidding.models import Contract
-
-
 class TimeOff(models.Model):
     """
     Freelancer time-off/leave tracking.

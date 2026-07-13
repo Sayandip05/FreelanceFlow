@@ -3,7 +3,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from elasticsearch_dsl import Q
-
 from apps.search.documents import ProjectDocument, FreelancerDocument
 from apps.search.serializers import (
     SearchQuerySerializer,
@@ -11,8 +10,6 @@ from apps.search.serializers import (
     FreelancerSearchSerializer
 )
 from core.pagination import StandardResultsPagination
-
-
 class SearchView(APIView):
     """
     Unified search endpoint for projects and freelancers.
@@ -161,3 +158,27 @@ class FreelancerSearchView(APIView):
         results = [hit.to_dict() for hit in response]
         
         return Response({"results": FreelancerSearchSerializer(results, many=True).data})
+
+
+class AutocompleteView(APIView):
+    """
+    Autocomplete suggestions endpoint.
+
+    GET /api/search/autocomplete/?q=<query>
+    Returns a list of search suggestions based on the query.
+    Falls back gracefully when Elasticsearch is unavailable.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get("q", "").strip()
+        if not query:
+            return Response({"suggestions": []}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from apps.search.services import get_autocomplete_suggestions
+            suggestions = get_autocomplete_suggestions(query)
+            return Response({"suggestions": suggestions})
+        except Exception:
+            # ES unavailable in local dev — return empty suggestions
+            return Response({"suggestions": []})

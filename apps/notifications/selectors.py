@@ -1,7 +1,5 @@
 from django.db.models import QuerySet
 from apps.notifications.models import Notification
-
-
 def get_notification_by_id(notification_id: int) -> Notification | None:
     """Get a notification by ID."""
     try:

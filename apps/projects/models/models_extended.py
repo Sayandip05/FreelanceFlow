@@ -1,9 +1,7 @@
 """Extended models for Projects - Bookmarks, Categories, Drafts."""
 from django.db import models
 from apps.users.models import User
-from .models import Project
-
-
+from apps.projects.models import Project
 class ProjectCategory(models.Model):
     """
     Categories/tags for projects.

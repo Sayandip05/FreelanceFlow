@@ -6,9 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
-
-from .serializers_extended import ProjectBookmarkSerializer, BookmarkProjectSerializer
-from .services_bookmark import (
+from apps.projects.serializers.serializers_extended import ProjectBookmarkSerializer, BookmarkProjectSerializer
+from apps.projects.services.services_bookmark import (
     bookmark_project, remove_bookmark, get_bookmarked_projects, is_bookmarked
 )
 
@@ -28,8 +27,7 @@ class ProjectBookmarkViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['post'])
     def bookmark(self, request, pk=None):
         """Bookmark a project"""
-        from .models import Project
-        
+        from apps.projects.models import Project
         try:
             project = Project.objects.get(id=pk)
             bookmark = bookmark_project(request.user, project)
@@ -52,8 +50,7 @@ class ProjectBookmarkViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['delete'])
     def bookmark(self, request, pk=None):
         """Remove bookmark from a project"""
-        from .models import Project
-        
+        from apps.projects.models import Project
         try:
             project = Project.objects.get(id=pk)
             remove_bookmark(request.user, project)
@@ -67,8 +64,8 @@ class ProjectBookmarkViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
     
-    @action(detail=False, methods=['get'])
-    def list(self, request):
+    @action(detail=False, methods=['get'], url_path='my-bookmarks')
+    def my_bookmarks(self, request):
         """Get all bookmarked projects for current user"""
         bookmarks = get_bookmarked_projects(request.user)
         serializer = ProjectBookmarkSerializer(bookmarks, many=True)
@@ -77,8 +74,7 @@ class ProjectBookmarkViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['get'], url_path='is-bookmarked')
     def is_bookmarked(self, request, pk=None):
         """Check if project is bookmarked"""
-        from .models import Project
-        
+        from apps.projects.models import Project
         try:
             project = Project.objects.get(id=pk)
             bookmarked = is_bookmarked(request.user, project)

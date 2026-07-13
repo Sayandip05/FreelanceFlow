@@ -7,8 +7,7 @@ from django.db.models import Sum
 from datetime import date, timedelta
 from typing import Optional, TypedDict, Annotated
 import operator
-
-from .models import WorkLog, WeeklyReport
+from apps.worklogs.models import WorkLog, WeeklyReport
 from apps.bidding.models import Contract
 
 # LangChain and LangGraph imports
@@ -68,7 +67,6 @@ def gather_work_logs(state: ReportState) -> ReportState:
     Node 1: Gather work logs for the week.
     """
     from apps.worklogs.selectors import get_week_logs, get_total_hours_for_week
-    
     contract_id = state["contract_id"]
     week_start = state["week_start"]
     
@@ -267,7 +265,6 @@ Will continue working on remaining tasks to complete the project."""
     
     try:
         from apps.worklogs.selectors import get_week_logs, get_total_hours_for_week
-        
         contract = Contract.objects.select_related(
             'bid__project__client',
             'bid__freelancer'

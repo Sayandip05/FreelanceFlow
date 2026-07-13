@@ -1,7 +1,6 @@
 import logging
 
 from elasticsearch_dsl import Q
-
 from apps.search.documents import ProjectDocument, FreelancerDocument
 
 logger = logging.getLogger(__name__)

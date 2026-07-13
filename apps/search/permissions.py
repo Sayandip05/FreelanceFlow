@@ -1,6 +1,4 @@
 from rest_framework import permissions
-
-
 class CanSearch(permissions.BasePermission):
     """
     Permission that allows authenticated users to perform search.

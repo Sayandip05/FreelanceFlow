@@ -4,14 +4,12 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import date, timedelta
 from typing import List, Dict, Optional
-
-from .models import WorkLog, WeeklyReport, DeliveryProof, Deliverable
+from apps.worklogs.models import WorkLog, WeeklyReport, DeliveryProof, Deliverable
 from apps.bidding.models import Contract
 from apps.users.models import User
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
 from core.utils import generate_report_id
 from .groq_service import get_groq_service
-
 logger = logging.getLogger("apps.worklogs")
 
 
@@ -40,7 +38,6 @@ def create_worklog(
         Created WorkLog instance
     """
     from apps.users.models import User
-    
     if freelancer.role != User.Roles.FREELANCER:
         raise PermissionDeniedError("Only freelancers can create work logs.")
     
@@ -162,8 +159,7 @@ def generate_delivery_proof(contract_id: int) -> DeliveryProof:
     Generate final proof of delivery document.
     Called when project is completed.
     """
-    from .tasks import generate_proof_pdf_task
-    
+    from apps.worklogs.tasks import generate_proof_pdf_task
     try:
         contract = Contract.objects.get(id=contract_id)
     except Contract.DoesNotExist:

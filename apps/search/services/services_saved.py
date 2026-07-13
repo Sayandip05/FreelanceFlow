@@ -2,8 +2,7 @@
 Saved Search Services
 """
 from django.db import transaction
-from .models_extended import SavedSearch
-
+from apps.search.models.models_extended import SavedSearch
 
 @transaction.atomic
 def save_search(user, name, query, filters=None, notification_enabled=False):

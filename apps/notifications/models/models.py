@@ -1,7 +1,5 @@
 from django.db import models
 from django.conf import settings
-
-
 class Notification(models.Model):
     """
     In-app notifications for users.

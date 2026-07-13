@@ -1,11 +1,10 @@
 import logging
 from django.db import transaction
+from django.utils import timezone
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-
-from .models import User, FreelancerProfile, ClientProfile
+from apps.users.models import User, FreelancerProfile, ClientProfile
 from core.exceptions import ValidationError, BusinessError
-
 logger = logging.getLogger("apps.users")
 
 
@@ -180,8 +179,7 @@ def send_password_reset_email(email: str) -> bool:
     from django.conf import settings
     from django.utils.http import urlsafe_base64_encode
     from django.utils.encoding import force_bytes
-    from .tokens import password_reset_token
-    
+    from apps.users.tokens import password_reset_token
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
@@ -239,8 +237,7 @@ def reset_password(uid: str, token: str, new_password: str) -> User:
     """
     from django.utils.http import urlsafe_base64_decode
     from django.utils.encoding import force_str
-    from .tokens import password_reset_token
-    
+    from apps.users.tokens import password_reset_token
     try:
         user_id = force_str(urlsafe_base64_decode(uid))
         user = User.objects.get(pk=user_id)
@@ -276,8 +273,7 @@ def send_verification_email(user: User) -> bool:
     from django.conf import settings
     from django.utils.http import urlsafe_base64_encode
     from django.utils.encoding import force_bytes
-    from .tokens import account_activation_token
-    
+    from apps.users.tokens import account_activation_token    
     # Generate token
     token = account_activation_token.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -325,8 +321,7 @@ def verify_email(uid: str, token: str) -> User:
     """
     from django.utils.http import urlsafe_base64_decode
     from django.utils.encoding import force_str
-    from .tokens import account_activation_token
-    
+    from apps.users.tokens import account_activation_token
     try:
         user_id = force_str(urlsafe_base64_decode(uid))
         user = User.objects.get(pk=user_id)

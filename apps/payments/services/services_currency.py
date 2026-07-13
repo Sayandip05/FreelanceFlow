@@ -4,9 +4,7 @@ Handles currency conversion and multi-currency payments
 """
 from django.db import transaction
 from decimal import Decimal
-from .models_extended import CurrencyExchangeRate, MultiCurrencyPayment
-
-
+from apps.payments.models.models_extended import CurrencyExchangeRate, MultiCurrencyPayment
 def get_exchange_rate(from_currency, to_currency):
     """Get current exchange rate"""
     try:

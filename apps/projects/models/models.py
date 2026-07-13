@@ -1,7 +1,5 @@
 from django.db import models
 from django.conf import settings
-
-
 class Project(models.Model):
     """
     Project model for client-posted projects.

@@ -6,12 +6,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
-
-from .serializers_extended import (
+from apps.payments.serializers.serializers_extended import (
     PaymentMilestoneSerializer, CreateMilestoneSerializer,
     MilestoneProgressSerializer
 )
-from .services_milestone import (
+from apps.payments.services.services_milestone import (
     create_milestone, complete_milestone, release_milestone_payment,
     get_contract_milestones, get_milestone_progress, get_upcoming_milestones
 )
@@ -82,7 +81,7 @@ class PaymentMilestoneViewSet(viewsets.ViewSet):
         """Release payment for a completed milestone (by client)"""
         try:
             payment = release_milestone_payment(pk, request.user)
-            from .serializers import PaymentSerializer
+            from apps.payments.serializers import PaymentSerializer
             return Response({
                 'message': 'Milestone payment release initiated',
                 'payment': PaymentSerializer(payment).data

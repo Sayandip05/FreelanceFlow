@@ -1,6 +1,4 @@
 from rest_framework import serializers
-
-
 class ProjectSearchSerializer(serializers.Serializer):
     """Serializer for project search results."""
     id = serializers.IntegerField()

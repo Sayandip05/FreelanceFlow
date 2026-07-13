@@ -6,23 +6,22 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
-
-from .serializers_extended import (
+from apps.users.serializers.serializers_extended import (
     Enable2FASerializer, Verify2FASerializer, Disable2FASerializer,
     TwoFactorAuthStatusSerializer, Enable2FAResponseSerializer,
     ActivityLogSerializer, ActivitySummarySerializer,
     UserOnlineStatusSerializer, UpdateStatusMessageSerializer,
     OnlineUsersSerializer
 )
-from .services_2fa import (
+from apps.users.services.services_2fa import (
     enable_2fa, verify_and_enable_2fa, verify_2fa_code,
     disable_2fa, is_2fa_enabled, regenerate_backup_codes
 )
-from .services_activity import (
+from apps.users.services.services_activity import (
     get_user_activity_log, get_recent_logins,
     get_security_events, get_activity_summary
 )
-from .services_status import (
+from apps.users.services.services_status import (
     get_user_status, set_status_message, clear_status_message,
     get_online_users, get_online_count, is_user_online
 )

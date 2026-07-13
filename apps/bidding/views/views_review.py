@@ -3,7 +3,6 @@ from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import models
-
 from apps.bidding.models import Review, ReviewResponse
 from apps.bidding.serializers import (
     ReviewSerializer,
@@ -22,8 +21,6 @@ from apps.bidding.services import (
 )
 from core.exceptions import ValidationError
 from core.pagination import StandardResultsPagination
-
-
 class ReviewViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Review operations.
@@ -187,7 +184,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def user_reviews(self, request, user_id=None):
         """Get public reviews for a specific user."""
         from apps.users.models import User
-        
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
@@ -210,7 +206,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def user_rating_summary(self, request, user_id=None):
         """Get rating summary for a specific user."""
         from apps.users.models import User
-        
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:

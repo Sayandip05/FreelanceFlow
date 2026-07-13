@@ -95,13 +95,13 @@ MIDDLEWARE = [
     "core.middleware_shutdown.GracefulShutdownMiddleware",  # Graceful shutdown - must be first
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    "core.middleware.RequestLoggingMiddleware",
     "core.middleware.SecurityHeadersMiddleware",
     "core.middleware.CacheControlMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.RequestLoggingMiddleware",  # After auth so request.user is set
     "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -388,11 +388,6 @@ LOGGING = {
             "format": "[{asctime}] {levelname} {name}: {message}",
             "style": "{",
             "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-        # JSON — overridden in production.py
-        "json": {
-            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
         },
     },
 

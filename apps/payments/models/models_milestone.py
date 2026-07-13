@@ -1,11 +1,8 @@
 """Models for Milestone-based Payments."""
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-
 from apps.bidding.models import Contract
 from apps.users.models import User
-
-
 class PaymentMilestone(models.Model):
     """
     Payment milestone for breaking payments into stages.

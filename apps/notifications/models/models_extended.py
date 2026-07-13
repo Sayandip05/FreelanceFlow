@@ -1,8 +1,6 @@
 """Extended notification models - Digest Emails, System Announcements."""
 from django.db import models
 from apps.users.models import User
-
-
 class DigestEmail(models.Model):
     """
     Weekly digest email tracking.
