@@ -120,7 +120,7 @@ class DeliverableViewTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=auth(self.client_user))
         response = self.client.post(
             f"/api/worklogs/deliverables/{deliverable.id}/approve/",
-            {"feedback": "Great work!"},
+            {"action": "approve", "feedback": "Great work!"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         deliverable.refresh_from_db()

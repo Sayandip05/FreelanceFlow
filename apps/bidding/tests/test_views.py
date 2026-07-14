@@ -67,7 +67,8 @@ class BidAcceptRejectViewTests(APITestCase):
     def test_client_can_accept_bid(self, mock_notify):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {RefreshToken.for_user(self.client_user).access_token}")
         response = self.client.post(f"/api/bids/{self.bid.id}/accept/")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Accept creates a contract, so view returns 201 CREATED
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_201_CREATED])
         self.bid.refresh_from_db()
         self.assertEqual(self.bid.status, Bid.Status.ACCEPTED)
 

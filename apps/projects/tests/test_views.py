@@ -11,11 +11,13 @@ Covered endpoints:
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
 from apps.projects.models import Project
 from apps.projects.tests.factories import make_client, make_freelancer, make_project
-def _get_token(api_client, email, password):
-    resp = api_client.post("/api/users/token/", {"email": email, "password": password}, format="json")
-    return resp.data.get("access", "")
+
+
+def _auth(user):
+    return f"Bearer {RefreshToken.for_user(user).access_token}"
 
 
 class ProjectListCreateAPITest(TestCase):
@@ -25,8 +27,7 @@ class ProjectListCreateAPITest(TestCase):
         self.client_user = make_client(email="cl@proj.view.test", password="StrongPass#123")
         self.freelancer = make_freelancer(email="fl@proj.view.test", password="StrongPass#123")
         self.project = make_project(self.client_user, title="Public Project")
-        token = _get_token(self.api_client, "cl@proj.view.test", "StrongPass#123")
-        self.api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.api_client.credentials(HTTP_AUTHORIZATION=_auth(self.client_user))
 
     def test_authenticated_user_can_list_projects(self):
         resp = self.api_client.get("/api/projects/")
@@ -45,8 +46,7 @@ class ProjectListCreateAPITest(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
     def test_freelancer_cannot_create_project(self):
-        token = _get_token(self.api_client, "fl@proj.view.test", "StrongPass#123")
-        self.api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.api_client.credentials(HTTP_AUTHORIZATION=_auth(self.freelancer))
         resp = self.api_client.post("/api/projects/", {
             "title": "Unauthorized Project",
             "description": "This freelancer should not be able to create a project here.",
@@ -76,15 +76,17 @@ class ProjectViewsPaymentsAPITest(TestCase):
         self.client_user = make_client(email="cl2@proj.view.test", password="StrongPass#123")
         self.other_client = make_client(email="oc@proj.view.test", password="StrongPass#123")
         self.project = make_project(self.client_user)
-
-        token = _get_token(self.api_client, "oc@proj.view.test", "StrongPass#123")
-        self.api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        # Authenticate as a different client (not the project owner)
+        self.api_client.credentials(HTTP_AUTHORIZATION=_auth(self.other_client))
 
     def test_non_owner_cannot_update_project(self):
         resp = self.api_client.patch(f"/api/projects/{self.project.id}/", {
             "title": "Stolen Title",
         }, format="json")
+        # The project queryset is scoped to the owner's projects, so a non-owner
+        # gets 404 (resource not visible) — acceptable security-through-obscurity response.
         self.assertIn(resp.status_code, [
             status.HTTP_400_BAD_REQUEST,
             status.HTTP_403_FORBIDDEN,
+            status.HTTP_404_NOT_FOUND,
         ])

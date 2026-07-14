@@ -68,8 +68,8 @@ class WebhookProcessingTest(TestCase):
         raw = json.dumps(payload).encode()
         return payload, raw
 
-    @patch("apps.payments.services._get_razorpay_client")
-    @patch("apps.payments.services.process_razorpay_webhook_task")
+    @patch("apps.payments.services.services._get_razorpay_client")
+    @patch("apps.payments.tasks.process_razorpay_webhook_task")
     def test_webhook_with_valid_signature_queues_task(self, mock_task, mock_razorpay):
         """Valid signature and new event_id → task is dispatched."""
         payload, raw = self._build_webhook_payload()
@@ -87,7 +87,7 @@ class WebhookProcessingTest(TestCase):
         self.assertTrue(result)
         mock_task.delay.assert_called_once()
 
-    @patch("apps.payments.services._get_razorpay_client")
+    @patch("apps.payments.services.services._get_razorpay_client")
     def test_webhook_with_invalid_signature_raises(self, mock_razorpay):
         import razorpay
         mock_razorpay.return_value.utility.verify_webhook_signature.side_effect = (
@@ -102,8 +102,8 @@ class WebhookProcessingTest(TestCase):
                 event_id="evt_any",
             )
 
-    @patch("apps.payments.services._get_razorpay_client")
-    @patch("apps.payments.services.process_razorpay_webhook_task")
+    @patch("apps.payments.services.services._get_razorpay_client")
+    @patch("apps.payments.tasks.process_razorpay_webhook_task")
     def test_duplicate_event_is_skipped(self, mock_task, mock_razorpay):
         """Already-processed events must be idempotent — task NOT dispatched again."""
         mock_razorpay.return_value.utility.verify_webhook_signature.return_value = None
@@ -122,7 +122,7 @@ class WebhookProcessingTest(TestCase):
         self.assertTrue(result)
         mock_task.delay.assert_not_called()
 
-    @patch("apps.payments.services._get_razorpay_client")
+    @patch("apps.payments.services.services._get_razorpay_client")
     def test_missing_event_id_raises(self, mock_razorpay):
         mock_razorpay.return_value.utility.verify_webhook_signature.return_value = None
         payload, raw = self._build_webhook_payload()
