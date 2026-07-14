@@ -27,17 +27,8 @@ ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "django_elasticsearch_dsl.signals.BaseSigna
 # MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
 # INTERNAL_IPS = ["127.0.0.1"]
 
-# Logging — inherited from base.py (console + file handler)
-# No override needed for local development.
-
-# ── Database override for local dev / testing ─────────────────────────────────
-# Use SQLite so tests work without a running PostgreSQL instance.
-# This overrides the DATABASE_URL from .env when running locally.
-import os as _os
-if _os.environ.get("USE_SQLITE", "true").lower() != "false":
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+# ── Database ──────────────────────────────────────────────────────────────────
+# Reads DATABASE_URL from .env (set to your local PostgreSQL or Supabase URL).
+# For test runs, use config/settings/test.py instead (via pytest.ini).
+# Example .env:
+#   DATABASE_URL=postgres://user:password@localhost:5432/freelanceflow
