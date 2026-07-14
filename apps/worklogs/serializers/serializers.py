@@ -154,8 +154,9 @@ class DeliverableCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating deliverables."""
     ai_chat_transcript = serializers.ListField(
         child=serializers.DictField(),
-        required=True,
-        help_text="Full chat conversation with AI"
+        required=False,
+        default=list,
+        help_text="Full chat conversation with AI (optional for manual submissions)"
     )
     attached_files = serializers.ListField(
         child=serializers.URLField(),

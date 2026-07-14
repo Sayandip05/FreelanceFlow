@@ -62,6 +62,13 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['post'])
     def escrow(self, request):
         """Create escrow for a contract (client only)."""
+        # Only clients can initiate escrow payments
+        if not hasattr(request.user, 'role') or request.user.role != 'CLIENT':
+            return Response(
+                {"error": "Only clients can initiate escrow payments.", "code": "permission_denied"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         serializer = CreateEscrowSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         

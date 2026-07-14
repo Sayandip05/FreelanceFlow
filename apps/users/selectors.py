@@ -38,18 +38,20 @@ def list_freelancers(skills: list[str] | None = None, limit: int = 50):
         limit: Maximum number of results
     
     Returns:
-        QuerySet of FreelancerProfile
+        QuerySet or list of FreelancerProfile
     """
     queryset = FreelancerProfile.objects.select_related('user').all()
 
     if skills:
-        # Filter freelancers who have any of the specified skills.
-        # skills__overlap is PostgreSQL-only; use contains-based OR filter for DB portability.
-        from django.db.models import Q
-        skill_filter = Q()
-        for skill in skills:
-            skill_filter |= Q(skills__contains=skill)
-        queryset = queryset.filter(skill_filter)
+        # skills is a JSONField(default=list). Neither __overlap (PostgreSQL-only)
+        # nor __contains (not supported on SQLite) work portably.
+        # Evaluate the queryset and filter in Python to stay DB-agnostic.
+        skills_lower = [s.lower() for s in skills]
+        matching_ids = [
+            fp.pk for fp in queryset
+            if any(s.lower() in skills_lower for s in (fp.skills or []))
+        ]
+        queryset = FreelancerProfile.objects.filter(pk__in=matching_ids).select_related('user')
 
     return queryset[:limit]
 

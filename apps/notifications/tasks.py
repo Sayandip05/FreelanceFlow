@@ -29,3 +29,31 @@ def send_notification_email(self, notification_id: int):
     except Exception as exc:
         # Retry with exponential backoff
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
+
+
+@shared_task(bind=True, max_retries=3)
+def notify_freelancer_bid_accepted(self, contract_id: int):
+    """
+    Notify a freelancer that their bid was accepted and a contract was created.
+    Called asynchronously by the bidding service after bid acceptance.
+    """
+    from apps.bidding.models import Contract
+    from apps.notifications.models import Notification
+    try:
+        contract = Contract.objects.select_related(
+            'bid__freelancer', 'bid__project'
+        ).get(id=contract_id)
+        freelancer = contract.bid.freelancer
+        project = contract.bid.project
+
+        Notification.objects.create(
+            recipient=freelancer,
+            title="Your bid was accepted!",
+            body=(
+                f"Congratulations! Your bid for \"{project.title}\" has been accepted. "
+                f"A contract has been created. You can start working now."
+            ),
+            notification_type="BID_ACCEPTED",
+        )
+    except Exception as exc:
+        raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))

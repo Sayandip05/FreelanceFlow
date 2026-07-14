@@ -16,6 +16,15 @@ User = get_user_model()
 logger = logging.getLogger("apps.payments")
 
 
+def __getattr__(name):
+    """Lazy module-level attribute access for avoiding circular imports."""
+    if name == "process_razorpay_webhook_task":
+        from apps.payments.tasks import process_razorpay_webhook_task
+        return process_razorpay_webhook_task
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+
 def _get_razorpay_client():
     """
     Lazily construct the Razorpay client so it is only instantiated when an
@@ -235,11 +244,13 @@ def process_razorpay_webhook(
     Returns:
         True if processed successfully
     """
-    from apps.payments.tasks import process_razorpay_webhook_task    
+    import apps.payments.tasks as _payment_tasks
     # Verify webhook signature using raw request body
+    # Razorpay's verify_webhook_signature expects a string, not bytes
+    body_str = raw_body.decode('utf-8') if isinstance(raw_body, bytes) else raw_body
     try:
         _get_razorpay_client().utility.verify_webhook_signature(
-            raw_body,
+            body_str,
             signature,
             settings.RAZORPAY_WEBHOOK_SECRET
         )
@@ -255,8 +266,8 @@ def process_razorpay_webhook(
     if has_payment_event_been_processed(event_id):
         return True
     
-    # Process event asynchronously
-    process_razorpay_webhook_task.delay(
+    # Process event asynchronously via module reference (allows mocking in tests)
+    _payment_tasks.process_razorpay_webhook_task.delay(
         event_id,
         event_type,
         payload.get('payload')

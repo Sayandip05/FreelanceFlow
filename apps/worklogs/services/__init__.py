@@ -1,4 +1,4 @@
-from apps.worklogs.tasks import notify_client_log_submitted  # re-export for patching
+from apps.worklogs.tasks import notify_client_log_submitted, generate_proof_pdf_task  # re-export for patching
 from .services import (
     create_worklog,
     update_worklog,
