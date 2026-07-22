@@ -2,170 +2,173 @@
 
 **AI-powered freelance marketplace connecting clients with skilled freelancers**
 
+[![Django](https://img.shields.io/badge/Django-5.0-092E20?style=flat&logo=django)](https://www.djangoproject.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=flat&logo=vite)](https://vitejs.dev/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=flat&logo=docker)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ---
 
 ## 🎯 Problem It Solves
 
-Traditional freelance platforms lack transparency in work tracking and payment security. FreelanceFlow solves this with AI-powered worklog generation, escrow-based payments, and real-time collaboration tools—ensuring trust, accountability, and seamless project delivery.
-
----
-
-## 🚀 Live Demo
-
-- **Frontend**: [https://freelanceflow.vercel.app](https://freelanceflow.vercel.app) *(placeholder)*
-- **Backend API**: [https://api.freelanceflow.com](https://api.freelanceflow.com) *(placeholder)*
-- **API Docs**: [https://api.freelanceflow.com/swagger](https://api.freelanceflow.com/swagger) *(placeholder)*
-
----
-
-## 📸 Screenshot
-
-![FreelanceFlow Dashboard](./docs/assets/screenshot.png) *(Add your screenshot here)*
+Traditional freelance platforms suffer from opaque work tracking, delayed payments, and high fee structures. FreelanceFlow solves this with AI-assisted worklog generation, milestone-based escrow payments, real-time WebSocket communication, and automated weekly project proof reports—ensuring accountability and smooth project delivery for both clients and freelancers.
 
 ---
 
 ## 🛠️ Tech Stack
 
-**Backend**
-- Django 5.0 (Modular Monolith)
-- PostgreSQL (Supabase)
-- Redis (Upstash)
-- Celery + Celery Beat
-- Django Channels (WebSocket)
-- Elasticsearch
+### **Backend**
+- **Framework**: Django 5.0 (Modular Monolith)
+- **Database**: PostgreSQL (Supabase)
+- **Caching & Broker**: Local Redis 7 (Docker)
+- **Task Queue**: Celery + Celery Beat (DatabaseScheduler)
+- **WebSockets**: Django Channels + Daphne (ASGI)
+- **Search Engine**: Elasticsearch 8.14 (django-elasticsearch-dsl)
 
-**Frontend**
-- React 18
-- Vite
-- TailwindCSS
-- React Query
+### **Frontend**
+- **Framework**: React 18 + Vite
+- **Styling**: TailwindCSS + PostCSS + Lucide Icons
+- **HTTP & State**: Axios, React Router v6
 
-**AI & Integrations**
-- Groq API (LLM)
-- LangChain + LangGraph
-- Razorpay (Payments)
-- AWS S3 (Storage)
-- WeasyPrint (PDF)
+### **AI & Integrations**
+- **LLM Engine**: Groq API (LangChain / LangGraph)
+- **Payments**: Razorpay Escrow & Webhook Integration
+- **PDF Generation**: WeasyPrint / ReportLab
+- **Security**: Axes Login Throttling, JWT Token Blacklisting, RBAC
 
-**DevOps**
-- Docker + Docker Compose
-- GitHub Actions (CI/CD)
-- Nginx
-- AWS EC2 (Production)
+### **DevOps & Infrastructure**
+- **Containerization**: Docker Compose with Profile Support (`profiles: [app]`)
+- **Web Server**: Nginx + Gunicorn / Daphne
+- **Database Backup**: Supabase Managed Postgres
 
 ---
 
 ## ✨ Key Features
 
-- 🤖 **AI Worklog Generation** - Chat with AI to auto-generate daily work reports
-- 💰 **Escrow Payments** - Secure milestone-based payments with 10% platform fee
-- 🔍 **Smart Search** - Elasticsearch-powered project and freelancer discovery
-- 💬 **Real-time Chat** - WebSocket messaging per contract
-- 📊 **Weekly Reports** - AI-generated project summaries
-- 🔐 **2FA & RBAC** - Two-factor auth with role-based access control
+- 🤖 **AI Worklog Summaries** — Conversational AI assistant generates structured daily progress reports
+- 💰 **Escrow Protection** — Secure milestone funding released only upon client work approval
+- 🔍 **Smart Search** — Full-text vector/keyword search across projects and freelancer profiles via Elasticsearch
+- 💬 **Live Chat** — Contract-scoped real-time messaging over WebSockets
+- 📊 **PDF & Proof Reports** — Timestamped proof-of-delivery documents generated automatically
+- 🔐 **Role-Based Control** — Dedicated Client and Freelancer workflows with login throttling and secure OAuth callbacks
 
 ---
 
-## 🚀 Quick Local Setup
+## 🚀 Local Development Setup
 
-### Backend
+### 1. Prerequisites
+- Docker & Docker Compose
+- Python 3.11+
+- Node.js 18+
 
+### 2. Start Infrastructure (Redis + Elasticsearch)
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/freelanceflow.git
-cd freelanceflow
+# Clone the repository
+git clone https://github.com/Sayandip05/FreelanceFlow.git
+cd FreelanceFlow
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Start Redis and Elasticsearch in background
+docker compose up -d
+```
+
+### 3. Backend Setup
+```bash
+# Create and activate Python virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Setup environment
+# Configure environment variables
 cp .env.example .env
-# Edit .env with your credentials
 
-# Run migrations
+# Run database migrations
 python manage.py migrate
 
-# Create superuser
-python manage.py createsuperuser
-
-# Run development server
+# Start Django development server (Port 8000)
 python manage.py runserver
 ```
 
-### Frontend
+### 4. Celery Workers & Beat (Separate Terminal Tabs)
+```bash
+# Run Celery Worker
+celery -A config worker -l info -Q freelanceflow,freelanceflow_high_priority,freelanceflow_low_priority
 
+# Run Celery Beat Scheduler
+celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+```
+
+### 5. Frontend Setup
 ```bash
 cd frontend
 
-# Install dependencies
+# Install Node dependencies
 npm install
 
-# Setup environment
-cp .env.example .env
-# Edit .env with backend API URL
-
-# Run development server
+# Start Vite development server (Port 5173)
 npm run dev
 ```
 
-### Docker (Full Stack)
+---
+
+## 🐳 Running Full Stack via Docker
+
+To run the entire platform (Postgres, Redis, Elasticsearch, Web, Celery, Daphne, Frontend) containerized:
 
 ```bash
-# Build and run all services
-docker-compose up --build
+# Spin up full stack using the app profile
+docker compose --profile app up --build -d
+```
 
-# Backend: http://localhost:8000
-# Frontend: http://localhost:5173
-# PostgreSQL: localhost:5432
-# Redis: localhost:6379
+| Service | Port | Endpoint / URL |
+|---|---|---|
+| **Frontend** | `5173` | `http://localhost:5173` |
+| **Django REST API** | `8000` | `http://localhost:8000/api/` |
+| **WebSocket Server** | `8001` | `ws://localhost:8001/ws/` |
+| **Elasticsearch** | `9200` | `http://localhost:9200` |
+| **Redis** | `6379` | `localhost:6379` |
+
+---
+
+## 📐 System Architecture
+
+```
+                                  ┌─────────────────────────┐
+                                  │   React 18 + Vite UI    │
+                                  └────────────┬────────────┘
+                                               │
+                                 HTTP / WS Proxy (Vite / Nginx)
+                                               │
+                        ┌──────────────────────┴──────────────────────┐
+                        │                                             │
+               ┌────────▼────────┐                           ┌────────▼────────┐
+               │  Django WSGI    │                           │  Daphne ASGI    │
+               │ (REST API 8000) │                           │(WebSockets 8001)│
+               └────────┬────────┘                           └────────┬────────┘
+                        │                                             │
+      ┌─────────────────┼─────────────────┬───────────────────────────┤
+      │                 │                 │                           │
+┌─────▼──────┐   ┌──────▼──────┐   ┌──────▼──────┐             ┌──────▼──────┐
+│ PostgreSQL │   │   Redis 7   │   │Celery Worker│             │Elasticsearch│
+│ (Supabase) │   │ (Local/Broker)  │   │  + Beat     │             │  (Search)   │
+└────────────┘   └─────────────┘   └──────┬──────┘             └─────────────┘
+                                          │
+                                   ┌──────▼──────┐
+                                   │  Groq LLM   │
+                                   │ (AI Engine) │
+                                   └─────────────┘
 ```
 
 ---
 
-## 📐 Architecture
+## 📚 Repository Structure
 
-```
-┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│   React     │─────▶│    Django    │─────▶│ PostgreSQL  │
-│  Frontend   │      │   Backend    │      │ (Supabase)  │
-└─────────────┘      └──────────────┘      └─────────────┘
-                            │
-                ┌───────────┼───────────┐
-                │           │           │
-         ┌──────▼────┐ ┌───▼────┐ ┌───▼─────┐
-         │   Redis   │ │  Groq  │ │   S3    │
-         │ (Upstash) │ │   AI   │ │ Storage │
-         └───────────┘ └────────┘ └─────────┘
-```
-
-**Architecture Type**: Modular Monolith (8 Django apps)
-
----
-
-## 📚 Documentation
-
-For detailed documentation, see the `/docs` folder:
-
-- **[HLD.md](./docs/HLD.md)** - High-Level Design (system overview, architecture, tech choices)
-- **[LLD.md](./docs/LLD.md)** - Low-Level Design (database schema, API endpoints, algorithms)
-- **[System_Architecture.md](./docs/System_Architecture.md)** - Service connections, flows, integrations
-- **[deployment.md](./docs/deployment.md)** - Deployment guide (Render, Railway, AWS EC2)
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Detailed design docs are available in the repository:
+- **[folderstructure.md](./folderstructure.md)** — Comprehensive file & app structural mapping
+- **[docs/HLD.md](./docs/HLD.md)** — High-Level Architecture & System Design
+- **[docs/LLD.md](./docs/LLD.md)** — Low-Level Component Specs & Schema Design
 
 ---
 
@@ -177,12 +180,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-**Your Name**
-
-- LinkedIn: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile)
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
-
----
-
-**Built with ❤️ using Django, React, and AI**
+**Sayandip Bar**
+- GitHub: [@Sayandip05](https://github.com/Sayandip05)
+- Email: sayandipbar05@gmail.com
+- Project Repository: [Sayandip05/FreelanceFlow](https://github.com/Sayandip05/FreelanceFlow)
