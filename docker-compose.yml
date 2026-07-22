@@ -1,23 +1,54 @@
 # ============================================
 # FreelanceFlow — docker-compose.yml
 # ============================================
-# Infrastructure split:
-#   Cloud  : Supabase PostgreSQL  (DATABASE_URL in .env)
-#   Cloud  : Upstash Redis        (REDIS_URL / CELERY_BROKER_URL in .env)
-#   Local  : Elasticsearch 8      (this file — container "elastic")
+# Profiles:
+#   (none)   — Infrastructure only: Redis + Elasticsearch
+#   app      — Full stack: infra + Django + Celery + Daphne + Flower
 #
-# Usage:
-#   docker compose up --build          # start everything
-#   docker compose up --build -d       # detached
-#   docker compose logs -f web         # tail web logs
-#   docker compose exec web python manage.py migrate
-#   docker compose exec web python manage.py seed
-#   docker compose exec web python manage.py search_index --rebuild -f
-#   docker compose down                # stop + remove containers
-#   docker compose down -v             # also wipe ES volume
+# ── Step 1: Start infrastructure only ──
+#   docker compose up -d
+#   → Starts Redis (localhost:6379) + Elasticsearch (localhost:9200)
+#   → Then run your Django app locally:
+#       python manage.py runserver
+#       celery -A config worker -l info
+#
+# ── Step 4: Full Dockerized stack ──
+#   docker compose --profile app up --build -d
+#   → Starts everything including the Django app
+#
+# Other useful commands:
+#   docker compose logs -f redis             # tail Redis logs
+#   docker compose exec elastic curl localhost:9200/_cluster/health
+#   docker compose down                      # stop + remove containers
+#   docker compose down -v                   # also wipe volumes
 # ============================================
 
 services:
+
+  # ──────────────────────────────────────────
+  # Redis 7  (broker + result backend + cache + channel layer)
+  # ──────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: freelanceflow_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: >
+      redis-server
+        --save 60 1
+        --loglevel warning
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+    networks:
+      - freelanceflow_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ──────────────────────────────────────────
   # Elasticsearch  (search engine — local)
@@ -29,12 +60,10 @@ services:
       - node.name=es-node-01
       - cluster.name=freelanceflow-cluster
       - discovery.type=single-node
-      # Security disabled for local dev — no passwords, no TLS
       - xpack.security.enabled=false
       - xpack.security.enrollment.enabled=false
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-      # Keep memory footprint reasonable
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ulimits:
       memlock:
@@ -64,12 +93,12 @@ services:
   # ──────────────────────────────────────────
   web:
     build: .
+    profiles: [app]
     container_name: freelanceflow_web
     command: python manage.py runserver 0.0.0.0:8000
     ports:
       - "8000:8000"
     volumes:
-      # Mount source code for hot-reload in development
       - .:/app
       - /app/venv
     env_file:
@@ -77,15 +106,19 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.local
       - PYTHONUNBUFFERED=1
-      # Inside Docker, ES is reachable via container name, not localhost
+      # Redis — Docker container (overrides any Upstash URL in .env)
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      # Elasticsearch — Docker container
       - ELASTICSEARCH_URL=http://elastic:9200
     networks:
       - freelanceflow_network
-    # NOTE: We do NOT hard-depend on elastic being healthy.
-    # ES signals are resilient — the app starts immediately and
-    # logs a WARNING if ES is not yet ready.
     depends_on:
-      - elastic
+      redis:
+        condition: service_healthy
+      elastic:
+        condition: service_started
     restart: unless-stopped
     stop_grace_period: 30s
     stop_signal: SIGTERM
@@ -101,6 +134,7 @@ services:
   # ──────────────────────────────────────────
   daphne:
     build: .
+    profiles: [app]
     container_name: freelanceflow_daphne
     command: daphne -b 0.0.0.0 -p 8001 config.asgi:application
     ports:
@@ -113,27 +147,29 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.local
       - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - ELASTICSEARCH_URL=http://elastic:9200
     networks:
       - freelanceflow_network
     depends_on:
-      - elastic
-      - web
+      redis:
+        condition: service_healthy
+      elastic:
+        condition: service_started
+      web:
+        condition: service_started
     restart: unless-stopped
     stop_grace_period: 30s
     stop_signal: SIGTERM
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health/live/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   # ──────────────────────────────────────────
   # Celery worker  (background tasks)
   # ──────────────────────────────────────────
   celery:
     build: .
+    profiles: [app]
     container_name: freelanceflow_celery
     command: >
       celery -A config worker
@@ -148,11 +184,17 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.local
       - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - ELASTICSEARCH_URL=http://elastic:9200
     networks:
       - freelanceflow_network
     depends_on:
-      - web
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
     restart: unless-stopped
     stop_grace_period: 60s
     stop_signal: SIGTERM
@@ -168,6 +210,7 @@ services:
   # ──────────────────────────────────────────
   celery-beat:
     build: .
+    profiles: [app]
     container_name: freelanceflow_celery_beat
     command: >
       celery -A config beat
@@ -181,10 +224,16 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.local
       - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
     networks:
       - freelanceflow_network
     depends_on:
-      - web
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
     restart: unless-stopped
     stop_grace_period: 30s
     stop_signal: SIGTERM
@@ -194,6 +243,7 @@ services:
   # ──────────────────────────────────────────
   flower:
     build: .
+    profiles: [app]
     container_name: freelanceflow_flower
     command: celery -A config flower --port=5555
     ports:
@@ -206,10 +256,16 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.local
       - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
     networks:
       - freelanceflow_network
     depends_on:
-      - celery
+      redis:
+        condition: service_healthy
+      celery:
+        condition: service_started
     restart: unless-stopped
     stop_grace_period: 20s
     stop_signal: SIGTERM
@@ -225,6 +281,7 @@ networks:
 # Named volumes
 # ──────────────────────────────────────────
 volumes:
-  # Persists Elasticsearch data across container restarts
+  redis_data:
+    driver: local
   elastic_data:
     driver: local
