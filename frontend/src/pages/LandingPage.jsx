@@ -29,11 +29,10 @@ const LandingPage = () => {
         <div className="flex items-center gap-6">
           <a href="#" className="text-2xl font-bold tracking-tight text-blue-600">FreelanceFlow</a>
           <div className="hidden lg:flex items-center gap-5 text-sm font-medium text-gray-700">
-            <a href="#" className="hover:text-blue-600 transition-colors">Hire freelancers</a>
-            <a href="#" className="hover:text-blue-600 transition-colors">Find work</a>
-            <a href="#" className="hover:text-blue-600 transition-colors">Why FreelanceFlow</a>
-            <a href="#" className="hover:text-blue-600 transition-colors">Pricing</a>
-            <a href="#" className="hover:text-blue-600 transition-colors">For enterprise</a>
+            <a href="/login?role=CLIENT" className="hover:text-blue-600 transition-colors">Hire freelancers</a>
+            <a href="/login?role=FREELANCER" className="hover:text-blue-600 transition-colors">Find work</a>
+            <a href="#how-it-works" className="hover:text-blue-600 transition-colors">How it works</a>
+            <a href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</a>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -49,11 +48,10 @@ const LandingPage = () => {
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 top-[60px] z-40 bg-white border-t border-gray-200 overflow-y-auto">
           <div className="flex flex-col p-6 gap-4 text-base font-medium text-gray-800">
-            <a href="#" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Hire freelancers</a>
-            <a href="#" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Find work</a>
-            <a href="#" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Why FreelanceFlow</a>
-            <a href="#" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Pricing</a>
-            <a href="#" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">For enterprise</a>
+            <a href="/login?role=CLIENT" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Hire freelancers</a>
+            <a href="/login?role=FREELANCER" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Find work</a>
+            <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">How it works</a>
+            <a href="#pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Pricing</a>
             <a href="/login" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100 sm:hidden">Log in</a>
             <a href="/register" className="bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-full transition-colors mt-2">Get started</a>
           </div>
@@ -69,28 +67,39 @@ const LandingPage = () => {
       <section className="px-4 lg:px-8 py-6 max-w-[1440px] mx-auto">
         <div className="relative rounded-3xl overflow-hidden bg-gray-900 min-h-[500px] flex flex-col justify-center px-6 lg:px-16 py-16 shadow-xl">
           {/* Background Image */}
-          <div className="absolute inset-0 opacity-40 mix-blend-overlay">
-            <img src="https://picsum.photos/seed/workspace/1920/1080" alt="Workspace" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          <div className="absolute inset-0">
+            <img src="/images/home%20image.png" alt="Workspace" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/65 to-gray-900/30"></div>
           </div>
           
           <div className="relative z-10 max-w-2xl">
             <h1 className="text-4xl lg:text-6xl font-bold text-white leading-[1.1] mb-6 tracking-tight">
-              Hire the experts your<br />business needs
+              {activeHeroTab === 'hire' 
+                ? 'Hire the experts your business needs' 
+                : 'Find work that fits your skills'}
             </h1>
             <p className="text-lg lg:text-xl text-gray-200 mb-10 font-medium max-w-xl">
-              Access skilled freelancers ready to help you build and scale — without the full-time commitment
+              {activeHeroTab === 'hire'
+                ? 'Access skilled freelancers ready to help you build and scale — without the full-time commitment'
+                : 'Join thousands of freelancers earning on their own terms — no office, no fixed hours, just real work'}
             </p>
             
             {/* Toggle */}
             <div className="flex bg-white/10 p-1 rounded-full w-fit mb-8 backdrop-blur-md border border-white/20">
               <button 
-                onClick={() => setActiveHeroTab('hire')}
+                onClick={() => {
+                  setActiveHeroTab('hire');
+                  setActiveHowItWorksTab('hiring');
+                }}
                 className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHeroTab === 'hire' ? 'bg-white text-gray-900 shadow-sm' : 'text-white hover:bg-white/10'}`}
               >
                 I want to hire
               </button>
               <button 
-                onClick={() => setActiveHeroTab('work')}
+                onClick={() => {
+                  setActiveHeroTab('work');
+                  setActiveHowItWorksTab('work');
+                }}
                 className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHeroTab === 'work' ? 'bg-white text-gray-900 shadow-sm' : 'text-white hover:bg-white/10'}`}
               >
                 I want to work
@@ -156,8 +165,83 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* How it works */}
+      <section id="how-it-works" className="px-4 lg:px-8 py-20 max-w-[1440px] mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">How it works</h2>
+          
+          {/* Toggle */}
+          <div className="flex bg-white border border-gray-200 rounded-full p-1.5 w-fit shadow-sm">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveHowItWorksTab('hiring');
+                setActiveHeroTab('hire');
+              }}
+              className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHowItWorksTab === 'hiring' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
+            >
+              For hiring
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveHowItWorksTab('work');
+                setActiveHeroTab('work');
+              }}
+              className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHowItWorksTab === 'work' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
+            >
+              For finding work
+            </button>
+          </div>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-10">
+          {/* Card 1 */}
+          <a href="/login" className="group cursor-pointer block">
+            <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/3] bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
+              <img 
+                src={activeHowItWorksTab === 'hiring' ? '/images/for%20hiring%201.png' : '/images/for%20getting%20project%201.png'} 
+                alt="Step 1" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+              />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+              {activeHowItWorksTab === 'hiring' ? 'Post your project for free' : 'Create your profile and showcase your skills'}
+            </h3>
+          </a>
+          
+          {/* Card 2 */}
+          <a href="/login" className="group cursor-pointer block">
+            <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/3] bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
+              <img 
+                src={activeHowItWorksTab === 'hiring' ? '/images/for%20hiring%202.png' : '/images/for%20getting%20project%20%202.png'} 
+                alt="Step 2" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+              />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+              {activeHowItWorksTab === 'hiring' ? 'Review proposals from skilled freelancers' : 'Browse projects and submit proposals'}
+            </h3>
+          </a>
+          
+          {/* Card 3 */}
+          <a href="/login" className="group cursor-pointer block">
+            <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/3] bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
+              <img 
+                src={activeHowItWorksTab === 'hiring' ? '/images/for%20hiring%203.png' : '/images/for%20getting%20project%203.png'} 
+                alt="Step 3" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+              />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+              {activeHowItWorksTab === 'hiring' ? 'Pay securely only when work is approved' : 'Get paid reliably as milestones are completed'}
+            </h3>
+          </a>
+        </div>
+      </section>
+
       {/* Pricing (Choose how you want to hire) */}
-      <section className="px-4 lg:px-8 py-24 bg-gradient-to-b from-blue-50/50 to-white relative overflow-hidden">
+      <section id="pricing" className="px-4 lg:px-8 py-24 bg-gradient-to-b from-blue-50/50 to-white relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNlNWU3ZWIiLz48L3N2Zz4=')] opacity-40"></div>
         
         <div className="relative z-10 max-w-5xl mx-auto">
@@ -285,61 +369,6 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="px-4 lg:px-8 py-20 max-w-[1440px] mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">How it works</h2>
-          
-          {/* Toggle */}
-          <div className="flex bg-white border border-gray-200 rounded-full p-1.5 w-fit shadow-sm">
-            <button 
-              onClick={() => setActiveHowItWorksTab('hiring')}
-              className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHowItWorksTab === 'hiring' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              For hiring
-            </button>
-            <button 
-              onClick={() => setActiveHowItWorksTab('work')}
-              className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHowItWorksTab === 'work' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              For finding work
-            </button>
-          </div>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-10">
-          {/* Card 1 */}
-          <div className="group cursor-pointer">
-            <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/3] bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
-              <img src="https://picsum.photos/seed/dashboard/600/400" alt="Dashboard" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
-            </div>
-            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-              {activeHowItWorksTab === 'hiring' ? 'Find clients and remote jobs' : 'Posting jobs is always free'}
-            </h3>
-          </div>
-          
-          {/* Card 2 */}
-          <div className="group cursor-pointer">
-            <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/3] bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
-              <img src="https://picsum.photos/seed/meeting/600/400" alt="Meeting" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
-            </div>
-            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-              {activeHowItWorksTab === 'hiring' ? 'Submit proposals for work' : 'Get proposals and hire'}
-            </h3>
-          </div>
-          
-          {/* Card 3 */}
-          <div className="group cursor-pointer">
-            <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/3] bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
-              <img src="https://picsum.photos/seed/working/600/400" alt="Working" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
-            </div>
-            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-              {activeHowItWorksTab === 'hiring' ? 'Get paid as you deliver work' : 'Pay when work is done'}
-            </h3>
-          </div>
-        </div>
-      </section>
-
       {/* Bottom CTA */}
       <section className="px-4 lg:px-8 py-16 max-w-[1440px] mx-auto mb-10">
         <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 rounded-[2.5rem] p-12 lg:p-20 text-center relative overflow-hidden shadow-2xl">
@@ -360,16 +389,17 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#111827] text-white py-16 px-4 lg:px-8 border-t border-gray-800">
-        <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="text-2xl font-bold tracking-tight text-white">FreelanceFlow</div>
-          <div className="flex flex-wrap justify-center gap-8 text-sm font-medium text-gray-400">
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Accessibility</a>
+      <footer className="bg-black text-gray-400 py-8 px-4 lg:px-8 border-t border-gray-900">
+        <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold tracking-tight text-white">FreelanceFlow</span>
+            <span className="text-gray-700">|</span>
+            <span className="text-gray-500">© 2026 FreelanceFlow Inc. All rights reserved.</span>
           </div>
-          <div className="text-sm text-gray-500 font-medium">
-            © 2026 FreelanceFlow® Global Inc.
+          <div className="flex items-center gap-6 text-gray-400">
+            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+            <a href="#" className="hover:text-white transition-colors">Security</a>
           </div>
         </div>
       </footer>

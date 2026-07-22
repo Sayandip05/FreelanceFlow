@@ -27,3 +27,6 @@ logs/
 # Documentation/local scratch
 folderstructure.md
 
+
+.DS_Store
+*.DS_Store
