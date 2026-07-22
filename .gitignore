@@ -23,3 +23,7 @@ scripts/commit_refactor.sh
 # Application logs
 logs/
 *.log
+
+# Documentation/local scratch
+folderstructure.md
+
