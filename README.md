@@ -35,12 +35,15 @@ Traditional freelance platforms suffer from opaque work tracking, delayed paymen
 - **LLM Engine**: Groq API (LangChain / LangGraph)
 - **Payments**: Razorpay Escrow & Webhook Integration
 - **PDF Generation**: WeasyPrint / ReportLab
-- **Security**: Axes Login Throttling, JWT Token Blacklisting, RBAC
+### **Security & Auth**
+- **Authentication**: SimpleJWT (Access + Refresh Rotation), Google OAuth2 Single Sign-On (SSO)
+- **Protection**: Rate Throttling (Auth 5/min, OAuth 10/min), JWT Blacklisting, RBAC
 
 ### **DevOps & Infrastructure**
+- **Deployment**: Targeted for **Azure Virtual Machine (VM)** (Linux / Nginx + Gunicorn / Daphne)
+- **Cloud Storage**: **Azure Blob Storage** (for PDF proof reports, worklog screenshots, and invoices)
 - **Containerization**: Docker Compose with Profile Support (`profiles: [app]`)
-- **Web Server**: Nginx + Gunicorn / Daphne
-- **Database Backup**: Supabase Managed Postgres
+- **Database**: Supabase Managed Postgres
 
 ---
 
@@ -51,11 +54,34 @@ Traditional freelance platforms suffer from opaque work tracking, delayed paymen
 - 🔍 **Smart Search** — Full-text vector/keyword search across projects and freelancer profiles via Elasticsearch
 - 💬 **Live Chat** — Contract-scoped real-time messaging over WebSockets
 - 📊 **PDF & Proof Reports** — Timestamped proof-of-delivery documents generated automatically
-- 🔐 **Role-Based Control** — Dedicated Client and Freelancer workflows with login throttling and secure OAuth callbacks
+- 🔐 **OAuth & Role-Based Control** — Google OAuth2 SSO + JWT, dedicated Client and Freelancer workflows with rate throttling
 
 ---
 
-## 🚀 Local Development Setup
+## ⚡ Quick Start with `Makefile`
+
+For convenient local development, a root `Makefile` provides shortcut commands:
+
+```bash
+# 1. Start Django Backend (Port 8000)
+make backend
+
+# 2. Start Frontend Dev Server (Port 3000)
+make frontend-dev
+
+# 3. Start Celery Worker
+make worker
+
+# 4. Run Auth Tests (--keepdb)
+make test-auth
+
+# 5. Show all available commands
+make help
+```
+
+---
+
+## 🚀 Manual Development Setup
 
 ### 1. Prerequisites
 - Docker & Docker Compose
@@ -102,14 +128,11 @@ celery -A config beat -l info --scheduler django_celery_beat.schedulers:Database
 
 ### 5. Frontend Setup
 ```bash
-cd frontend
-
-# Install Node dependencies
+# In frontend/ directory
 npm install
-
-# Start Vite development server (Port 5173)
 npm run dev
 ```
+
 
 ---
 

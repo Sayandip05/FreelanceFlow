@@ -13,7 +13,7 @@
 2. [Standard Response Shapes](#2-standard-response-shapes)
 3. [Rate Limiting & Throttling](#3-rate-limiting--throttling)
 4. [Users & Auth](#4-users--auth)
-5. [Two-Factor Authentication (2FA)](#5-two-factor-authentication-2fa)
+5. [Google OAuth2 Authentication](#5-google-oauth2-authentication)
 6. [Activity Log & Online Status](#6-activity-log--online-status)
 7. [Projects](#7-projects)
 8. [Bidding](#8-bidding)
@@ -107,6 +107,7 @@ Authorization: Bearer <access_token>
 | **Anonymous** (unauthenticated) | `100 / hour` |
 | **Authenticated users** | `1000 / hour` |
 | **Auth endpoints** (register, login, change-password) | `5 / minute` (custom `AuthRateThrottle`) |
+| **OAuth endpoints** (auth/google/, auth/google/callback/) | `10 / minute` (custom `OAuthRateThrottle`) |
 
 Exceeded limit → `HTTP 429 Too Many Requests`
 
@@ -398,87 +399,58 @@ Reactivate a deactivated account.
 
 ---
 
-## 5. Two-Factor Authentication (2FA)
+## 5. Google OAuth2 Authentication
 
-### Base path: `/api/users/2fa/`
+### Base path: `/api/users/auth/google/`
 
-All endpoints require authentication.  
-Uses TOTP (Time-based One-Time Password) compatible with Google Authenticator, Authy, etc.
+Integrates standard Google OAuth2 flow with JWT issuance. Allows users (Clients or Freelancers) to register/login using their Google account.
 
 ---
 
-#### `POST /api/users/2fa/enable/`
+#### `GET /api/users/auth/google/`
 
-Generate 2FA secret and QR code URI. 2FA is **not yet active** until verified.
+Initiate Google OAuth flow. Constructs and returns the Google OAuth consent authorization URL.
+
+**Auth:** Public · **Throttle:** 10/min (`OAuthRateThrottle`)
+
+**Query Parameters:**
+| Parameter | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| `role` | string | ❌ | `CLIENT` | Desired user role (`CLIENT` or `FREELANCER`). Encoded in state. |
 
 **Response `200`:**
 ```json
 {
-  "secret_key": "JBSWY3DPEHPK3PXP",
-  "backup_codes": ["A1B2", "C3D4", "E5F6", "G7H8", "I9J0", "K1L2", "M3N4", "O5P6", "Q7R8", "S9T0"],
-  "qr_code_url": "otpauth://totp/FreelanceFlow:jane@example.com?secret=JBSWY3DPEHPK3PXP&issuer=FreelanceFlow"
+  "auth_url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=...&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fapi%2Fusers%2Fauth%2Fgoogle%2Fcallback%2F&response_type=code&scope=openid+email+profile&access_type=offline&state=CLIENT&prompt=select_account"
 }
 ```
 
 ---
 
-#### `POST /api/users/2fa/verify/`
+#### `GET /api/users/auth/google/callback/`
 
-Verify TOTP code from authenticator app and **activate** 2FA.
+OAuth callback endpoint handling Google redirect code exchange.
 
-**Request:**
-```json
-{ "code": "123456" }
-```
+**Auth:** Public · **Throttle:** 10/min (`OAuthRateThrottle`)
 
-**Response `200`:**
-```json
-{ "message": "2FA enabled successfully", "enabled": true }
-```
+**Query Parameters:**
+| Parameter | Type | Required | Notes |
+|---|---|---|---|
+| `code` | string | ✅ | Authorization code returned by Google |
+| `state` | string | ❌ | State containing target user role (`CLIENT` or `FREELANCER`) |
+| `error` | string | ❌ | Set by Google if user cancelled consent |
 
-**Response `400`:** Invalid code — 2FA stays inactive.
+**Behavior:**
+1. Exchanges `code` for Google OAuth access token.
+2. Fetches user info (email, first_name, last_name) from Google UserInfo API.
+3. Finds existing user by email or creates a new user with `is_email_verified=True` and unusable password.
+4. Generates SimpleJWT `access` and `refresh` token pair.
+5. Redirects browser to frontend callback route (`FRONTEND_URL/auth/google/callback?access=...&refresh=...&role=...`).
 
----
+**Redirect Responses:**
+- **Success (`302 Found`):** Redirects to `http://localhost:3000/auth/google/callback?access=<JWT_ACCESS>&refresh=<JWT_REFRESH>&role=CLIENT`
+- **Failure (`302 Found`):** Redirects to `http://localhost:3000/auth/google/callback?error=oauth_failed` (or `token_exchange_failed`, `userinfo_failed`, `no_email`)
 
-#### `POST /api/users/2fa/disable/`
-
-Disable 2FA (requires current valid TOTP or backup code).
-
-**Request:**
-```json
-{ "code": "123456" }
-```
-
-**Response `200`:**
-```json
-{ "message": "2FA disabled successfully", "enabled": false }
-```
-
----
-
-#### `GET /api/users/2fa/status/`
-
-Check whether 2FA is currently enabled.
-
-**Response `200`:**
-```json
-{ "enabled": true }
-```
-
----
-
-#### `POST /api/users/2fa/regenerate-codes/`
-
-Replace all remaining backup codes with 10 new ones.  
-Requires 2FA to already be enabled.
-
-**Response `200`:**
-```json
-{
-  "backup_codes": ["AA11", "BB22", ...],
-  "message": "Backup codes regenerated successfully"
-}
-```
 
 ---
 
@@ -1668,7 +1640,7 @@ Manually trigger delivery proof generation (normally happens automatically after
 
 #### `POST /api/worklogs/upload/`
 
-Upload a file (screenshot, attachment, etc.) to S3.
+Upload a file (screenshot, attachment, etc.) to Cloud Storage (Azure Blob Storage / S3).
 
 **Request (multipart):**
 ```
@@ -2023,10 +1995,10 @@ Available when `DEBUG=True` (local development):
 | `payment_exists` | Escrow already exists for this contract |
 | `invalid_signature` | Razorpay HMAC verification failed |
 | `invalid_data` | Request body missing required Razorpay fields |
-| `escrow_required` | Payment must be in ESCROWED status |
-| `not_escrowed` | Contract payment not yet funded |
-| `2fa_not_enabled` | 2FA operation requires 2FA to be active |
-| `invalid_2fa_code` | TOTP or backup code is incorrect |
+| `oauth_failed` | Google OAuth consent or authorization failed |
+| `token_exchange_failed` | Failed to exchange authorization code with Google |
+| `userinfo_failed` | Failed to retrieve user details from Google |
+| `no_email` | Google account did not provide a primary email address |
 
 ---
 

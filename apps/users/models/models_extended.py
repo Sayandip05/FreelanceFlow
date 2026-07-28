@@ -1,26 +1,6 @@
-"""Extended user models - 2FA, Activity Logging."""
+"""Extended user models - Activity Logging, Online Status."""
 from django.db import models
 from apps.users.models import User
-class TwoFactorAuth(models.Model):
-    """
-    Two-factor authentication settings.
-    """
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="two_factor_auth"
-    )
-    is_enabled = models.BooleanField(default=False)
-    secret_key = models.CharField(max_length=32)
-    backup_codes = models.JSONField(default=list)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = "two_factor_auth"
-    
-    def __str__(self):
-        return f"2FA for {self.user.email}"
 
 
 class ActivityLog(models.Model):

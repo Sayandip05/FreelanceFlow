@@ -74,8 +74,7 @@ def get_security_events(user, limit=20):
         'LOGOUT',
         'PASSWORD_CHANGE',
         'PASSWORD_RESET',
-        '2FA_ENABLED',
-        '2FA_DISABLED',
+        'GOOGLE_LOGIN',
         'FAILED_LOGIN'
     ]
     
@@ -128,15 +127,11 @@ class ActivityAction:
     # Authentication
     LOGIN = 'LOGIN'
     LOGOUT = 'LOGOUT'
+    GOOGLE_LOGIN = 'GOOGLE_LOGIN'
     REGISTER = 'REGISTER'
     PASSWORD_CHANGE = 'PASSWORD_CHANGE'
     PASSWORD_RESET = 'PASSWORD_RESET'
     FAILED_LOGIN = 'FAILED_LOGIN'
-    
-    # 2FA
-    TWO_FA_ENABLED = '2FA_ENABLED'
-    TWO_FA_DISABLED = '2FA_DISABLED'
-    TWO_FA_VERIFIED = '2FA_VERIFIED'
     
     # Projects
     PROJECT_CREATED = 'PROJECT_CREATED'

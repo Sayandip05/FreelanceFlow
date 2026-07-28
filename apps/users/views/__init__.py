@@ -14,7 +14,7 @@ from .views import (
     ReactivateAccountView,
 )
 from .views_extended import (
-    TwoFactorAuthViewSet,
     ActivityLogViewSet,
     OnlineStatusViewSet,
 )
+from .views_google_oauth import GoogleOAuthInitView, GoogleOAuthCallbackView

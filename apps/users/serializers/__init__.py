@@ -13,11 +13,6 @@ from .serializers import (
     AccountDeactivationSerializer,
 )
 from .serializers_extended import (
-    Enable2FASerializer,
-    Verify2FASerializer,
-    Disable2FASerializer,
-    TwoFactorAuthStatusSerializer,
-    Enable2FAResponseSerializer,
     ActivityLogSerializer,
     ActivitySummarySerializer,
     UserOnlineStatusSerializer,

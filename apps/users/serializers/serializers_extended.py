@@ -2,47 +2,7 @@
 Serializers for Extended User Features
 """
 from rest_framework import serializers
-from apps.users.models.models_extended import TwoFactorAuth, ActivityLog, UserOnlineStatus
-
-# ============= 2FA Serializers =============
-
-class Enable2FASerializer(serializers.Serializer):
-    """Serializer for enabling 2FA (no input needed)"""
-    pass
-
-
-class Verify2FASerializer(serializers.Serializer):
-    """Serializer for verifying 2FA code"""
-    code = serializers.CharField(
-        max_length=6,
-        min_length=6,
-        help_text="6-digit TOTP code from authenticator app"
-    )
-
-
-class Disable2FASerializer(serializers.Serializer):
-    """Serializer for disabling 2FA"""
-    code = serializers.CharField(
-        max_length=6,
-        min_length=6,
-        help_text="6-digit TOTP code to confirm disable"
-    )
-
-
-class TwoFactorAuthStatusSerializer(serializers.ModelSerializer):
-    """Serializer for 2FA status"""
-    class Meta:
-        model = TwoFactorAuth
-        fields = ['is_enabled', 'last_used_at']
-        read_only_fields = ['is_enabled', 'last_used_at']
-
-
-class Enable2FAResponseSerializer(serializers.Serializer):
-    """Response after enabling 2FA"""
-    secret_key = serializers.CharField()
-    backup_codes = serializers.ListField(child=serializers.CharField())
-    qr_code_url = serializers.CharField()
-    message = serializers.CharField(default="Scan QR code with authenticator app and verify")
+from apps.users.models.models_extended import ActivityLog, UserOnlineStatus
 
 
 # ============= Activity Log Serializers =============

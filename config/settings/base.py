@@ -43,9 +43,13 @@ env = environ.Env(
     EMAIL_HOST_PASSWORD=(str, ""),
     DEFAULT_FROM_EMAIL=(str, "noreply@freelanceflow.com"),
     FRONTEND_URL=(str, "http://localhost:3000"),
+    BACKEND_URL=(str, "http://localhost:8000"),
     CORS_ALLOWED_ORIGINS=(list, ["http://localhost:3000", "http://127.0.0.1:3000"]),
     PLATFORM_CUT_PERCENTAGE=(int, 10),
     SENTRY_DSN=(str, ""),
+    # Google OAuth
+    GOOGLE_CLIENT_ID=(str, ""),
+    GOOGLE_CLIENT_SECRET=(str, ""),
 )
 
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -305,8 +309,13 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 
-# Frontend URL (for email links)
+# Frontend / Backend URL (for email links & OAuth redirects)
 FRONTEND_URL = env("FRONTEND_URL")
+BACKEND_URL = env("BACKEND_URL")
+
+# Google OAuth2
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET")
 
 # Platform Settings
 PLATFORM_CUT_PERCENTAGE = env("PLATFORM_CUT_PERCENTAGE")

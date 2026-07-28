@@ -23,7 +23,7 @@
 12. [Async Task System (Celery)](#12-async-task-system-celery)
 13. [Real-Time Messaging (WebSocket)](#13-real-time-messaging-websocket)
 14. [Search Architecture (Elasticsearch)](#14-search-architecture-elasticsearch)
-15. [S3 File Storage](#15-s3-file-storage)
+15. [Cloud File Storage (Azure Blob Storage / S3)](#15-cloud-file-storage-azure-blob-storage--s3)
 16. [Caching Strategy](#16-caching-strategy)
 17. [Custom Middleware Stack](#17-custom-middleware-stack)
 18. [Design Patterns](#18-design-patterns)
@@ -60,7 +60,7 @@ Eight Django apps, each with strict domain boundaries:
 
 | App | Domain |
 |---|---|
-| `apps.users` | Registration, JWT auth, profiles, 2FA (TOTP + backup codes), activity log, online status |
+| `apps.users` | Registration, JWT auth, Google OAuth2, profiles, activity log, online status |
 | `apps.projects` | Project CRUD, categories, bookmarks, drafts, public share links |
 | `apps.bidding` | Bid submission, contract creation, counter-offers, amendments |
 | `apps.payments` | Escrow, release, refunds, disputes, milestones, invoices, multi-currency, tax docs |
@@ -176,9 +176,10 @@ transaction.on_commit(lambda:
 ```
 apps/{app_name}/
 ├── models.py           ← Core domain schema
-├── models_extended.py  ← Secondary models (bookmarks, 2FA, push, disputes, etc.)
+├── models_extended.py  ← Secondary models (activity logs, online status, bookmarks, disputes, etc.)
 ├── serializers.py      ← Input validation, response shaping
 ├── views.py            ← Thin HTTP controllers (delegate to services)
+├── views_google_oauth.py ← Google OAuth2 init and callback handlers
 ├── services.py         ← Business logic, DB transactions, side effects
 ├── selectors.py        ← Optimised read queries (select_related/prefetch_related)
 ├── permissions.py      ← Object-level authorization
@@ -197,7 +198,8 @@ apps/{app_name}/
 | Component | Key Responsibilities | Critical Implementation Details |
 |---|---|---|
 | **User Service** | Registration, JWT auth, profile CRUD, soft-delete (is_deactivated) | Email as USERNAME_FIELD. Roles: `CLIENT` / `FREELANCER`. `SubscriptionTier`: FREE / PRO. |
-| **2FA Service** | TOTP enable/verify/disable, backup codes | `pyotp.TOTP`, 10 single-use backup codes stored in JSONField |
+| **Google OAuth Service & Views** | Google OAuth2 initiation & callback JWT issuance | Exchange Google code for tokens, fetch profile, create/get User, issue SimpleJWT tokens & redirect to frontend. Throttled at 10 req/min. |
+
 | **Activity Service** | Immutable audit log | `ActionType`: LOGIN, LOGOUT, PROJECT_CREATED, BID_PLACED, CONTRACT_SIGNED, PAYMENT_MADE, REVIEW_POSTED, PROFILE_UPDATED, PASSWORD_CHANGED |
 | **Project Service** | CRUD, publish, cancel, draft saving, bookmarks, public share links | Status machine: DRAFT → OPEN → IN_PROGRESS → COMPLETED/CANCELLED. `ProjectShare` token for public links. |
 | **Bidding Service** | Submit, accept, reject, withdraw bids, contract creation | `select_for_update()` on accept. All other PENDING bids bulk-rejected atomically. Cover letter minimum 50 chars. |
@@ -420,7 +422,7 @@ DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED
 | Module | Base Path | Key Actions |
 |---|---|---|
 | **Auth** | `/api/users/` | `POST register/`, `POST login/`, `POST token/refresh/`, `POST logout/`, `GET me/`, `POST change-password/`, `POST verify-email/`, `POST password-reset/` |
-| **2FA** | `/api/users/` | `POST 2fa/enable/`, `POST 2fa/verify/`, `POST 2fa/disable/`, `POST 2fa/backup-codes/regenerate/` |
+| **Google OAuth** | `/api/users/` | `GET auth/google/`, `GET auth/google/callback/` |
 | **Profiles** | `/api/users/` | `GET/PATCH freelancer-profile/`, `GET/PATCH client-profile/`, `GET online-status/` |
 | **Projects** | `/api/projects/` | CRUD, `POST {id}/publish/`, `POST {id}/cancel/`, `GET {id}/bookmark/`, `GET share/{token}/` |
 | **Project Drafts** | `/api/projects/` | `GET/POST/PATCH/DELETE drafts/` |
@@ -875,38 +877,32 @@ class FreelancerDocument(Document):
 
 ---
 
-## 15. S3 File Storage
+## 15. Cloud File Storage (Azure Blob Storage / S3)
 
-### Objects Stored in S3
+> 💡 **Production Infrastructure Note:** Future production deployment uses **Azure Blob Storage** for media, screenshots, and PDF storage (via `django-storages[azure]` or Azure SDK) hosted on an **Azure Virtual Machine (VM)**. S3 interfaces act as legacy/local compatibility wrappers.
 
-| Object Type | S3 Key Pattern | Access |
+### Objects Stored in Cloud Storage
+
+| Object Type | Key / Blob Pattern | Access |
 |---|---|---|
-| Weekly report PDFs | `reports/{contract_id}/week_{week_start}.pdf` | Pre-signed URL, 7-day expiry |
-| Delivery proof PDFs | `proofs/{contract_id}/delivery_proof.pdf` | Pre-signed URL, 7-day expiry |
-| Worklog screenshots | `worklogs/screenshots/{YYYY}/{MM}/{DD}/{filename}` | Via Django `ImageField` / storages |
-| Invoice PDFs | `MEDIA_ROOT/invoices/invoice_{payment_id}_{date}.pdf` | Served via media URL |
+| Weekly report PDFs | `reports/{contract_id}/week_{week_start}.pdf` | Shared Access Signature (SAS) / Pre-signed URL |
+| Delivery proof PDFs | `proofs/{contract_id}/delivery_proof.pdf` | SAS / Pre-signed URL (7-day expiry) |
+| Worklog screenshots | `worklogs/screenshots/{YYYY}/{MM}/{DD}/{filename}` | Via Django `ImageField` / Azure Blob Storage |
+| Invoice PDFs | `MEDIA_ROOT/invoices/invoice_{payment_id}_{date}.pdf` | Served via media URL / Azure Blob |
 | Tax documents | Stored URL in `TaxDocument.document_url` | Manual / external |
 
 ### Upload Flow (PDF Service)
 
 ```python
-def upload_to_s3(pdf_bytes: bytes, s3_key: str) -> str:
-    if not settings.AWS_ACCESS_KEY_ID:
-        return f"https://placeholder-s3-url/{s3_key}"  # local dev fallback
+def upload_to_cloud_storage(pdf_bytes: bytes, file_key: str) -> str:
+    # Production Target: Azure Blob Storage (or S3 fallback)
+    if not settings.AZURE_STORAGE_CONNECTION_STRING and not settings.AWS_ACCESS_KEY_ID:
+        return f"https://placeholder-storage-url/{file_key}"  # local dev fallback
 
-    s3 = boto3.client('s3', ...)
-    s3.put_object(
-        Bucket=AWS_STORAGE_BUCKET_NAME,
-        Key=s3_key,
-        Body=pdf_bytes,
-        ContentType='application/pdf',
-    )
-    return s3.generate_presigned_url(
-        'get_object',
-        Params={'Bucket': ..., 'Key': s3_key},
-        ExpiresIn=604800,  # 7 days
-    )
+    # Uploads to Azure Blob Container / S3 Bucket and returns secure SAS/Pre-signed URL
+    ...
 ```
+
 
 ---
 
@@ -1041,29 +1037,36 @@ transaction.on_commit(lambda:
 Route 53 (DNS)
     │
     ▼
-CloudFront (CDN — React SPA static assets)
-    │
-    ▼
-Application Load Balancer (SSL termination)
-    │
-    ├─────────────────────────────────────────┐
-    ▼                                         ▼
-EC2 AZ-1                               EC2 AZ-2
-  Nginx (443 → 8000 HTTP, 8001 WS)
-  Gunicorn (WSGI, N workers)
-  Daphne (ASGI/WebSocket)
-  Celery Worker + Beat
-    │
-    ├─────────────────────────────────────────────────┐
-    ▼                         ▼                       ▼
-RDS PostgreSQL           ElastiCache Redis      Elasticsearch
-(Multi-AZ)               (Cluster mode)        (3 data nodes)
-    │
-    ▼
-S3 Buckets
-  ├── freelanceflow-static-prod
-  ├── freelanceflow-media-prod
-  └── freelanceflow-backups-prod
+```
+                                      Internet Traffic (Clients / Freelancers)
+                                                         │
+                                               ┌─────────▼─────────┐
+                                               │   Cloudflare CDN  │
+                                               └─────────┬─────────┘
+                                                         │
+                                               ┌─────────▼─────────┐
+                                               │   Azure Load      │
+                                               │   Balancer        │
+                                               └─────────┬─────────┘
+                                                         │
+                                       ┌─────────────────┴─────────────────┐
+                                       ▼                                   ▼
+                       Azure Virtual Machine (VM 1)       Azure Virtual Machine (VM 2)
+                         Linux / Nginx Reverse Proxy        Linux / Nginx Reverse Proxy
+                         Gunicorn (WSGI / REST API)         Gunicorn (WSGI / REST API)
+                         Daphne (ASGI / WebSockets)         Daphne (ASGI / WebSockets)
+                         Celery Worker + Beat               Celery Worker
+                                       │                                   │
+                    ┌──────────────────┼───────────────────────────────────┤
+                    ▼                  ▼                                   ▼
+             PostgreSQL           Redis                               Elasticsearch
+             (Supabase)       (Local / Upstash)                       (Search Node)
+                    │
+                    ▼
+          Azure Blob Storage
+            ├── freelanceflow-static-prod
+            ├── freelanceflow-media-prod (Screenshots, Invoice PDFs)
+            └── freelanceflow-reports-prod (Delivery Proofs, Weekly Reports)
 ```
 
 ### Settings Environment Matrix
@@ -1145,7 +1148,7 @@ GET /health/
 | **LangChain + LangGraph** | — | Stateful multi-turn AI conversation |
 | **LangSmith** | — | AI observability |
 | **WeasyPrint** | — | HTML → PDF for weekly reports, delivery proofs, invoices |
-| **pyotp** | — | TOTP-based 2FA |
+| **Google OAuth2** | — | Single sign-on authentication flow & JWT token issuance |
 | **drf-spectacular** | 0.29 | OpenAPI 3.1 — dev only, zero prod footprint |
 | **django-axes** | — | Brute force protection |
 | **django-environ** | — | 12-factor env config |
@@ -1281,7 +1284,7 @@ docker-compose exec web python manage.py createsuperuser
 **Core Platform**
 - Email-based registration + JWT auth (access 60 min / refresh 7 days, rotation, blacklist)
 - Role-based access: CLIENT / FREELANCER
-- TOTP 2FA (enable/verify/disable) + 10 backup codes
+- Google OAuth2 Single Sign-On flow (`/api/users/auth/google/` & `/api/users/auth/google/callback/`)
 - Account soft-delete (`is_deactivated` flag)
 - Subscription tier field: FREE / PRO (model exists — no billing logic yet)
 - Immutable activity log (10 action types)

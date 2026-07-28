@@ -13,16 +13,6 @@ from .services import (
     deactivate_account,
     reactivate_account,
 )
-from .services_2fa import (
-    generate_2fa_secret,
-    generate_backup_codes,
-    enable_2fa,
-    verify_and_enable_2fa,
-    verify_2fa_code,
-    disable_2fa,
-    is_2fa_enabled,
-    regenerate_backup_codes,
-)
 from .services_activity import (
     log_activity,
     get_user_activity_log,
