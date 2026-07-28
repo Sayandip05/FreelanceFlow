@@ -66,9 +66,18 @@ const LandingPage = () => {
       {/* Hero Section */}
       <section className="px-4 lg:px-8 py-6 max-w-[1440px] mx-auto">
         <div className="relative rounded-3xl overflow-hidden bg-gray-900 min-h-[500px] flex flex-col justify-center px-6 lg:px-16 py-16 shadow-xl">
-          {/* Background Image */}
+          {/* Background Video */}
           <div className="absolute inset-0">
-            <img src="/images/home%20image.png" alt="Workspace" className="w-full h-full object-cover" />
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              onEnded={(e) => e.target.play()}
+              className="w-full h-full object-cover"
+            >
+              <source src="/images/home%20video.mp4" type="video/mp4" />
+            </video>
             <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/65 to-gray-900/30"></div>
           </div>
           
