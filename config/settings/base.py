@@ -260,13 +260,42 @@ CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 # Beat schedule (for periodic tasks)
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+# Celery Beat — Periodic Task Schedule
+# Defines the recurring tasks run by `celery beat`.
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    # ── Progress Reports ──────────────────────────────────────────────────────
+    # Fires at 12:05 AM every day.
+    # Checks all ReportSchedules where next_report_date <= today and enqueues
+    # AI report generation for each. Advances next_report_date after queuing.
+    "trigger-scheduled-reports-daily": {
+        "task": "apps.worklogs.tasks.trigger_scheduled_reports",
+        "schedule": crontab(hour=0, minute=5),
+    },
+    # Fires at 9:00 AM every day.
+    # Sends freelancer in-app notification if report is due within 3 days.
+    "check-upcoming-report-deadlines-daily": {
+        "task": "apps.worklogs.tasks.check_upcoming_report_deadlines",
+        "schedule": crontab(hour=9, minute=0),
+    },
+    # ── Legacy Weekly Sweep (contracts without a ReportSchedule) ─────────────
+    # Runs every Sunday at 11:59 PM.
+    # Targets contracts that don't have a configured ReportSchedule.
+    # Contracts with an active ReportSchedule are handled by the daily task above.
+    "generate-weekly-reports-sunday": {
+        "task": "apps.worklogs.tasks.generate_weekly_reports_for_all_contracts",
+        "schedule": crontab(hour=23, minute=59, day_of_week=0),
+    },
+}
+
 # Razorpay
 RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET")
 RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET")
 RAZORPAY_ACCOUNT_NUMBER = env("RAZORPAY_ACCOUNT_NUMBER")
 
-# AWS S3
+# AWS S3 (legacy — kept for backward compatibility; not used for PDF uploads)
 AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
@@ -274,6 +303,13 @@ AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
 AWS_CLOUDFRONT_DOMAIN = env("AWS_CLOUDFRONT_DOMAIN")
 AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None
+
+# Azure Blob Storage
+# Used for all PDF uploads: progress reports, delivery proofs.
+# Container: AZURE_CONTAINER_NAME (default: "media")
+# Access: Private container, 7-day SAS URLs generated on upload.
+AZURE_STORAGE_CONNECTION_STRING = env("AZURE_STORAGE_CONNECTION_STRING", default="")
+AZURE_CONTAINER_NAME = env("AZURE_CONTAINER_NAME", default="media")
 
 # Groq (for AI chat and reports)
 GROQ_API_KEY = env("GROQ_API_KEY")

@@ -101,9 +101,13 @@ class WeeklyReport(models.Model):
     ai_summary = models.TextField(help_text="AI-generated report content")
     pdf_url = models.URLField(
         blank=True,
-        help_text="S3 URL to generated PDF"
+        help_text="Azure Blob Storage SAS URL to generated PDF (7-day expiry)"
     )
     sent_to_client_at = models.DateTimeField(null=True, blank=True)
+    interval_days = models.IntegerField(
+        default=7,
+        help_text="Schedule interval that triggered this report (7, 14, or 30 days)"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

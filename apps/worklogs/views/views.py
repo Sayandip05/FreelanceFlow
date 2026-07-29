@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from asgiref.sync import sync_to_async
-from apps.worklogs.models import WorkLog, WeeklyReport, DeliveryProof, Deliverable
+from apps.worklogs.models import WorkLog, WeeklyReport, DeliveryProof, Deliverable, ReportSchedule
 from apps.worklogs.serializers import (
     WorkLogSerializer,
     WorkLogCreateSerializer,
@@ -16,6 +16,8 @@ from apps.worklogs.serializers import (
     AIChatMessageSerializer,
     AIChatResponseSerializer,
     FileUploadSerializer,
+    ReportScheduleSerializer,
+    ReportScheduleCreateSerializer,
 )
 from apps.worklogs.services import (
     create_worklog,
@@ -536,3 +538,159 @@ class FileUploadViewSet(viewsets.ViewSet):
             "filename": file_obj.name,
             "size": file_obj.size,
         }, status=status.HTTP_201_CREATED)
+
+
+class ReportScheduleViewSet(viewsets.GenericViewSet):
+    """
+    ViewSet for client-configurable progress report schedules.
+
+    Clients set how often they want a progress report (7, 14, or 30 days).
+    The Celery Beat task `trigger_scheduled_reports` checks these schedules
+    daily and automatically enqueues AI report generation + PDF upload.
+    Freelancers are notified 3 days before each due date.
+
+    Endpoints:
+    - POST   /api/worklogs/report-schedule/              Create or update schedule (client only)
+    - GET    /api/worklogs/report-schedule/{id}/         Get schedule details (both parties)
+    - PATCH  /api/worklogs/report-schedule/{id}/         Update interval or pause (client only)
+    - POST   /api/worklogs/report-schedule/{id}/generate-now/  Trigger immediately (client only, returns 202)
+    """
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return ReportSchedule.objects.none()
+        user = self.request.user
+        if user.role == "CLIENT":
+            return ReportSchedule.objects.filter(
+                contract__bid__project__client=user
+            ).select_related("contract__bid__project", "contract__bid__freelancer")
+        # Freelancers can view (read-only) their contract's schedule
+        return ReportSchedule.objects.filter(
+            contract__bid__freelancer=user
+        ).select_related("contract__bid__project")
+
+    def get_serializer_class(self):
+        if self.action in ["create", "partial_update"]:
+            return ReportScheduleCreateSerializer
+        return ReportScheduleSerializer
+
+    def get_permissions(self):
+        if self.action in ["create", "partial_update", "generate_now"]:
+            return [permissions.IsAuthenticated(), IsContractClient()]
+        return [permissions.IsAuthenticated(), IsContractParticipant()]
+
+    def create(self, request, *args, **kwargs):
+        """
+        POST /api/worklogs/report-schedule/
+
+        Create or update the report schedule for a contract.
+        Only the contract's client can call this endpoint.
+
+        Request body:
+            { "contract": 42, "interval_days": 14 }
+
+        Response (201 Created):
+            {
+                "id": 1, "contract": 42, "interval_days": 14,
+                "interval_label": "Every 14 days (Biweekly)",
+                "next_report_date": "2026-08-12",
+                "days_until_next_report": 14,
+                "is_active": true
+            }
+        """
+        serializer = ReportScheduleCreateSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        schedule = serializer.save()
+        return Response(
+            ReportScheduleSerializer(schedule).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def retrieve(self, request, pk=None):
+        """
+        GET /api/worklogs/report-schedule/{id}/
+
+        View the schedule details. Accessible by both client and freelancer.
+        """
+        schedule = self.get_object()
+        return Response(ReportScheduleSerializer(schedule).data)
+
+    def partial_update(self, request, pk=None):
+        """
+        PATCH /api/worklogs/report-schedule/{id}/
+
+        Update interval or pause/resume. Client only.
+
+        Examples:
+            Change interval:   { "interval_days": 30 }
+            Pause schedule:    { "is_active": false }
+            Resume schedule:   { "is_active": true }
+        """
+        schedule = self.get_object()
+        serializer = ReportScheduleCreateSerializer(
+            schedule,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        updated = serializer.save()
+        return Response(ReportScheduleSerializer(updated).data)
+
+    @action(detail=True, methods=["post"], url_path="generate-now")
+    def generate_now(self, request, pk=None):
+        """
+        POST /api/worklogs/report-schedule/{id}/generate-now/
+
+        Manually trigger a progress report generation immediately.
+        Returns HTTP 202 Accepted — the actual work happens asynchronously
+        in a Celery worker. The client will receive an in-app notification
+        when the PDF is ready.
+
+        Rate limited: 1 manual trigger per hour per schedule.
+        """
+        from apps.worklogs.tasks import generate_ai_report_task
+        from datetime import date, timedelta
+        from django.utils import timezone
+        import django.core.cache as cache_module
+
+        schedule = self.get_object()
+
+        # Rate limit: prevent multiple manual triggers within 1 hour
+        cache = cache_module.cache
+        rate_key = f"report_trigger_{schedule.id}"
+        if cache.get(rate_key):
+            return Response(
+                {
+                    "error": "A report was recently triggered for this contract. Please wait before generating another.",
+                    "code": "rate_limited",
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        # Determine the period to cover
+        today = date.today()
+        period_end = today - timedelta(days=1)
+        period_start = period_end - timedelta(days=schedule.interval_days - 1)
+
+        # Enqueue async — returns immediately
+        generate_ai_report_task.delay(
+            schedule.contract.id,
+            period_start.isoformat(),
+            schedule.interval_days,
+        )
+
+        # Set rate limit for 1 hour
+        cache.set(rate_key, True, timeout=3600)
+
+        return Response(
+            {
+                "message": "Report generation has been queued. You'll receive a notification when the PDF is ready.",
+                "contract": schedule.contract.id,
+                "period_start": str(period_start),
+                "period_end": str(period_end),
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )

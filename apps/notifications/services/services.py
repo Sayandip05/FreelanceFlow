@@ -130,3 +130,37 @@ def notify_message_received(recipient, sender_name: str):
         body=f"You have received a new message.",
         notification_type=Notification.Type.MESSAGE_RECEIVED
     )
+
+
+def notify_report_upcoming(freelancer, project_title: str, due_date: str):
+    """Notify freelancer that a scheduled progress report is due soon.
+    
+    Fired by `check_upcoming_report_deadlines` Celery task when the
+    report is due within 3 days.
+    """
+    return create_notification(
+        recipient=freelancer,
+        title=f"📋 Progress report due soon for '{project_title}'",
+        body=(
+            f"A progress report for '{project_title}' is scheduled for {due_date}. "
+            f"Make sure your work logs are up to date — the report will be generated automatically."
+        ),
+        notification_type=Notification.Type.REPORT_UPCOMING,
+    )
+
+
+def notify_client_report_available(client, project_title: str, report_id: int):
+    """Notify client that a new progress report PDF is available.
+    
+    Fired by `notify_client_new_report` Celery task after the PDF
+    has been successfully uploaded to Azure Blob Storage.
+    """
+    return create_notification(
+        recipient=client,
+        title=f"📄 New progress report ready for '{project_title}'",
+        body=(
+            f"A new progress report for '{project_title}' has been generated and is ready to view. "
+            f"You can download the PDF from your dashboard."
+        ),
+        notification_type=Notification.Type.CLIENT_REPORT_READY,
+    )

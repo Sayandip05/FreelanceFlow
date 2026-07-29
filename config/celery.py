@@ -59,6 +59,22 @@ app.conf.update(
             'queue': 'freelanceflow_low_priority',
             'routing_key': 'freelanceflow.low',
         },
+        'apps.worklogs.tasks.trigger_scheduled_reports': {
+            'queue': 'freelanceflow_low_priority',
+            'routing_key': 'freelanceflow.low',
+        },
+        'apps.worklogs.tasks.check_upcoming_report_deadlines': {
+            'queue': 'freelanceflow_low_priority',
+            'routing_key': 'freelanceflow.low',
+        },
+        'apps.worklogs.tasks.notify_client_new_report': {
+            'queue': 'freelanceflow_low_priority',
+            'routing_key': 'freelanceflow.low',
+        },
+        'apps.worklogs.tasks.notify_freelancer_report_upcoming': {
+            'queue': 'freelanceflow_low_priority',
+            'routing_key': 'freelanceflow.low',
+        },
         
         # Default queue for all other tasks
         '*': {

@@ -21,7 +21,7 @@ from .services_timeoff import (
 from .pdf_service import (
     generate_weekly_report_pdf,
     generate_delivery_proof_pdf,
-    upload_to_s3,
+    upload_to_azure_blob,
 )
 from .groq_service import (
     GroqChatService,

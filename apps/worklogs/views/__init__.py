@@ -5,4 +5,5 @@ from .views import (
     DeliverableViewSet,
     AIChatViewSet,
     FileUploadViewSet,
+    ReportScheduleViewSet,
 )

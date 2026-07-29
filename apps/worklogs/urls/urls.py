@@ -1,12 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from apps.worklogs.views import (
-    WorkLogViewSet, 
-    WeeklyReportViewSet, 
+    WorkLogViewSet,
+    WeeklyReportViewSet,
     DeliveryProofViewSet,
     DeliverableViewSet,
     AIChatViewSet,
     FileUploadViewSet,
+    ReportScheduleViewSet,
 )
 
 
@@ -16,6 +17,7 @@ router.register(r'reports', WeeklyReportViewSet, basename='weeklyreport')
 router.register(r'deliverables', DeliverableViewSet, basename='deliverable')
 router.register(r'ai-chat', AIChatViewSet, basename='ai-chat')
 router.register(r'upload', FileUploadViewSet, basename='upload')
+router.register(r'report-schedule', ReportScheduleViewSet, basename='report-schedule')
 
 urlpatterns = [
     path('', include(router.urls)),

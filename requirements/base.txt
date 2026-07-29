@@ -16,7 +16,8 @@ flower
 elasticsearch-dsl
 django-elasticsearch-dsl
 django-storages
-boto3
+boto3                  # legacy S3 compat — PDF uploads now use Azure
+azure-storage-blob     # Azure Blob Storage: PDF reports & delivery proofs
 groq
 weasyprint
 razorpay

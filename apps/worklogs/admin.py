@@ -1,5 +1,5 @@
 from django.contrib import admin
-from apps.worklogs.models import WorkLog, WeeklyReport, DeliveryProof
+from apps.worklogs.models import WorkLog, WeeklyReport, DeliveryProof, ReportSchedule
 
 
 @admin.register(WorkLog)
@@ -85,3 +85,32 @@ class DeliveryProofAdmin(admin.ModelAdmin):
     search_fields = ["contract__bid__project__title", "report_id"]
     readonly_fields = ["generated_at"]
     date_hierarchy = "generated_at"
+
+
+@admin.register(ReportSchedule)
+class ReportScheduleAdmin(admin.ModelAdmin):
+    """Admin configuration for ReportSchedule model."""
+
+    list_display = [
+        "id",
+        "contract",
+        "interval_days",
+        "next_report_date",
+        "is_active",
+        "created_at",
+    ]
+    list_filter = ["interval_days", "is_active"]
+    list_editable = ["is_active"]
+    search_fields = ["contract__bid__project__title"]
+    readonly_fields = ["created_at", "updated_at"]
+    date_hierarchy = "next_report_date"
+
+    fieldsets = (
+        ("Schedule Settings", {
+            "fields": ("contract", "interval_days", "next_report_date", "is_active", "created_by")
+        }),
+        ("Timestamps", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
