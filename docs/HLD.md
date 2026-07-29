@@ -214,12 +214,12 @@ apps/{app_name}/
 | **PDF Service** | Weekly report PDF + Delivery Proof PDF | WeasyPrint → in-memory bytes → S3 `put_object` → pre-signed URL (7-day expiry). Falls back to placeholder URL if S3 not configured. |
 | **Time-Off Service** | Leave tracking | `LeaveType`: VACATION, SICK, PERSONAL, OTHER. Requires client approval. |
 | **Messaging Service** | Per-contract chat | Daphne + Django Channels. Redis channel layer groups: `chat_{contract_id}`. |
-| **Notification Service** | In-app, email, per-event preferences | `Notification.Type`: BID_SUBMITTED, BID_ACCEPTED, ESCROW_CREATED, LOG_SUBMITTED, REPORT_READY, PAYMENT_RELEASED, PROOF_READY, MESSAGE_RECEIVED |
+| **Notification Service** | In-app, email, per-event preferences | `Notification.Type`: BID_SUBMITTED, BID_ACCEPTED, ESCROW_CREATED, LOG_SUBMITTED, REPORT_READY, **REPORT_UPCOMING** (freelancer 3-day heads-up), **CLIENT_REPORT_READY** (client notified when PDF ready), PAYMENT_RELEASED, PROOF_READY, MESSAGE_RECEIVED |
 | **Push Notification Service** | Browser push via FCM | `PushSubscription` stores browser subscription JSON. `NotificationPreference` per-event opt-in/out for email + push + in-app. |
 | **Digest Service** | Scheduled digest emails | `DigestEmail` tracks sends. Frequency: DAILY/WEEKLY/MONTHLY. |
 | **Announcement Service** | Platform-wide system announcements | `SystemAnnouncement` with target: all/freelancers/clients. Types: INFO, WARNING, MAINTENANCE, FEATURE. |
 | **Search Service** | Full-text ES search + history + saved searches + autocomplete | `SearchHistory` + `SavedSearch` + `SearchSuggestion` (populated via popularity field). |
-| **AI Service (Groq)** | Worklog generation via LangGraph | `groq_service.py` (20 KB) + `ai_service.py` (weekly reports). Groq Llama 3.3 70B. LangSmith tracing. Fallback to direct Groq API. |
+| **AI Service (Groq)** | Worklog generation via LangGraph | `groq_service.py` (20 KB) — **dedicated, private AI workspace** for freelancers to casually describe work. The AI asks clarifying questions and outputs a structured JSON report. **Does NOT read or parse freelancer–client contract messages.** Separate from `apps.messaging`. `ai_service.py` handles weekly report aggregation. Groq Llama 3.3 70B. LangSmith tracing. Fallback to direct Groq API. |
 
 ### Infrastructure Components
 
@@ -270,6 +270,7 @@ Contract (1) ── (1) DeliveryProof
 Contract (1) ── (1) Conversation
 Contract (1) ── (M) PaymentMilestone
 Contract (1) ── (M) TimeOff
+Contract (1) ── (1) ReportSchedule   [client sets interval 7/14/30 days]
 
 Payment (1) ── (1) Escrow
 Payment (1) ── (M) PlatformEarning
@@ -335,9 +336,10 @@ Conversation (1) ── (M) Message
 | Table | Key Fields |
 |---|---|
 | `work_logs` | contract_id, freelancer_id, date, description, hours_worked (0.1–24), screenshot (ImageField), screenshot_url, reference_url, status (DRAFT/PENDING_APPROVAL/APPROVED/REJECTED), ai_generated_summary, client_notes, approved_at, approved_by — unique_together (contract, date) |
-| `weekly_reports` | contract_id, week_start, week_end, ai_summary, pdf_url (S3), sent_to_client_at — unique_together (contract, week_start) |
+| `weekly_reports` | contract_id, week_start, week_end, ai_summary, pdf_url (Azure Blob SAS), sent_to_client_at, interval_days (7/14/30) — unique_together (contract, week_start) |
 | `deliverables` | contract_id, freelancer_id, title, description, ai_chat_transcript (JSON), ai_generated_report, attached_files (JSON), status (DRAFT/SUBMITTED/UNDER_REVIEW/APPROVED/REJECTED/REVISION_REQUESTED), submitted_at, reviewed_at, reviewed_by, client_feedback, revision_notes, hours_logged, payment_released |
-| `delivery_proofs` | contract_id (OneToOne), pdf_url (S3), generated_at, total_hours, total_logs_count, total_deliverables, approved_deliverables, report_id (unique tamper-evident ID) |
+| `delivery_proofs` | contract_id (OneToOne), pdf_url (Azure Blob SAS), generated_at, total_hours, total_logs_count, total_deliverables, approved_deliverables, report_id (unique tamper-evident ID) |
+| `report_schedules` | contract_id (OneToOne), interval_days (7/14/30), next_report_date, is_active, created_by — index on (next_report_date, is_active) |
 | `time_offs` | freelancer_id, contract_id (optional), leave_type (VACATION/SICK/PERSONAL/OTHER), start_date, end_date, reason, status (PENDING/APPROVED/REJECTED), approved_by, approved_at |
 
 #### `apps.messaging`
@@ -434,9 +436,11 @@ DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED
 | **Invoices** | `/api/payments/` | `GET invoices/{payment_id}/`, `GET invoices/{payment_id}/pdf/` |
 | **Worklogs** | `/api/worklogs/` | CRUD, `POST {id}/submit/`, `POST {id}/approve/`, `POST {id}/reject/` |
 | **Deliverables** | `/api/worklogs/` | `POST deliverables/`, `POST deliverables/{id}/submit/`, `POST deliverables/{id}/approve/`, `POST deliverables/{id}/reject/`, `POST deliverables/{id}/request-revision/` |
-| **AI Chat** | `/api/worklogs/` | `POST ai-chat/message/`, `POST ai-chat/generate-deliverable/` |
+| **AI Chat** | `/api/worklogs/` | `POST ai-chat/message/` (async), `POST ai-chat/generate-deliverable/` (async) |
 | **Weekly Reports** | `/api/worklogs/` | `GET weekly-reports/`, `GET weekly-reports/{id}/`, `GET weekly-reports/{id}/pdf/` |
 | **Time-Off** | `/api/worklogs/` | `GET/POST time-off/`, `POST time-off/{id}/approve/` |
+| **Report Schedule** | `/api/worklogs/` | `POST report-schedule/` (create/upsert, client only), `GET report-schedule/{id}/`, `PATCH report-schedule/{id}/` (pause/change interval), `POST report-schedule/{id}/generate-now/` (manual trigger → 202, rate-limited 1/hr) |
+| **File Upload** | `/api/worklogs/` | `POST upload/upload/` — JPG/PNG/GIF/PDF, max 10 MB → default storage, returns URL |
 | **Messaging** | `/api/messaging/` | `GET conversations/`, `GET conversations/{id}/`, `POST messages/` |
 | **Notifications** | `/api/notifications/` | `GET /`, `PATCH {id}/mark-read/`, `DELETE {id}/`, `GET preferences/`, `PATCH preferences/` |
 | **Search** | `/api/search/` | `GET projects/`, `GET freelancers/`, `GET history/`, `GET saved/`, `GET suggestions/` |
@@ -743,17 +747,30 @@ Rates are manually seeded — no live exchange rate API connected yet (see §25)
 | Layer | Technology |
 |---|---|
 | LLM | Groq API — Llama 3.3 70B Versatile |
-| Orchestration | LangChain + LangGraph (`groq_service.py` — 20 KB) |
-| Weekly reports | `ai_service.py` (separate, simpler pipeline) |
-| Monitoring | LangSmith (traces every graph execution) |
-| PDF export | WeasyPrint → bytes → S3 |
+| Chat orchestration | LangChain + LangGraph — `groq_service.py` (`GroqChatService`, ~520 lines) |
+| Weekly report pipeline | LangGraph — `ai_service.py` (`ReportState` graph, ~300 lines) |
+| Monitoring | LangSmith — `@traceable` decorators on every graph entrypoint |
+| PDF export | WeasyPrint → bytes → S3 pre-signed URL |
+| Async transport | Django Async Views + `sync_to_async` (AI chat endpoints) |
 
-### LangGraph State Machine
+### Graph 1 — Chat Agent (`groq_service.py`)
+
+Used by `POST /api/worklogs/ai-chat/message/`. Freelancer describes work conversationally; AI asks follow-up questions and eventually emits a structured JSON report.
 
 ```python
+# State
+class ChatAgentState(TypedDict):
+    messages: List[BaseMessage]       # full conversation
+    project_name: str
+    contract_details: Optional[Dict]
+    report_ready: bool
+    report_data: Optional[Dict]       # populated when report_ready=True
+    next_action: Literal["continue", "generate_report", "end"]
+
+# Graph
 workflow = StateGraph(ChatAgentState)
-workflow.add_node("process_message", process_message_node)  # Groq call
-workflow.add_node("check_intent", check_intent_node)         # route decision
+workflow.add_node("process_message", process_message_node)  # Groq LLM call
+workflow.add_node("check_intent",   check_intent_node)      # route decision
 workflow.set_entry_point("process_message")
 workflow.add_edge("process_message", "check_intent")
 workflow.add_conditional_edges(
@@ -761,14 +778,79 @@ workflow.add_conditional_edges(
     lambda state: state["next_action"],
     {
         "continue":        END,   # AI asks clarifying question
-        "generate_report": END,   # AI outputs structured JSON report
-        "end":             END,   # Conversation done
+        "generate_report": END,   # AI emits structured JSON report
+        "end":             END,   # Error / conversation done
     }
 )
 graph = workflow.compile()
 ```
 
-**Fallback:** `groq_service.py` catches `LangGraphError` and falls back to a direct `groq.chat.completions.create()` call.
+**Report JSON schema** (extracted by `_extract_report_json` → validated by `_normalize_report_data`):
+```json
+{
+  "report_ready": true,
+  "title": "Brief title",
+  "description": "Detailed description",
+  "hours_worked": 4.5,           // clamped to [0.1, 24.0]
+  "tasks_completed": ["..."],
+  "technologies_used": ["..."],
+  "challenges_faced": "",
+  "next_steps": ""
+}
+```
+
+**Fallback chain:** LangGraph → direct `groq.chat.completions.create()` → static fallback response (when `GROQ_API_KEY` absent).
+
+### Graph 2 — Weekly Report Pipeline (`ai_service.py`)
+
+Used by the `generate_ai_report_task` Celery task (Beat-triggered). Three sequential nodes; no conditional edges.
+
+```python
+# State
+class ReportState(TypedDict):
+    contract_id: int
+    week_start: date
+    week_end: date
+    work_logs: str        # formatted daily log text
+    project_context: str  # hours this week
+    prompt: str           # assembled LLM prompt
+    report: str           # final AI output
+    error: Optional[str]
+
+# Graph
+workflow = StateGraph(ReportState)
+workflow.add_node("gather_logs",    gather_work_logs)       # DB query
+workflow.add_node("build_prompt",   build_report_prompt)    # prompt assembly
+workflow.add_node("generate_report",generate_report_with_ai)# Groq LLM call
+workflow.set_entry_point("gather_logs")
+workflow.add_edge("gather_logs",    "build_prompt")
+workflow.add_edge("build_prompt",   "generate_report")
+workflow.add_edge("generate_report", END)
+graph = workflow.compile()
+```
+
+Output format: 3-section Markdown (`SUMMARY` / `DETAILS` / `NEXT STEPS`) stored in `WeeklyReport.ai_summary`.
+
+**Fallback chain:** LangGraph → direct `groq.chat.completions.create()` with `response_format={"type": "json_object"}` → static template string.
+
+### Async AI Views
+
+Both AI chat endpoints are **async Django views** using `sync_to_async` so the Groq HTTP call does not block the ASGI worker thread:
+
+```python
+# AIChatViewSet.message  (POST /api/worklogs/ai-chat/message/)
+async def message(self, request):
+    contract = await sync_to_async(Contract.objects.get)(id=contract_id)
+    response  = await sync_to_async(process_ai_chat_message)(...)
+    return Response(response)
+
+# AIChatViewSet.generate_deliverable  (POST /api/worklogs/ai-chat/generate-deliverable/)
+async def generate_deliverable(self, request):
+    deliverable = await sync_to_async(generate_deliverable_from_chat)(...)
+    return Response(DeliverableSerializer(deliverable).data, 201)
+```
+
+**Fallback:** `groq_service.py` catches any `Exception` on the LangGraph invocation and falls back to a direct `groq.chat.completions.create()` call.
 
 ---
 
@@ -795,12 +877,16 @@ Django Service Layer
 | `razorpay_transfer_to_freelancer_task` | `payments/tasks.py` | Payment release (`on_commit`) | `bind=True, max_retries=3` |
 | `process_razorpay_refund_task` | `payments/tasks.py` | Dispute termination | `bind=True, max_retries=3` |
 | `process_razorpay_webhook_task` | `payments/tasks.py` | Webhook POST | None — idempotency-gated |
-| `generate_ai_report_task` | `worklogs/tasks.py` | Celery Beat (Sunday 11:59 PM) | None |
-| `generate_pdf_task` | `worklogs/tasks.py` | After AI report | None |
+| `generate_ai_report_task` | `worklogs/tasks.py` | Celery Beat (daily) or manual | `bind=True, max_retries=3` |
+| `generate_pdf_task` | `worklogs/tasks.py` | After AI report | `bind=True, max_retries=2` |
 | `generate_proof_pdf_task` | `worklogs/tasks.py` | After payout released | None |
-| `notify_freelancer_report_ready` | `worklogs/tasks.py` | After weekly report | None |
+| `trigger_scheduled_reports` | `worklogs/tasks.py` | Beat (daily 12:05 AM) | None — auto-advances next_report_date |
+| `check_upcoming_report_deadlines` | `worklogs/tasks.py` | Beat (daily 9:00 AM) | None — notifies freelancer 3 days before |
+| `notify_freelancer_report_ready` | `worklogs/tasks.py` | After AI report | None |
+| `notify_client_new_report` | `worklogs/tasks.py` | After PDF upload | None — sets sent_to_client_at |
+| `notify_freelancer_report_upcoming` | `worklogs/tasks.py` | After deadline check | None |
 | `notify_client_log_submitted` | `worklogs/tasks.py` | On log submit | None |
-| `generate_weekly_reports_for_all_contracts` | `worklogs/tasks.py` | Beat (Sunday 11:59 PM) | None |
+| `generate_weekly_reports_for_all_contracts` | `worklogs/tasks.py` | Beat (Sunday 11:59 PM) | Legacy — skips contracts with ReportSchedule |
 
 ### Celery Configuration (from `base.py`)
 
@@ -1357,4 +1443,5 @@ docker-compose exec web python manage.py createsuperuser
 ---
 
 *Document Status: ✅ Single Source of Truth — derived from live code scan June 11, 2026*  
+*Updated July 29, 2026 — added `ReportScheduleViewSet`, `FileUploadViewSet`, `ReportState` LangGraph pipeline, and async AI view details (§7, §11)*  
 *Supersedes all previous HLD versions (v1–v5)*

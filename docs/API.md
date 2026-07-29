@@ -1480,8 +1480,19 @@ Changes status to `REVISION_REQUESTED`. Freelancer can re-submit.
 
 ### Base path: `/api/worklogs/ai-chat/`
 
+> **🔒 Architecture Note — NOT a chat spy:** The AI Chat is a **dedicated, private assistant workspace** exclusively between the freelancer and the Groq AI. It does **NOT** read or parse the freelancer-client contract chat (in `apps.messaging`). The freelancer casually describes their work in plain language, and the AI structures it into a professional report.
+
 Multi-turn AI conversation that generates structured work reports.  
-Uses **Groq Llama 3.3 70B** via **LangGraph** state machine.
+Uses **Groq Llama 3.3 70B Versatile** via **LangGraph** state machine (`groq_service.py`).
+
+**Flow:**
+1. Freelancer opens private AI Worklog Assistant
+2. Describes work casually: *"I fixed the login bug and added Redis caching, took about 5 hours"
+3. AI asks clarifying questions about technologies, hours, blockers
+4. AI outputs a structured JSON `report_data` block
+5. Freelancer reviews and submits → becomes a `Deliverable`
+
+---
 
 ---
 
@@ -1558,38 +1569,133 @@ Skip the chat flow and generate a deliverable directly from existing report data
 
 ---
 
-## 18. Weekly Reports
+## 18. Progress Reports (Async, Client-Scheduled)
 
-### Base path: `/api/worklogs/reports/`
+### Base path: `/api/worklogs/reports/` (read) · `/api/worklogs/report-schedule/` (schedule management)
 
-AI-generated weekly summaries. Created automatically by Celery Beat every Sunday night.
+AI-generated progress reports — **fully asynchronous**. Clients configure the report interval per contract. Celery Beat fires generation automatically. Freelancers get a 3-day heads-up notification before each report. PDF is uploaded to **Azure Blob Storage** (SAS URL, 7-day expiry).
+
+**Full async flow:**
+```
+Client configures schedule (POST /report-schedule/)
+    └── Celery Beat: trigger_scheduled_reports @ 12:05 AM daily
+            └── generate_ai_report_task.delay()  [Groq LLM]
+                    └── generate_pdf_task.delay()  [WeasyPrint → Azure Blob]
+                            ├── notify_freelancer_report_ready  (in-app)
+                            └── notify_client_new_report        (in-app)
+```
 
 ---
 
+### Report Schedule Management
+
+#### `POST /api/worklogs/report-schedule/`
+
+Create or update the report schedule for a contract. **Client only.**
+
+**Request:**
+```json
+{ "contract": 42, "interval_days": 14 }
+```
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `contract` | int | ✅ | Must be an active contract you own |
+| `interval_days` | int | ✅ | `7` (weekly), `14` (biweekly), or `30` (monthly) |
+| `is_active` | bool | ❌ | Default `true` — set `false` to pause |
+
+**Response `201`:**
+```json
+{
+  "id": 1,
+  "contract": 42,
+  "project_title": "E-Commerce Backend",
+  "interval_days": 14,
+  "interval_label": "Every 14 days (Biweekly)",
+  "next_report_date": "2026-08-12",
+  "days_until_next_report": 14,
+  "is_active": true,
+  "created_at": "2026-07-29T15:00:00Z"
+}
+```
+
+---
+
+#### `PATCH /api/worklogs/report-schedule/{id}/`
+
+Change interval or pause/resume. **Client only.**
+
+```json
+// Change interval
+{ "interval_days": 30 }
+
+// Pause automatic reports
+{ "is_active": false }
+
+// Resume
+{ "is_active": true }
+```
+
+---
+
+#### `GET /api/worklogs/report-schedule/{id}/`
+
+View schedule details. Accessible by both **client and freelancer** on the contract.
+
+---
+
+#### `POST /api/worklogs/report-schedule/{id}/generate-now/`
+
+Manually trigger an immediate report. **Client only.**  
+Returns `202 Accepted` instantly — generation runs in background. Client notified when PDF is ready.
+
+> ⚠️ **Rate limited:** 1 manual trigger per hour per schedule (cached in Redis).
+
+**Response `202`:**
+```json
+{
+  "message": "Report generation has been queued. You'll receive a notification when the PDF is ready.",
+  "contract": 42,
+  "period_start": "2026-07-16",
+  "period_end": "2026-07-29"
+}
+```
+
+**Error `429` (rate limited):**
+```json
+{ "error": "A report was recently triggered for this contract. Please wait before generating another.", "code": "rate_limited" }
+```
+
+---
+
+### Viewing Progress Reports
+
 #### `GET /api/worklogs/reports/`
 
-List weekly reports for the current user's contracts.
+List progress reports for the current user's contracts.
 
 **Response item:**
 ```json
 {
   "id": 5,
   "contract": 7,
-  "week_start": "2026-06-02",
-  "week_end": "2026-06-08",
-  "ai_summary": "This week the freelancer implemented JWT authentication and user profile management...",
-  "pdf_url": "https://s3.amazonaws.com/...?X-Amz-Expires=604800",
+  "week_start": "2026-07-16",
+  "week_end": "2026-07-29",
+  "interval_days": 14,
+  "ai_summary": "This period the freelancer implemented JWT authentication and user profile management...",
+  "pdf_url": "https://freelanceflow.blob.core.windows.net/media/reports/7/report_2026-07-16.pdf?sv=2022-11-02&...",
   "total_hours": "35.50",
-  "created_at": "2026-06-08T23:59:00Z"
+  "sent_to_client_at": "2026-07-29T00:15:32Z",
+  "created_at": "2026-07-29T00:10:00Z"
 }
 ```
-> `pdf_url` is an S3 pre-signed URL valid for **7 days**.
+> `pdf_url` is an **Azure Blob SAS URL** valid for **7 days**.
 
 ---
 
-#### `GET /api/worklogs/reports/<id>/`
+#### `GET /api/worklogs/reports/{id}/`
 
-Get a specific weekly report.
+Get a specific progress report.
 
 ---
 
@@ -1610,7 +1716,7 @@ Get delivery proof for a contract.
 {
   "id": 1,
   "contract": 7,
-  "pdf_url": "https://s3.amazonaws.com/.../delivery_proof.pdf?X-Amz-Expires=604800",
+  "pdf_url": "https://freelanceflow.blob.core.windows.net/media/proofs/7/delivery_proof.pdf?sv=2022-11-02&...",
   "generated_at": "2026-06-11T15:30:00Z",
   "total_hours": "120.50",
   "total_logs_count": 22,
@@ -1619,6 +1725,7 @@ Get delivery proof for a contract.
   "report_id": "DPF-a3f8b2c1-..."
 }
 ```
+> `pdf_url` is an **Azure Blob SAS URL** valid for **7 days**.  
 > `report_id` is a tamper-evident unique ID for the document.
 
 ---
