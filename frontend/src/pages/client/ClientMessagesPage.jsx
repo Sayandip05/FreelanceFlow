@@ -1,43 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Briefcase, LayoutDashboard, CreditCard, MessageSquare, Star,
+  Briefcase, CreditCard, MessageSquare, Star,
   Send, Search, CircleDot
 } from 'lucide-react'
 import { messagesAPI } from '../../api/messages'
-
-const Sidebar = ({ active }) => {
-  const navigate = useNavigate()
-  const links = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/client/dashboard' },
-    { icon: Briefcase, label: 'Projects', path: '/client/projects' },
-    { icon: CreditCard, label: 'Payments', path: '/client/payments' },
-    { icon: MessageSquare, label: 'Messages', path: '/client/messages' },
-    { icon: Star, label: 'Reviews', path: '/client/reviews' },
-  ]
-  return (
-    <aside className="w-64 bg-white border-r border-gray-100 min-h-screen flex-shrink-0">
-      <div className="p-6 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-lg font-bold text-gray-900">FreelanceFlow</span>
-        </div>
-      </div>
-      <nav className="p-4 space-y-1">
-        {links.map((link) => (
-          <button key={link.path} onClick={() => navigate(link.path)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-              active === link.path ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}>
-            <link.icon className="w-5 h-5" />{link.label}
-          </button>
-        ))}
-      </nav>
-    </aside>
-  )
-}
 
 const Avatar = ({ name, size = 'md' }) => {
   const initials = name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'
@@ -114,8 +81,7 @@ const ClientMessagesPage = () => {
   )
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar active="/client/messages" />
+          
       <div className="flex-1 flex overflow-hidden" style={{ height: '100vh' }}>
         {/* Conversations panel */}
         <div className="w-80 bg-white border-r border-gray-100 flex flex-col flex-shrink-0">
@@ -225,7 +191,6 @@ const ClientMessagesPage = () => {
           )}
         </div>
       </div>
-    </div>
   )
 }
 

@@ -1,4 +1,4 @@
-﻿import api from './axiosConfig'
+import api from './axiosConfig'
 
 export const authAPI = {
   // Register new user
@@ -43,4 +43,5 @@ export const authAPI = {
   }
 }
 
+export const usersAPI = authAPI
 export default authAPI
