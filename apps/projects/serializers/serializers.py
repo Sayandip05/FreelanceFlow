@@ -26,6 +26,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'id',
             'client',
             'title',
+            'short_description',
             'description',
             'budget',
             'deadline',
@@ -36,6 +37,12 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['status', 'created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['short_description'] = instance.summary
+        data['required_skills'] = [s.skill_name for s in instance.skills.all()]
+        return data
 
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
@@ -54,6 +61,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'id',
             'client',
             'title',
+            'short_description',
             'description',
             'budget',
             'deadline',
@@ -64,6 +72,12 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['status', 'created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['short_description'] = instance.summary
+        data['required_skills'] = [s.skill_name for s in instance.skills.all()]
+        return data
 
 
 class ProjectCreateSerializer(serializers.ModelSerializer):
@@ -78,6 +92,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             'title',
+            'short_description',
             'description',
             'budget',
             'deadline',

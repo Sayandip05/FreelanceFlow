@@ -17,6 +17,12 @@ class Project(models.Model):
         limit_choices_to={'role': 'CLIENT'}
     )
     title = models.CharField(max_length=255)
+    short_description = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        help_text="Short summary shown in search/browse view"
+    )
     description = models.TextField()
     budget = models.DecimalField(
         max_digits=12,
@@ -31,6 +37,14 @@ class Project(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def summary(self):
+        if self.short_description:
+            return self.short_description
+        if len(self.description) > 150:
+            return self.description[:150] + "..."
+        return self.description
     
     class Meta:
         db_table = "projects"
