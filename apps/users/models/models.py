@@ -99,6 +99,12 @@ class FreelancerProfile(models.Model):
         blank=True,
         help_text="Profile photo URL"
     )
+    banner_image = models.URLField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Cover/banner image URL"
+    )
     is_available = models.BooleanField(
         default=True,
         help_text="Whether freelancer is available for new projects"
@@ -164,6 +170,18 @@ class ClientProfile(models.Model):
         default=0
     )
     total_reviews = models.IntegerField(default=0)
+    
+    # Onboarding fields
+    bio = models.TextField(blank=True, default="")
+    city = models.CharField(max_length=100, blank=True, default="")
+    country = models.CharField(max_length=100, blank=True, default="")
+    industry = models.CharField(max_length=100, blank=True, default="")
+    company_size = models.CharField(max_length=50, blank=True, default="")
+    website = models.URLField(max_length=500, blank=True, default="")
+    is_onboarded = models.BooleanField(
+        default=False,
+        help_text="Whether client has completed initial onboarding"
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

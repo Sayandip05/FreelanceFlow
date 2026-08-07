@@ -11,6 +11,7 @@ from apps.users.views import (
     EmailVerificationView,
     ResendVerificationEmailView,
     UpdateAvatarView,
+    UploadImageView,
     ToggleAvailabilityView,
     DeactivateAccountView,
     ReactivateAccountView,
@@ -27,6 +28,7 @@ urlpatterns = [
     path("me/", ProfileView.as_view(), name="profile"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
     path("avatar/", UpdateAvatarView.as_view(), name="update-avatar"),
+    path("upload-image/", UploadImageView.as_view(), name="upload-image"),
     path("availability/", ToggleAvailabilityView.as_view(), name="toggle-availability"),
     # Password Reset
     path("password-reset/", PasswordResetRequestView.as_view(), name="password-reset"),

@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   MapPin, Wrench, DollarSign, Globe, Briefcase,
-  CheckCircle, ArrowRight, ArrowLeft, SkipForward, Plus, X
+  CheckCircle, ArrowRight, ArrowLeft, SkipForward, Plus, X,
+  Camera, Image as ImageIcon, Upload
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { usersAPI } from '../../api/auth'
+import api from '../../api/axiosConfig'
 
 const POPULAR_SKILLS = [
   'React', 'Node.js', 'Python', 'Django', 'TypeScript',
@@ -36,6 +38,16 @@ export default function FreelancerOnboardingPage() {
 
   const [portfolioWebsite, setPortfolioWebsite] = useState(profile.portfolio_website || '')
   const [experienceLevel, setExperienceLevel] = useState(profile.experience_level || 'Intermediate')
+
+  // Step 5: Avatar & Banner
+  const [avatarFile, setAvatarFile] = useState(null)
+  const [bannerFile, setBannerFile] = useState(null)
+  const [avatarPreview, setAvatarPreview] = useState(profile.avatar || null)
+  const [bannerPreview, setBannerPreview] = useState(profile.banner_image || null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
+  const avatarInputRef = useRef(null)
+  const bannerInputRef = useRef(null)
 
   // Toggle skill selection
   const toggleSkill = (skillName) => {
@@ -105,6 +117,26 @@ export default function FreelancerOnboardingPage() {
     }
   }
 
+  // Upload image to Azure via /api/users/upload-image/
+  const uploadImage = async (file, imageType, setUploading) => {
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      formData.append('image_type', imageType)
+      const res = await api.post('/users/upload-image/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      if (res.data?.user) setUser(res.data.user)
+    } catch (err) {
+      // Azure not configured in dev — silently continue; profile data still saves
+      console.warn('Image upload skipped (Azure may not be configured):', err.response?.data)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   // Step 1 Validation (Mandatory: City & Country)
   const canProceedStep1 = city.trim() !== '' && country.trim() !== ''
 
@@ -122,7 +154,7 @@ export default function FreelancerOnboardingPage() {
           <span className="text-lg font-extrabold text-gray-900 tracking-tight">FreelanceFlow</span>
         </div>
         <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-          Step {step} of 4
+          Step {step} of 5
         </span>
       </header>
 
@@ -133,7 +165,7 @@ export default function FreelancerOnboardingPage() {
         <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
           <div
             className="bg-gray-900 h-full transition-all duration-300 rounded-full"
-            style={{ width: `${(step / 4) * 100}%` }}
+            style={{ width: `${(step / 5) * 100}%` }}
           />
         </div>
 
@@ -144,12 +176,14 @@ export default function FreelancerOnboardingPage() {
             {step === 2 && 'What are your top skills?'}
             {step === 3 && 'Set your hourly rate & bio'}
             {step === 4 && 'Add portfolio & experience level'}
+            {step === 5 && 'Add your profile photo & banner'}
           </h1>
           <p className="text-base text-gray-500 font-normal">
             {step === 1 && 'Address details are required for client contract compliance.'}
             {step === 2 && 'Select at least 1 primary skill to match with relevant project opportunities.'}
             {step === 3 && 'Optional: You can set your hourly rate & bio now or skip and edit anytime later.'}
             {step === 4 && 'Optional: Share your portfolio link or skip to finish setup.'}
+            {step === 5 && 'Optional: Upload a profile photo and cover banner — you can always change them later.'}
           </p>
         </div>
 
@@ -390,6 +424,125 @@ export default function FreelancerOnboardingPage() {
                 <button
                   type="button"
                   disabled={loading}
+                  onClick={() => setStep(5)}
+                  className="text-gray-400 hover:text-gray-700 font-semibold text-sm flex items-center gap-1"
+                >
+                  Skip <SkipForward className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setStep(5)}
+                  className="bg-gray-900 hover:bg-black text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2"
+                >
+                  Next: Photos <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 5: Profile Photo & Banner (Optional) ──────────────────── */}
+        {step === 5 && (
+          <div className="space-y-8 pt-2 animate-in fade-in duration-200">
+
+            {/* Banner Upload */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-3">
+                Cover / Banner Image
+              </label>
+              <div
+                onClick={() => bannerInputRef.current?.click()}
+                className="relative w-full h-36 bg-gray-100 border-2 border-dashed border-gray-300 rounded-2xl overflow-hidden cursor-pointer hover:border-gray-500 transition-all group"
+              >
+                {bannerPreview ? (
+                  <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400">
+                    <ImageIcon className="w-8 h-8" />
+                    <span className="text-xs font-semibold">Click to upload cover image</span>
+                    <span className="text-[10px]">Recommended: 1200×300px JPG/PNG</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setBannerFile(file)
+                    setBannerPreview(URL.createObjectURL(file))
+                  }
+                }}
+              />
+            </div>
+
+            {/* Avatar Upload */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-3">
+                Profile Photo
+              </label>
+              <div className="flex items-center gap-6">
+                <div
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="relative w-24 h-24 rounded-full bg-gray-200 border-4 border-white shadow-md overflow-hidden cursor-pointer hover:opacity-80 transition-all group flex-shrink-0"
+                >
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Camera className="w-7 h-7 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                    <Upload className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Upload profile picture</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Square image, min 200×200px. JPG/PNG/WebP.</p>
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="mt-2 text-xs font-bold text-gray-900 underline underline-offset-2 hover:text-gray-600"
+                  >
+                    Choose file…
+                  </button>
+                </div>
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setAvatarFile(file)
+                    setAvatarPreview(URL.createObjectURL(file))
+                  }
+                }}
+              />
+            </div>
+
+            <div className="pt-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setStep(4)}
+                className="text-gray-500 hover:text-gray-900 text-sm font-semibold flex items-center gap-1.5"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  disabled={loading || uploadingAvatar || uploadingBanner}
                   onClick={() => handleSubmitProfile(true)}
                   className="text-gray-400 hover:text-gray-700 font-semibold text-sm flex items-center gap-1"
                 >
@@ -397,11 +550,16 @@ export default function FreelancerOnboardingPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={loading}
-                  onClick={() => handleSubmitProfile(true)}
-                  className="bg-gray-900 hover:bg-black text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2"
+                  disabled={loading || uploadingAvatar || uploadingBanner}
+                  onClick={async () => {
+                    // Upload images first (non-blocking if no Azure)
+                    if (avatarFile) await uploadImage(avatarFile, 'avatar', setUploadingAvatar)
+                    if (bannerFile) await uploadImage(bannerFile, 'banner', setUploadingBanner)
+                    await handleSubmitProfile(true)
+                  }}
+                  className="bg-gray-900 hover:bg-black text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 disabled:opacity-60"
                 >
-                  {loading ? 'Saving...' : 'Finish Setup & Go Home'} <CheckCircle className="w-4 h-4" />
+                  {(loading || uploadingAvatar || uploadingBanner) ? 'Saving...' : 'Finish Setup & Go Home'} <CheckCircle className="w-4 h-4" />
                 </button>
               </div>
             </div>

@@ -13,6 +13,8 @@ from apps.users.serializers import (
     PasswordResetConfirmSerializer,
     EmailVerificationSerializer,
     AvatarUploadSerializer,
+    BannerUploadSerializer,
+    ImageUploadSerializer,
     AvailabilityToggleSerializer,
     AccountDeactivationSerializer,
 )
@@ -276,6 +278,109 @@ class UpdateAvatarView(generics.GenericAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class UploadImageView(generics.GenericAPIView):
+    """
+    POST /api/users/upload-image/
+    Upload avatar or banner image directly to Azure Blob Storage.
+    Accepts multipart/form-data with fields:
+      - image: file
+      - image_type: 'avatar' | 'banner'
+    Returns the public URL and updated user object.
+    """
+    serializer_class = ImageUploadSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = []
+
+    def get_parsers(self):
+        from rest_framework.parsers import MultiPartParser, FormParser
+        return [MultiPartParser(), FormParser()]
+
+    def post(self, request, *args, **kwargs):
+        import uuid
+        import os
+        from pathlib import Path
+        from django.conf import settings
+        from apps.users.services import update_avatar
+
+        serializer = ImageUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        image_file = serializer.validated_data['image']
+        image_type = serializer.validated_data['image_type']  # 'avatar' or 'banner'
+        user = request.user
+
+        # Generate unique file name
+        ext = os.path.splitext(image_file.name)[1].lower() or '.jpg'
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        relative_path = f"{image_type}s/{user.id}/{unique_name}"
+
+        # ── Try Azure Blob Storage first ──────────────────────────────────
+        connection_string = getattr(settings, 'AZURE_STORAGE_CONNECTION_STRING', '')
+        container_name = getattr(settings, 'AZURE_CONTAINER_NAME', 'media')
+
+        if connection_string:
+            try:
+                from azure.storage.blob import BlobServiceClient, ContentSettings
+                blob_service = BlobServiceClient.from_connection_string(connection_string)
+                container_client = blob_service.get_container_client(container_name)
+                content_settings = ContentSettings(content_type=image_file.content_type)
+                container_client.upload_blob(
+                    name=relative_path,
+                    data=image_file.read(),
+                    overwrite=True,
+                    content_settings=content_settings,
+                )
+                account_name = blob_service.account_name
+                image_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{relative_path}"
+            except Exception as exc:
+                return Response(
+                    {"detail": f"Azure upload failed: {str(exc)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        else:
+            # ── Local fallback: save to MEDIA_ROOT ───────────────────────
+            try:
+                media_root = Path(settings.MEDIA_ROOT)
+                save_dir = media_root / f"{image_type}s" / str(user.id)
+                save_dir.mkdir(parents=True, exist_ok=True)
+                save_path = save_dir / unique_name
+
+                with open(save_path, 'wb') as dest:
+                    for chunk in image_file.chunks():
+                        dest.write(chunk)
+
+                # Build a URL the frontend can reach:  http://localhost:8000/media/avatars/1/abc.jpg
+                backend_url = getattr(settings, 'BACKEND_URL', 'http://localhost:8000').rstrip('/')
+                media_url = settings.MEDIA_URL.rstrip('/')
+                image_url = f"{backend_url}{media_url}/{image_type}s/{user.id}/{unique_name}"
+            except Exception as exc:
+                return Response(
+                    {"detail": f"Local file save failed: {str(exc)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+        # Persist URL to profile
+        if image_type == 'avatar':
+            update_avatar(user=user, avatar_url=image_url)
+        else:
+            # banner — freelancer only for now
+            if user.role == User.Roles.FREELANCER:
+                profile = user.freelancer_profile
+                profile.banner_image = image_url
+                profile.save(update_fields=['banner_image'])
+
+        user.refresh_from_db()
+        return Response(
+            {
+                "message": f"{image_type.capitalize()} uploaded successfully.",
+                "url": image_url,
+                "user": UserSerializer(user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 
 class ToggleAvailabilityView(generics.GenericAPIView):

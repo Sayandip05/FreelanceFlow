@@ -14,7 +14,6 @@ const GoogleIcon = () => (
   </svg>
 )
 
-import AuthSwitch from '../../components/ui/auth-switch'
 
 // Role comes from landing page query param
 const LoginPage = () => {
@@ -47,7 +46,7 @@ const LoginPage = () => {
     setError('')
     try {
       const user = await login(form.email, form.password)
-      navigate(user?.role === 'CLIENT' ? '/client/dashboard' : '/freelancer/dashboard')
+      navigate(user?.role === 'CLIENT' ? '/client/home' : '/freelancer/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid email or password. Please try again.')
     } finally {

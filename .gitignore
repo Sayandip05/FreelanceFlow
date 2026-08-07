@@ -23,6 +23,7 @@ scripts/commit_refactor.sh
 # Application logs
 logs/
 *.log
+media/
 
 # Documentation/local scratch
 folderstructure.md

@@ -113,6 +113,20 @@ def update_profile(user: User, data: dict) -> User:
             profile, _ = ClientProfile.objects.get_or_create(user=user)
             if 'company_name' in data and data['company_name'] is not None:
                 profile.company_name = data['company_name']
+            if 'bio' in data and data['bio'] is not None:
+                profile.bio = data['bio']
+            if 'city' in data and data['city'] is not None:
+                profile.city = data['city']
+            if 'country' in data and data['country'] is not None:
+                profile.country = data['country']
+            if 'industry' in data and data['industry'] is not None:
+                profile.industry = data['industry']
+            if 'company_size' in data and data['company_size'] is not None:
+                profile.company_size = data['company_size']
+            if 'website' in data and data['website'] is not None:
+                profile.website = data['website']
+            if 'is_onboarded' in data and data['is_onboarded'] is not None:
+                profile.is_onboarded = data['is_onboarded']
             profile.save()
 
         logger.info("Profile updated: user_id=%s role=%s", user.id, user.role)

@@ -3,11 +3,12 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   Briefcase, CreditCard, MessageSquare, Star,
   LogOut, ChevronRight, User, HelpCircle,
-  X, Mail, BookOpen, ShieldCheck, PanelLeftClose, PanelLeftOpen
+  X, Mail, BookOpen, ShieldCheck, PanelLeftClose, PanelLeftOpen, Home, Search
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 const NAV_LINKS = [
+  { icon: Home,          label: 'Home',      path: '/client/home' },
   { icon: Briefcase,     label: 'Projects',  path: '/client/projects' },
   { icon: CreditCard,    label: 'Payments',  path: '/client/payments' },
   { icon: MessageSquare, label: 'Messages',  path: '/client/messages' },

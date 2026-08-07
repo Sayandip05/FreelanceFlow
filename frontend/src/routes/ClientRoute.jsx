@@ -1,8 +1,9 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function ClientRoute() {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -13,7 +14,14 @@ export default function ClientRoute() {
   }
 
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'CLIENT') return <Navigate to="/freelancer/dashboard" replace />
+  if (user.role !== 'CLIENT') return <Navigate to="/freelancer/browse" replace />
+
+  const profile = user.client_profile
+  const isOnboarded = profile?.is_onboarded || false
+
+  if (!isOnboarded && location.pathname !== '/client/onboarding') {
+    return <Navigate to="/client/onboarding" replace />
+  }
 
   return <Outlet />
 }

@@ -7,8 +7,7 @@ import FreelancerLayout from '../components/layout/FreelancerLayout'
 import ClientLayout from '../components/layout/ClientLayout'
 
 // Auth Pages
-import LoginPage from '../pages/auth/LoginPage'
-import RegisterPage from '../pages/auth/RegisterPage'
+import AuthPage from '../pages/auth/AuthPage'
 import GoogleCallbackPage from '../pages/auth/GoogleCallbackPage'
 
 // Shared Pages
@@ -16,6 +15,8 @@ import LandingPage from '../pages/LandingPage'
 
 // Client Pages
 import ClientOverviewPage from '../pages/client/ClientOverviewPage'
+import ClientHomePage from '../pages/client/ClientHomePage'
+import ClientOnboardingPage from '../pages/client/ClientOnboardingPage'
 import ClientProjectsPage from '../pages/client/ClientProjectsPage'
 import ClientProjectDetailPage from '../pages/client/ClientProjectDetailPage'
 import ClientContractDetailPage from '../pages/client/ClientContractDetailPage'
@@ -45,14 +46,16 @@ const AppRouter = () => {
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/login" element={<AuthPage />} />
+            <Route path="/register" element={<AuthPage />} />
             <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
 
             {/* Client Routes */}
             <Route path="/client" element={<ClientRoute />}>
+              <Route path="onboarding" element={<ClientOnboardingPage />} />
               <Route element={<ClientLayout />}>
-                <Route index element={<Navigate to="/client/dashboard" replace />} />
+                <Route index element={<Navigate to="/client/home" replace />} />
+                <Route path="home" element={<ClientHomePage />} />
                 <Route path="dashboard" element={<ClientOverviewPage />} />
                 <Route path="projects" element={<ClientProjectsPage />} />
                 <Route path="projects/:projectId" element={<ClientProjectDetailPage />} />

@@ -18,12 +18,17 @@ class FreelancerProfileSerializer(serializers.ModelSerializer):
             'portfolio_website',
             'experience_level',
             'is_onboarded',
+            'is_available',
             'subscription_tier',
             'total_earned',
+            'average_rating',
+            'total_reviews',
+            'avatar',
+            'banner_image',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['total_earned', 'created_at', 'updated_at']
+        read_only_fields = ['total_earned', 'average_rating', 'total_reviews', 'created_at', 'updated_at']
 
 
 class ClientProfileSerializer(serializers.ModelSerializer):
@@ -33,11 +38,20 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         model = ClientProfile
         fields = [
             'company_name',
+            'bio',
+            'city',
+            'country',
+            'industry',
+            'company_size',
+            'website',
+            'is_onboarded',
             'total_spent',
+            'average_rating',
+            'total_reviews',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['total_spent', 'created_at', 'updated_at']
+        read_only_fields = ['total_spent', 'average_rating', 'total_reviews', 'created_at', 'updated_at']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -133,6 +147,10 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     portfolio_website = serializers.CharField(required=False, allow_blank=True)
     experience_level = serializers.CharField(required=False, allow_blank=True)
     is_onboarded = serializers.BooleanField(required=False)
+    # Client-specific fields
+    industry = serializers.CharField(required=False, allow_blank=True)
+    company_size = serializers.CharField(required=False, allow_blank=True)
+    website = serializers.CharField(required=False, allow_blank=True)
     
     class Meta:
         model = User
@@ -149,6 +167,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'portfolio_website',
             'experience_level',
             'is_onboarded',
+            'industry',
+            'company_size',
+            'website',
         ]
     
     def update(self, instance, validated_data):
@@ -164,6 +185,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'portfolio_website': validated_data.pop('portfolio_website', None),
             'experience_level': validated_data.pop('experience_level', None),
             'is_onboarded': validated_data.pop('is_onboarded', None),
+            'industry': validated_data.pop('industry', None),
+            'company_size': validated_data.pop('company_size', None),
+            'website': validated_data.pop('website', None),
         }
         
         # Update user fields
@@ -198,6 +222,20 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             profile, _ = ClientProfile.objects.get_or_create(user=instance)
             if profile_data['company_name'] is not None:
                 profile.company_name = profile_data['company_name']
+            if profile_data['bio'] is not None:
+                profile.bio = profile_data['bio']
+            if profile_data['city'] is not None:
+                profile.city = profile_data['city']
+            if profile_data['country'] is not None:
+                profile.country = profile_data['country']
+            if profile_data['industry'] is not None:
+                profile.industry = profile_data['industry']
+            if profile_data['company_size'] is not None:
+                profile.company_size = profile_data['company_size']
+            if profile_data['website'] is not None:
+                profile.website = profile_data['website']
+            if profile_data['is_onboarded'] is not None:
+                profile.is_onboarded = profile_data['is_onboarded']
             profile.save()
         
         return instance
@@ -262,8 +300,23 @@ class EmailVerificationSerializer(serializers.Serializer):
 
 
 class AvatarUploadSerializer(serializers.Serializer):
-    """Serializer for avatar upload."""
+    """Serializer for avatar URL update."""
     avatar_url = serializers.URLField(required=True, max_length=500)
+
+
+class BannerUploadSerializer(serializers.Serializer):
+    """Serializer for banner URL update."""
+    banner_url = serializers.URLField(required=True, max_length=500)
+
+
+class ImageUploadSerializer(serializers.Serializer):
+    """Serializer for direct image file uploads (multipart)."""
+    image = serializers.ImageField(required=True)
+    image_type = serializers.ChoiceField(
+        choices=['avatar', 'banner'],
+        required=True,
+        help_text="Type of image: 'avatar' or 'banner'"
+    )
 
 
 class AvailabilityToggleSerializer(serializers.Serializer):

@@ -9,6 +9,7 @@ from .views import (
     EmailVerificationView,
     ResendVerificationEmailView,
     UpdateAvatarView,
+    UploadImageView,
     ToggleAvailabilityView,
     DeactivateAccountView,
     ReactivateAccountView,

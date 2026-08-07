@@ -9,6 +9,8 @@ from .serializers import (
     PasswordResetConfirmSerializer,
     EmailVerificationSerializer,
     AvatarUploadSerializer,
+    BannerUploadSerializer,
+    ImageUploadSerializer,
     AvailabilityToggleSerializer,
     AccountDeactivationSerializer,
 )
