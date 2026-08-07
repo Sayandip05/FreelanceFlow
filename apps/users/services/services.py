@@ -88,18 +88,30 @@ def update_profile(user: User, data: dict) -> User:
         
         # Update profile based on role
         if user.role == User.Roles.FREELANCER:
-            profile = user.freelancer_profile
-            if 'bio' in data:
+            profile, _ = FreelancerProfile.objects.get_or_create(user=user)
+            if 'bio' in data and data['bio'] is not None:
                 profile.bio = data['bio']
-            if 'skills' in data:
+            if 'skills' in data and data['skills'] is not None:
                 profile.skills = data['skills']
             if 'hourly_rate' in data:
                 profile.hourly_rate = data['hourly_rate']
+            if 'city' in data and data['city'] is not None:
+                profile.city = data['city']
+            if 'country' in data and data['country'] is not None:
+                profile.country = data['country']
+            if 'address' in data and data['address'] is not None:
+                profile.address = data['address']
+            if 'portfolio_website' in data and data['portfolio_website'] is not None:
+                profile.portfolio_website = data['portfolio_website']
+            if 'experience_level' in data and data['experience_level'] is not None:
+                profile.experience_level = data['experience_level']
+            if 'is_onboarded' in data and data['is_onboarded'] is not None:
+                profile.is_onboarded = data['is_onboarded']
             profile.save()
             
         elif user.role == User.Roles.CLIENT:
-            profile = user.client_profile
-            if 'company_name' in data:
+            profile, _ = ClientProfile.objects.get_or_create(user=user)
+            if 'company_name' in data and data['company_name'] is not None:
                 profile.company_name = data['company_name']
             profile.save()
 

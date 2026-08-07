@@ -149,7 +149,6 @@ class GoogleOAuthCallbackView(APIView):
                         "first_name": user_info.get("given_name", ""),
                         "last_name": user_info.get("family_name", ""),
                         "role": role,
-                        "is_email_verified": True,   # Google already verified it
                         "is_active": True,
                     },
                 )

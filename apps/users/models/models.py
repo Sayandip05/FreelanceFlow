@@ -115,6 +115,17 @@ class FreelancerProfile(models.Model):
         help_text="RazorpayX fund account ID for freelancer payouts"
     )
     
+    # Address & Onboarding Fields
+    city = models.CharField(max_length=100, blank=True, default="")
+    country = models.CharField(max_length=100, blank=True, default="")
+    address = models.CharField(max_length=255, blank=True, default="")
+    portfolio_website = models.URLField(max_length=500, blank=True, default="")
+    experience_level = models.CharField(max_length=50, blank=True, default="Intermediate")
+    is_onboarded = models.BooleanField(
+        default=False, 
+        help_text="Whether freelancer has completed initial onboarding"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

@@ -12,6 +12,12 @@ class FreelancerProfileSerializer(serializers.ModelSerializer):
             'bio',
             'skills',
             'hourly_rate',
+            'city',
+            'country',
+            'address',
+            'portfolio_website',
+            'experience_level',
+            'is_onboarded',
             'subscription_tier',
             'total_earned',
             'created_at',
@@ -121,6 +127,12 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     company_name = serializers.CharField(required=False, allow_blank=True)
+    city = serializers.CharField(required=False, allow_blank=True)
+    country = serializers.CharField(required=False, allow_blank=True)
+    address = serializers.CharField(required=False, allow_blank=True)
+    portfolio_website = serializers.CharField(required=False, allow_blank=True)
+    experience_level = serializers.CharField(required=False, allow_blank=True)
+    is_onboarded = serializers.BooleanField(required=False)
     
     class Meta:
         model = User
@@ -131,6 +143,12 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'skills',
             'hourly_rate',
             'company_name',
+            'city',
+            'country',
+            'address',
+            'portfolio_website',
+            'experience_level',
+            'is_onboarded',
         ]
     
     def update(self, instance, validated_data):
@@ -140,6 +158,12 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'skills': validated_data.pop('skills', None),
             'hourly_rate': validated_data.pop('hourly_rate', None),
             'company_name': validated_data.pop('company_name', None),
+            'city': validated_data.pop('city', None),
+            'country': validated_data.pop('country', None),
+            'address': validated_data.pop('address', None),
+            'portfolio_website': validated_data.pop('portfolio_website', None),
+            'experience_level': validated_data.pop('experience_level', None),
+            'is_onboarded': validated_data.pop('is_onboarded', None),
         }
         
         # Update user fields
@@ -149,17 +173,29 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         
         # Update profile
         if instance.role == User.Roles.FREELANCER:
-            profile = instance.freelancer_profile
+            profile, _ = FreelancerProfile.objects.get_or_create(user=instance)
             if profile_data['bio'] is not None:
                 profile.bio = profile_data['bio']
             if profile_data['skills'] is not None:
                 profile.skills = profile_data['skills']
             if profile_data['hourly_rate'] is not None:
                 profile.hourly_rate = profile_data['hourly_rate']
+            if profile_data['city'] is not None:
+                profile.city = profile_data['city']
+            if profile_data['country'] is not None:
+                profile.country = profile_data['country']
+            if profile_data['address'] is not None:
+                profile.address = profile_data['address']
+            if profile_data['portfolio_website'] is not None:
+                profile.portfolio_website = profile_data['portfolio_website']
+            if profile_data['experience_level'] is not None:
+                profile.experience_level = profile_data['experience_level']
+            if profile_data['is_onboarded'] is not None:
+                profile.is_onboarded = profile_data['is_onboarded']
             profile.save()
             
         elif instance.role == User.Roles.CLIENT:
-            profile = instance.client_profile
+            profile, _ = ClientProfile.objects.get_or_create(user=instance)
             if profile_data['company_name'] is not None:
                 profile.company_name = profile_data['company_name']
             profile.save()
