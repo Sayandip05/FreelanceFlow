@@ -1,45 +1,50 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Briefcase } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
+import authAPI from '../../api/auth'
 
 /**
  * GoogleCallbackPage
- * Handles the OAuth redirect from Google. Expects the backend to redirect
- * to this page with access & refresh tokens in query params OR for the
- * server to set them in the URL hash/fragment.
- *
- * Expected URL pattern (adjust to match your backend):
- * /auth/google/callback?access=<token>&refresh=<refresh>&role=<CLIENT|FREELANCER>
+ * Landing page for the Google OAuth redirect.
+ * Backend sends: /auth/google/callback?access=<jwt>&refresh=<jwt>&role=CLIENT|FREELANCER
+ * On error:      /auth/google/callback?error=<reason>
  */
 const GoogleCallbackPage = () => {
   const navigate = useNavigate()
+  const { setUser } = useAuth()
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const access = params.get('access') || params.get('access_token')
+    const access  = params.get('access')  || params.get('access_token')
     const refresh = params.get('refresh') || params.get('refresh_token')
-    const role = params.get('role')
-    const error = params.get('error')
+    const role    = params.get('role')
+    const error   = params.get('error')
 
-    if (error) {
-      // OAuth failed — redirect to login with error message
+    if (error || !access) {
       navigate('/login?error=oauth_failed', { replace: true })
       return
     }
 
-    if (access) {
-      localStorage.setItem('access_token', access)
-      if (refresh) localStorage.setItem('refresh_token', refresh)
+    // Persist tokens
+    localStorage.setItem('access_token', access)
+    if (refresh) localStorage.setItem('refresh_token', refresh)
 
-      // Redirect based on role
-      const destination =
-        role === 'CLIENT' ? '/client/dashboard' : '/freelancer/dashboard'
-      navigate(destination, { replace: true })
-    } else {
-      // No tokens found — redirect to login
-      navigate('/login?error=no_token', { replace: true })
-    }
-  }, [navigate])
+    // Load the full user profile into AuthContext so protected pages work
+    authAPI.getProfile()
+      .then(res => {
+        setUser(res.data)
+        const destination = (res.data?.role || role) === 'CLIENT'
+          ? '/client/dashboard'
+          : '/freelancer/dashboard'
+        navigate(destination, { replace: true })
+      })
+      .catch(() => {
+        // Profile fetch failed — still navigate based on role param
+        const destination = role === 'CLIENT' ? '/client/dashboard' : '/freelancer/dashboard'
+        navigate(destination, { replace: true })
+      })
+  }, [navigate, setUser])
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
