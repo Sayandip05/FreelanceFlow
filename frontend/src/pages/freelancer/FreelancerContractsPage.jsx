@@ -1,45 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  LayoutDashboard, Search, FileText, Briefcase, DollarSign,
+import { Search, FileText, Briefcase, DollarSign,
   MessageSquare, Clock, CheckCircle, ArrowRight
 } from 'lucide-react'
 import { contractsAPI } from '../../api/bids'
-
-const Sidebar = ({ active }) => {
-  const navigate = useNavigate()
-  const links = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/freelancer/dashboard' },
-    { icon: Search, label: 'Browse Projects', path: '/freelancer/browse' },
-    { icon: FileText, label: 'My Bids', path: '/freelancer/bids' },
-    { icon: Briefcase, label: 'Contracts', path: '/freelancer/contracts' },
-    { icon: Clock, label: 'Work Logs', path: '/freelancer/worklogs' },
-    { icon: DollarSign, label: 'Earnings', path: '/freelancer/earnings' },
-    { icon: MessageSquare, label: 'Messages', path: '/freelancer/messages' },
-  ]
-  return (
-    <aside className="w-64 bg-white border-r border-gray-100 min-h-screen flex-shrink-0">
-      <div className="p-6 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-lg font-bold text-gray-900">FreelanceFlow</span>
-        </div>
-      </div>
-      <nav className="p-4 space-y-1">
-        {links.map((link) => (
-          <button key={link.path} onClick={() => navigate(link.path)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-              active === link.path ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}>
-            <link.icon className="w-5 h-5" />{link.label}
-          </button>
-        ))}
-      </nav>
-    </aside>
-  )
-}
 
 const FreelancerContractsPage = () => {
   const navigate = useNavigate()
@@ -66,8 +30,7 @@ const FreelancerContractsPage = () => {
   const displayed = activeTab === 'active' ? activeContracts : completedContracts
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar active="/freelancer/contracts" />
+          
       <div className="flex-1 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">My Contracts</h1>
@@ -132,7 +95,6 @@ const FreelancerContractsPage = () => {
           </div>
         )}
       </div>
-    </div>
   )
 }
 
