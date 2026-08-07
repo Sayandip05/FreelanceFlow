@@ -1,12 +1,15 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '../context/AuthContext'
 import { NotificationProvider } from '../context/NotificationContext'
 import ClientRoute from './ClientRoute'
 import FreelancerRoute from './FreelancerRoute'
+import FreelancerLayout from '../components/layout/FreelancerLayout'
+import ClientLayout from '../components/layout/ClientLayout'
 
 // Auth Pages
 import LoginPage from '../pages/auth/LoginPage'
 import RegisterPage from '../pages/auth/RegisterPage'
+import GoogleCallbackPage from '../pages/auth/GoogleCallbackPage'
 
 // Shared Pages
 import LandingPage from '../pages/LandingPage'
@@ -22,8 +25,10 @@ import ClientMessagesPage from '../pages/client/ClientMessagesPage'
 import ClientReviewPage from '../pages/client/ClientReviewPage'
 
 // Freelancer Pages
+import FreelancerOnboardingPage from '../pages/freelancer/FreelancerOnboardingPage'
 import FreelancerOverviewPage from '../pages/freelancer/FreelancerOverviewPage'
 import FreelancerBrowsePage from '../pages/freelancer/FreelancerBrowsePage'
+import FreelancerProjectDetailPage from '../pages/freelancer/FreelancerProjectDetailPage'
 import FreelancerBidsPage from '../pages/freelancer/FreelancerBidsPage'
 import FreelancerContractsPage from '../pages/freelancer/FreelancerContractsPage'
 import FreelancerContractDetailPage from '../pages/freelancer/FreelancerContractDetailPage'
@@ -42,32 +47,39 @@ const AppRouter = () => {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
 
             {/* Client Routes */}
             <Route path="/client" element={<ClientRoute />}>
-              <Route index element={<Navigate to="/client/dashboard" replace />} />
-              <Route path="dashboard" element={<ClientOverviewPage />} />
-              <Route path="projects" element={<ClientProjectsPage />} />
-              <Route path="projects/:projectId" element={<ClientProjectDetailPage />} />
-              <Route path="contracts/:contractId" element={<ClientContractDetailPage />} />
-              <Route path="deliverables/:deliverableId/review" element={<ClientDeliverableReviewPage />} />
-              <Route path="payments" element={<ClientPaymentsPage />} />
-              <Route path="messages" element={<ClientMessagesPage />} />
-              <Route path="reviews" element={<ClientReviewPage />} />
+              <Route element={<ClientLayout />}>
+                <Route index element={<Navigate to="/client/dashboard" replace />} />
+                <Route path="dashboard" element={<ClientOverviewPage />} />
+                <Route path="projects" element={<ClientProjectsPage />} />
+                <Route path="projects/:projectId" element={<ClientProjectDetailPage />} />
+                <Route path="contracts/:contractId" element={<ClientContractDetailPage />} />
+                <Route path="deliverables/:deliverableId/review" element={<ClientDeliverableReviewPage />} />
+                <Route path="payments" element={<ClientPaymentsPage />} />
+                <Route path="messages" element={<ClientMessagesPage />} />
+                <Route path="reviews" element={<ClientReviewPage />} />
+              </Route>
             </Route>
 
             {/* Freelancer Routes */}
             <Route path="/freelancer" element={<FreelancerRoute />}>
-              <Route index element={<Navigate to="/freelancer/dashboard" replace />} />
-              <Route path="dashboard" element={<FreelancerOverviewPage />} />
-              <Route path="browse" element={<FreelancerBrowsePage />} />
-              <Route path="bids" element={<FreelancerBidsPage />} />
-              <Route path="contracts" element={<FreelancerContractsPage />} />
-              <Route path="contracts/:contractId" element={<FreelancerContractDetailPage />} />
-              <Route path="contracts/:contractId/work" element={<FreelancerWorkPage />} />
-              <Route path="worklogs" element={<FreelancerWorklogsPage />} />
-              <Route path="earnings" element={<FreelancerEarningsPage />} />
-              <Route path="messages" element={<FreelancerMessagesPage />} />
+              <Route path="onboarding" element={<FreelancerOnboardingPage />} />
+              <Route element={<FreelancerLayout />}>
+                <Route index element={<Navigate to="/freelancer/browse" replace />} />
+                <Route path="dashboard" element={<FreelancerOverviewPage />} />
+                <Route path="browse" element={<FreelancerBrowsePage />} />
+                <Route path="projects/:projectId" element={<FreelancerProjectDetailPage />} />
+                <Route path="bids" element={<FreelancerBidsPage />} />
+                <Route path="contracts" element={<FreelancerContractsPage />} />
+                <Route path="contracts/:contractId" element={<FreelancerContractDetailPage />} />
+                <Route path="contracts/:contractId/work" element={<FreelancerWorkPage />} />
+                <Route path="worklogs" element={<FreelancerWorklogsPage />} />
+                <Route path="earnings" element={<FreelancerEarningsPage />} />
+                <Route path="messages" element={<FreelancerMessagesPage />} />
+              </Route>
             </Route>
 
             {/* 404 */}

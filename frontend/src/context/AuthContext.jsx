@@ -39,8 +39,19 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await authAPI.getProfile()
+      setUser(res.data)
+      return res.data
+    } catch (e) {
+      console.error('Failed to fetch user profile:', e)
+      return null
+    }
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, setUser, fetchUser }}>
       {children}
     </AuthContext.Provider>
   )
