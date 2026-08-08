@@ -21,6 +21,7 @@ from apps.projects.selectors import (
 )
 from apps.projects.permissions import IsProjectOwner
 from apps.users.permissions import IsClient
+from apps.bidding.serializers import BidListSerializer
 from core.exceptions import ValidationError
 class ProjectViewSet(viewsets.ModelViewSet):
     """
@@ -148,4 +149,32 @@ class ProjectViewSet(viewsets.ModelViewSet):
         
         projects = get_client_projects(request.user)
         serializer = ProjectListSerializer(projects, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def bids(self, request, pk=None):
+        """Get all bids for a specific project."""
+        project = self.get_object()
+        
+        # Only the client who created the project can view its bids
+        if request.user.role != 'CLIENT' or project.client != request.user:
+            return Response(
+                {"error": "You do not have permission to view bids for this project.", "code": "permission_denied"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+            
+        bids = project.bids.all().select_related(
+            'freelancer', 
+            'freelancer__freelancer_profile', 
+            'freelancer__client_profile', 
+            'project', 
+            'project__client'
+        ).prefetch_related('project__skills')
+        
+        page = self.paginate_queryset(bids)
+        if page is not None:
+            serializer = BidListSerializer(page, many=True, context={"request": request})
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = BidListSerializer(bids, many=True, context={"request": request})
         return Response(serializer.data)
