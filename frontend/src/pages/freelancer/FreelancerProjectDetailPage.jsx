@@ -60,7 +60,29 @@ export default function FreelancerProjectDetailPage() {
       await bidsAPI.submitBid(projectId, parseFloat(bidForm.amount), bidForm.cover_letter)
       setIsBidded(true)
     } catch (err) {
-      setBidError(err.response?.data?.detail || 'Failed to submit proposal. Please try again.')
+      if (err.response?.data) {
+        // If it's a generic detail error
+        if (err.response.data.detail) {
+          setBidError(err.response.data.detail)
+        } 
+        // If it's field-level validation errors from Django (e.g. { cover_letter: ["Must be at least 50 chars"] })
+        else if (typeof err.response.data === 'object') {
+          const firstErrorKey = Object.keys(err.response.data)[0]
+          const firstErrorMsg = err.response.data[firstErrorKey]
+          // If it's an array (typical DRF format), get the first item, otherwise just stringify
+          const errorText = Array.isArray(firstErrorMsg) ? firstErrorMsg[0] : String(firstErrorMsg)
+          
+          // Capitalize the field name for display (e.g. "cover_letter" -> "Cover letter: ")
+          const fieldName = firstErrorKey.replace('_', ' ')
+          const capitalizedField = fieldName.charAt(0).toUpperCase() + fieldName.slice(1)
+          
+          setBidError(`${capitalizedField}: ${errorText}`)
+        } else {
+          setBidError('Failed to submit proposal. Please try again.')
+        }
+      } else {
+        setBidError('Failed to submit proposal. Please try again.')
+      }
     } finally {
       setSubmitting(false)
     }
