@@ -3,10 +3,10 @@
 #  Usage: make <target>
 # ============================================================
 
-VENV       = venv/bin/activate
-PYTHON     = . $(VENV) && python
-MANAGE     = $(PYTHON) manage.py
-FRONTEND   = frontend
+VENV     = .venv
+PYTHON   = python
+MANAGE   = $(PYTHON) manage.py
+FRONTEND = frontend
 
 .PHONY: help backend frontend-dev worker beat shell migrate makemigrations \
         createsuperuser check clean
@@ -26,13 +26,10 @@ test:                          ## Run all tests (--keepdb avoids teardown errors
 test-auth:                     ## Run auth (users app) tests only
 	$(MANAGE) test apps.users --verbosity=2 --keepdb
 
-worker:                        ## Run Celery worker (all queues)
-	. $(VENV) && celery -A config worker \
-	  -Q freelanceflow,freelanceflow_high_priority,freelanceflow_low_priority \
-	  --loglevel=info
-
-beat:                          ## Run Celery beat scheduler
-	. $(VENV) && celery -A config beat --loglevel=info
+worker:                        ## Run Celery worker (using solo pool for Windows compatibility)
+	celery -A config worker -Q freelanceflow,freelanceflow_high_priority,freelanceflow_low_priority --loglevel=info --pool=solo
+beat:                         ## Run Celery beat scheduler
+	celery -A config beat --loglevel=info
 
 shell:                         ## Open Django shell
 	$(MANAGE) shell

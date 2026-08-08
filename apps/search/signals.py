@@ -11,9 +11,11 @@ import logging
 
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from django.db import transaction
 from apps.projects.models import Project, ProjectSkill
 from apps.users.models import FreelancerProfile
 from apps.search.documents import ProjectDocument, FreelancerDocument
+from apps.search.tasks import update_es_document_task, delete_es_document_task
 logger = logging.getLogger(__name__)
 
 
@@ -23,35 +25,27 @@ def _es_enabled() -> bool:
     return getattr(settings, "ELASTICSEARCH_DSL_AUTOSYNC", True)
 
 
-def _es_update(document_cls, instance, *, label: str) -> None:
-    """Best-effort ES index update — logs but never raises on connection errors."""
+def _es_update(model_name: str, app_label: str, instance_id: int, label: str) -> None:
+    """Best-effort ES index update via Celery."""
     if not _es_enabled():
         return
-    try:
-        document_cls().update(instance)
-    except Exception as exc:
-        # Catches elastic_transport.ConnectionError, ES exceptions, etc.
-        logger.warning(
-            "Elasticsearch update skipped for %s (pk=%s): %s",
-            label,
-            getattr(instance, "pk", "?"),
-            exc,
-        )
+    transaction.on_commit(lambda: update_es_document_task.delay(
+        model_name=model_name,
+        app_label=app_label,
+        instance_id=instance_id,
+        label=label
+    ))
 
 
-def _es_delete(document_cls, instance, *, label: str) -> None:
-    """Best-effort ES index delete — logs but never raises on connection errors."""
+def _es_delete(model_name: str, instance_id: int, label: str) -> None:
+    """Best-effort ES index delete via Celery."""
     if not _es_enabled():
         return
-    try:
-        document_cls().delete(instance, ignore=404)
-    except Exception as exc:
-        logger.warning(
-            "Elasticsearch delete skipped for %s (pk=%s): %s",
-            label,
-            getattr(instance, "pk", "?"),
-            exc,
-        )
+    transaction.on_commit(lambda: delete_es_document_task.delay(
+        model_name=model_name,
+        instance_id=instance_id,
+        label=label
+    ))
 
 
 # ── Project signals ───────────────────────────────────────────────────────────
@@ -59,25 +53,25 @@ def _es_delete(document_cls, instance, *, label: str) -> None:
 @receiver(post_save, sender=Project)
 def update_project_document(sender, instance, **kwargs):
     """Update project document in Elasticsearch when a project is saved."""
-    _es_update(ProjectDocument, instance, label="Project")
+    _es_update("Project", "projects", instance.id, label="Project")
 
 
 @receiver(post_delete, sender=Project)
 def delete_project_document(sender, instance, **kwargs):
     """Delete project document from Elasticsearch when a project is deleted."""
-    _es_delete(ProjectDocument, instance, label="Project")
+    _es_delete("Project", instance.id, label="Project")
 
 
 @receiver(post_save, sender=ProjectSkill)
 def update_project_document_on_skill_change(sender, instance, **kwargs):
     """Update project document in Elasticsearch when project skills change."""
-    _es_update(ProjectDocument, instance.project, label="Project (skill change)")
+    _es_update("Project", "projects", instance.project.id, label="Project (skill change)")
 
 
 @receiver(post_delete, sender=ProjectSkill)
 def delete_project_document_on_skill_delete(sender, instance, **kwargs):
     """Update project document in Elasticsearch when a project skill is removed."""
-    _es_update(ProjectDocument, instance.project, label="Project (skill delete)")
+    _es_update("Project", "projects", instance.project.id, label="Project (skill delete)")
 
 
 # ── Freelancer signals ────────────────────────────────────────────────────────
@@ -85,10 +79,10 @@ def delete_project_document_on_skill_delete(sender, instance, **kwargs):
 @receiver(post_save, sender=FreelancerProfile)
 def update_freelancer_document(sender, instance, **kwargs):
     """Update freelancer document in Elasticsearch when a profile is saved."""
-    _es_update(FreelancerDocument, instance, label="FreelancerProfile")
+    _es_update("FreelancerProfile", "users", instance.id, label="FreelancerProfile")
 
 
 @receiver(post_delete, sender=FreelancerProfile)
 def delete_freelancer_document(sender, instance, **kwargs):
     """Delete freelancer document from Elasticsearch when a profile is deleted."""
-    _es_delete(FreelancerDocument, instance, label="FreelancerProfile")
+    _es_delete("FreelancerProfile", instance.id, label="FreelancerProfile")

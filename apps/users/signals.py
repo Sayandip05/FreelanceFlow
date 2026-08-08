@@ -26,35 +26,18 @@ def _dispatch_welcome_email(user_id: int) -> None:
 
 
 @receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
+def manage_user_profile(sender, instance, created, **kwargs):
     """
     Create appropriate profile when a new user is created and schedule
     the welcome email task after the transaction commits.
+    Also ensures profile exists for existing users without triggering duplicate saves.
     """
-    if created:
-        if instance.role == User.Roles.FREELANCER:
-            FreelancerProfile.objects.create(user=instance)
-        elif instance.role == User.Roles.CLIENT:
-            ClientProfile.objects.create(user=instance)
+    if instance.role == User.Roles.FREELANCER:
+        FreelancerProfile.objects.get_or_create(user=instance)
+    elif instance.role == User.Roles.CLIENT:
+        ClientProfile.objects.get_or_create(user=instance)
 
+    if created:
         # Dispatch welcome email only after the DB transaction commits.
         # Uses a resilient wrapper so Redis downtime doesn't abort seeding.
         transaction.on_commit(lambda: _dispatch_welcome_email(instance.id))
-
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    """
-    Save profile when user is saved (ensures profile exists).
-    """
-    if instance.role == User.Roles.FREELANCER:
-        try:
-            instance.freelancer_profile.save()
-        except FreelancerProfile.DoesNotExist:
-            FreelancerProfile.objects.create(user=instance)
-    elif instance.role == User.Roles.CLIENT:
-        try:
-            instance.client_profile.save()
-        except ClientProfile.DoesNotExist:
-            ClientProfile.objects.create(user=instance)
- 
