@@ -163,6 +163,18 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
             
-        bids = project.bids.all().select_related('freelancer', 'project')
-        serializer = BidListSerializer(bids, many=True)
+        bids = project.bids.all().select_related(
+            'freelancer', 
+            'freelancer__freelancer_profile', 
+            'freelancer__client_profile', 
+            'project', 
+            'project__client'
+        ).prefetch_related('project__skills')
+        
+        page = self.paginate_queryset(bids)
+        if page is not None:
+            serializer = BidListSerializer(page, many=True, context={"request": request})
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = BidListSerializer(bids, many=True, context={"request": request})
         return Response(serializer.data)
