@@ -44,7 +44,7 @@ Traditional freelance platforms suffer from three core trust failures: clients p
 - **Brute-force**: Django Axes — 5 failures → 5-min lockout
 
 ### **DevOps & Infrastructure**
-- **Deployment**: Azure Virtual Machine (Linux / Nginx + Gunicorn / Daphne)
+- **Deployment**: Azure Virtual Machine (Linux / Gunicorn / Daphne)
 - **Cloud Storage**: Azure Blob Storage — PDFs, screenshots, invoices
 - **Containerization**: Docker Compose with Profile Support (`profiles: [app]`)
 - **Error tracking**: Sentry (production)
@@ -160,7 +160,7 @@ docker compose --profile app up --build -d
                               │   React 18 + Vite UI    │
                               └────────────┬────────────┘
                                            │
-                             HTTP / WS Proxy (Vite / Nginx)
+                              HTTP / WS Proxy (Vite)
                                            │
                     ┌──────────────────────┴──────────────────────┐
                     │                                             │

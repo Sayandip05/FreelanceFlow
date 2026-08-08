@@ -38,7 +38,7 @@ FreelanceFlow addresses this by combining **milestone-based escrow payments**, *
 | **Cloud Storage** | Azure Blob Storage (SAS URLs, 7-day expiry) |
 | **Monitoring** | Sentry (production), Flower (Celery UI) |
 | **Frontend** | React 18 + Vite + TailwindCSS (separate) |
-| **DevOps** | Docker Compose, Azure VM, Nginx + Gunicorn + Daphne |
+| **DevOps** | Docker Compose, Azure VM, Gunicorn + Daphne |
 
 ---
 
@@ -49,7 +49,7 @@ FreelanceFlow addresses this by combining **milestone-based escrow payments**, *
                           │   React 18 + Vite UI    │  ← Port 5173
                           └────────────┬────────────┘
                                        │
-                         HTTP/WS Proxy (Vite / Nginx)
+                         HTTP/WS Proxy (Vite Gateway)
                                        │
               ┌────────────────────────┴────────────────────────┐
               │                                                 │
@@ -124,7 +124,6 @@ FreelanceFlow/
 │   └── utils.py               ← General utilities (e.g., platform cut calculation)
 │
 ├── deployment/                ← Infrastructure as Code
-│   ├── nginx/                 ← Nginx config (reverse proxy + SSL)
 │   ├── cicd/                  ← CI/CD pipeline definitions
 │   └── scripts/               ← Provisioning scripts
 │

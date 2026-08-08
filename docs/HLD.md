@@ -149,7 +149,7 @@ transaction.on_commit(lambda:
 │  └─────────────────────────┬───────────────────────────────┘  │
 │                             │ HTTPS / WSS                      │
 │  ┌──────────────────────────▼──────────────────────────────┐  │
-│  │                    Nginx (Reverse Proxy)                  │  │
+│  │                   Reverse Proxy (Gateway)               │  │
 │  │  SSL · Rate Limiting · Static Files · WS Proxy           │  │
 │  └──────┬──────────────────┬────────────────────────────────┘  │
 │         │ HTTP             │ WS                                │
@@ -229,7 +229,6 @@ apps/{app_name}/
 | **Redis 7** | Celery broker + result backend, Django Channels layer, session store, cache |
 | **Elasticsearch 8** | Inverted index: `projects` index + `freelancers` index |
 | **Celery + Beat** | Async background tasks + scheduled jobs |
-| **Nginx** | SSL termination, static files, WS proxy (`proxy_pass ws://daphne:8001`) |
 | **Gunicorn** | WSGI (REST API) |
 | **Daphne** | ASGI (WebSocket) |
 | **AWS S3** | Weekly report PDFs, delivery proof PDFs, worklog screenshots, invoice PDFs |
@@ -909,7 +908,7 @@ CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60   # 25-min graceful stop
 Browser
   │ WSS
   ▼
-Nginx → proxy_pass ws://daphne:8001
+WSS Proxy → daphne:8001
   │
   ▼
 Daphne (ASGI)
@@ -1000,7 +999,7 @@ def upload_to_cloud_storage(pdf_bytes: bytes, file_key: str) -> str:
 | Project details | Redis | 5 min | On project save |
 | JWT blacklist | Redis (via simplejwt) | 7 days | Automatic (token TTL) |
 | Session store | PostgreSQL | 7 days | On logout |
-| Static files | Nginx | 1 year | Cache-busting filenames |
+| Static files | Storage / CDN | 1 year | Cache-busting filenames |
 
 **Configuration:** `CACHES["default"]` points to Redis. `IGNORE_EXCEPTIONS=True` — cache failures are logged but never crash requests.
 
@@ -1138,7 +1137,7 @@ Route 53 (DNS)
                                        ┌─────────────────┴─────────────────┐
                                        ▼                                   ▼
                        Azure Virtual Machine (VM 1)       Azure Virtual Machine (VM 2)
-                         Linux / Nginx Reverse Proxy        Linux / Nginx Reverse Proxy
+                         Linux Reverse Proxy                Linux Reverse Proxy
                          Gunicorn (WSGI / REST API)         Gunicorn (WSGI / REST API)
                          Daphne (ASGI / WebSockets)         Daphne (ASGI / WebSockets)
                          Celery Worker + Beat               Celery Worker
@@ -1188,7 +1187,7 @@ Env:    DJANGO_SETTINGS_MODULE=config.settings.production
 | **LangSmith** | Every Groq graph execution traced: latency, token usage, node path |
 | **Sentry** | `SENTRY_DSN` configured in `production.py` — real-time exception alerts |
 | **Celery task logging** | `logger.info` at task start + completion. `logger.error` + `exc_info=True` on failures. |
-| **Nginx access logs** | Request rate, status codes, latency |
+| **HTTP access logs** | Request rate, status codes, latency |
 
 ### Health Check
 

@@ -1,5 +1,0 @@
-# Nginx gitignore
-*.log
-*.pid
-*.lock
-dhparam.pem
