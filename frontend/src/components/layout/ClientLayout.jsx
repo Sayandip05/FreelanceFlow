@@ -3,13 +3,15 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   Briefcase, CreditCard, MessageSquare, Star,
   LogOut, ChevronRight, User, HelpCircle,
-  X, Mail, BookOpen, ShieldCheck, PanelLeftClose, PanelLeftOpen, Home, Search
+  X, Mail, BookOpen, ShieldCheck, PanelLeftClose, PanelLeftOpen, Home, Search, FileText, ScrollText
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import PrivacyPolicyModal from '../ui/PrivacyPolicyModal'
 
 const NAV_LINKS = [
   { icon: Home,          label: 'Home',      path: '/client/home' },
   { icon: Briefcase,     label: 'Projects',  path: '/client/projects' },
+  { icon: ScrollText,    label: 'Contracts', path: '/client/contracts' },
   { icon: CreditCard,    label: 'Payments',  path: '/client/payments' },
   { icon: MessageSquare, label: 'Messages',  path: '/client/messages' },
   { icon: Star,          label: 'Reviews',   path: '/client/reviews' },
@@ -86,7 +88,7 @@ const Avatar = ({ user, size = 'sm' }) => {
 }
 
 /* ── Bottom Sidebar Profile Card (Opens Upwards) ─────────────────────────── */
-const SidebarProfileCard = ({ collapsed, onOpenHelp }) => {
+const SidebarProfileCard = ({ collapsed, onOpenHelp, onOpenPrivacy }) => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -125,6 +127,12 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp }) => {
             className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
           >
             <HelpCircle className="w-4 h-4 text-gray-500" /> Help & Support
+          </button>
+          <button
+            onClick={() => { onOpenPrivacy(); setOpen(false) }}
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          >
+            <FileText className="w-4 h-4 text-gray-500" /> Privacy Policy
           </button>
           <div className="border-t border-gray-100 my-1" />
           <button
@@ -170,6 +178,35 @@ export default function ClientLayout() {
   const location = useLocation()
   const active = location.pathname
   const [showHelp, setShowHelp] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
+  const [privacyMode, setPrivacyMode] = useState('view')
+  const { user, logout } = useAuth()
+
+  // One-time onboarding privacy popup after first registration
+  useEffect(() => {
+    if (!user?.id) return
+    const key = `privacy_accepted_${user.id}`
+    const accepted = localStorage.getItem(key)
+    if (!accepted) {
+      setPrivacyMode('onboarding')
+      setShowPrivacy(true)
+    }
+  }, [user?.id])
+
+  const handlePrivacyAccept = () => {
+    if (user?.id) localStorage.setItem(`privacy_accepted_${user.id}`, 'true')
+    setShowPrivacy(false)
+  }
+
+  const handlePrivacyDecline = () => {
+    logout()
+    navigate('/login')
+  }
+
+  const openPrivacyView = () => {
+    setPrivacyMode('view')
+    setShowPrivacy(true)
+  }
 
   // Persistent sidebar collapse state
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true')
@@ -191,11 +228,11 @@ export default function ClientLayout() {
           <div className={`h-14 border-b border-gray-100 flex items-center flex-shrink-0 ${collapsed ? 'px-3 justify-center' : 'px-4 justify-between'}`}>
             {!collapsed ? (
               <>
-                <button onClick={() => navigate('/client/dashboard')} className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Briefcase className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-base font-extrabold text-gray-900 tracking-tight truncate">FreelanceFlow</span>
+                <button onClick={() => navigate('/client/dashboard')} className="flex items-center gap-2.5 min-w-0">
+                  <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain flex-shrink-0" />
+                  <span className="text-base font-extrabold text-gray-900 tracking-tight truncate">
+                    Freelance<span className="text-indigo-600">Flow</span>
+                  </span>
                 </button>
                 <button
                   onClick={toggleSidebar}
@@ -209,9 +246,9 @@ export default function ClientLayout() {
               <button
                 onClick={toggleSidebar}
                 title="Expand sidebar"
-                className="p-2 rounded-xl bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors flex items-center justify-center"
+                className="p-1 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center"
               >
-                <PanelLeftOpen className="w-5 h-5" />
+                <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain" />
               </button>
             )}
           </div>
@@ -241,16 +278,31 @@ export default function ClientLayout() {
           </nav>
         </div>
 
+        {/* Privacy Policy sidebar button */}
+        <div className={`px-3 pb-1 flex-shrink-0 ${collapsed ? 'flex justify-center' : ''}`}>
+          <button
+            onClick={openPrivacyView}
+            title={collapsed ? 'Privacy Policy' : undefined}
+            className={`flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-indigo-600 transition-colors ${
+              collapsed ? 'p-2 rounded-lg hover:bg-indigo-50' : 'px-3 py-2 rounded-lg hover:bg-gray-50 w-full'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+            {!collapsed && <span>Privacy Policy</span>}
+          </button>
+        </div>
+
         {/* Profile Card at bottom of left sidebar (Opens Upward) */}
-        <SidebarProfileCard collapsed={collapsed} onOpenHelp={() => setShowHelp(true)} />
+        <SidebarProfileCard collapsed={collapsed} onOpenHelp={() => setShowHelp(true)} onOpenPrivacy={openPrivacyView} />
       </aside>
 
       {/* ── Main Area ───────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {/* Top Navbar Header (Height: h-14 / 56px) */}
         <header className="h-14 bg-white border-b border-gray-100 px-6 flex items-center justify-end flex-shrink-0 sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-gray-400">FreelanceFlow Workplace</span>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="FreelanceFlow" className="w-5 h-5 object-contain" />
+            <span className="text-xs font-semibold text-gray-500">FreelanceFlow Workplace</span>
           </div>
         </header>
 
@@ -262,6 +314,16 @@ export default function ClientLayout() {
 
       {/* Help Modal */}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacy && (
+        <PrivacyPolicyModal
+          mode={privacyMode}
+          onAccept={handlePrivacyAccept}
+          onDecline={handlePrivacyDecline}
+          onClose={() => setShowPrivacy(false)}
+        />
+      )}
     </div>
   )
 }

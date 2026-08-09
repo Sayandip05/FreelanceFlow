@@ -146,11 +146,11 @@ const AuthPage = () => {
 
         {/* Logo */}
         <div className="text-center mb-7">
-          <Link to="/" className="inline-flex items-center gap-2 mb-5">
-            <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-2xl font-black text-gray-900 tracking-tight">FreelanceFlow</span>
+          <Link to="/" className="inline-flex items-center gap-2.5 mb-5 group">
+            <img src="/logo.png" alt="FreelanceFlow" className="w-11 h-11 object-contain transition-transform group-hover:scale-105" />
+            <span className="text-2xl font-black text-gray-900 tracking-tight">
+              Freelance<span className="text-indigo-600">Flow</span>
+            </span>
           </Link>
           <h1 className="text-2xl font-extrabold text-gray-900">
             {tab === 'login' ? 'Welcome back' : 'Create your account'}

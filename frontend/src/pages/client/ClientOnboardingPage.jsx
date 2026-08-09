@@ -123,11 +123,11 @@ const ClientOnboardingPage = () => {
     <div className="min-h-screen bg-white flex flex-col">
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <header className="h-14 border-b border-gray-100 px-6 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-gray-900 rounded-lg flex items-center justify-center">
-            <Briefcase className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-base font-extrabold text-gray-900 tracking-tight">FreelanceFlow</span>
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain" />
+          <span className="text-base font-extrabold text-gray-900 tracking-tight">
+            Freelance<span className="text-indigo-600">Flow</span>
+          </span>
         </div>
         <span className="text-xs text-gray-400 font-medium">Step {step} of {STEPS.length}</span>
       </header>

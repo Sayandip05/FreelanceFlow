@@ -19,6 +19,7 @@ import ClientHomePage from '../pages/client/ClientHomePage'
 import ClientOnboardingPage from '../pages/client/ClientOnboardingPage'
 import ClientProjectsPage from '../pages/client/ClientProjectsPage'
 import ClientProjectDetailPage from '../pages/client/ClientProjectDetailPage'
+import ClientContractsPage from '../pages/client/ClientContractsPage'
 import ClientContractDetailPage from '../pages/client/ClientContractDetailPage'
 import ClientDeliverableReviewPage from '../pages/client/ClientDeliverableReviewPage'
 import ClientPaymentsPage from '../pages/client/ClientPaymentsPage'
@@ -59,6 +60,7 @@ const AppRouter = () => {
                 <Route path="dashboard" element={<ClientOverviewPage />} />
                 <Route path="projects" element={<ClientProjectsPage />} />
                 <Route path="projects/:projectId" element={<ClientProjectDetailPage />} />
+                <Route path="contracts" element={<ClientContractsPage />} />
                 <Route path="contracts/:contractId" element={<ClientContractDetailPage />} />
                 <Route path="deliverables/:deliverableId/review" element={<ClientDeliverableReviewPage />} />
                 <Route path="payments" element={<ClientPaymentsPage />} />

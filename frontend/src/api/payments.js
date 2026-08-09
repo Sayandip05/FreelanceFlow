@@ -1,4 +1,4 @@
-﻿import api from './axiosConfig'
+import api from './axiosConfig'
 
 export const paymentsAPI = {
   // Get all payments for user
@@ -24,8 +24,29 @@ export const paymentsAPI = {
   releasePayment: (contractId) =>
     api.post('/payments/release/', { contract_id: contractId }),
 
-  // Get payment history summary
-  getPaymentHistory: () => api.get('/payments/history/'),
+  // Milestone APIs
+  getMilestones: (contractId) =>
+    api.get(`/payments/milestones/${contractId}/milestones/`),
+
+  createMilestone: (contractId, data) =>
+    api.post(`/payments/milestones/${contractId}/milestones/`, data),
+
+  completeMilestone: (milestoneId, data = {}) =>
+    api.post(`/payments/milestones/${milestoneId}/complete/`, data),
+
+  releaseMilestone: (milestoneId) =>
+    api.post(`/payments/milestones/${milestoneId}/release/`),
+
+  getMilestoneProgress: (contractId) =>
+    api.get(`/payments/milestones/${contractId}/milestone-progress/`),
+
+  // Dispute APIs
+  raiseDispute: (contractId, reason, description) =>
+    api.post('/payments/disputes/', { contract_id: contractId, reason, description }),
+
+  // Termination APIs
+  terminateContract: (contractId, reason, explanation) =>
+    api.post(`/bidding/contracts/${contractId}/terminate/`, { reason, explanation }),
 }
 
 export default paymentsAPI
