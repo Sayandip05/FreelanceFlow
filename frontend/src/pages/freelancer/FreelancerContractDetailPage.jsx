@@ -55,10 +55,14 @@ export default function FreelancerContractDetailPage() {
       ])
 
       if (contractRes.status === 'fulfilled') {
+        console.log('Contract detail response:', contractRes.value.data)
         setContract(contractRes.value.data)
       }
       if (milestonesRes.status === 'fulfilled') {
+        console.log('Milestones response:', milestonesRes.value.data)
         setMilestones(milestonesRes.value.data?.results || milestonesRes.value.data || [])
+      } else {
+        console.error('Milestones request rejected:', milestonesRes.reason)
       }
       if (deliverablesRes.status === 'fulfilled') {
         setDeliverables(deliverablesRes.value.data?.results || deliverablesRes.value.data || [])
@@ -131,6 +135,36 @@ export default function FreelancerContractDetailPage() {
     }
   }
 
+  /* ── Proposal Actions ────────────────────────────────────────────────────── */
+  const handleAcceptProposal = async () => {
+    setActionLoading(true)
+    try {
+      await contractsAPI.acceptProposal(contractId)
+      alert('Contract proposal accepted successfully!')
+      loadContractData()
+    } catch (e) {
+      console.error(e)
+      alert(e.response?.data?.error || 'Failed to accept contract.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleDeclineProposal = async () => {
+    if (!window.confirm('Are you sure you want to decline this contract proposal? This will delete the proposal and reset your bid to pending.')) return
+    setActionLoading(true)
+    try {
+      await contractsAPI.declineProposal(contractId)
+      alert('Contract proposal declined and deleted.')
+      navigate('/freelancer/contracts')
+    } catch (e) {
+      console.error(e)
+      alert(e.response?.data?.error || 'Failed to decline contract.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -190,18 +224,59 @@ export default function FreelancerContractDetailPage() {
         </div>
       </div>
 
+      {/* ── Proposal Acceptance Banner ──────────────────────────────────── */}
+      {contract.status === 'PENDING_ACCEPTANCE' && (
+        <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border border-primary-100 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary-600 animate-pulse" />
+              Contract Proposal Received!
+            </h3>
+            <p className="text-xs text-gray-500 max-w-2xl">
+              Please review the project details, budget, and milestone terms below. You must accept this proposal to activate the contract and begin logging work.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDeclineProposal}
+              disabled={actionLoading}
+              className="px-4 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-all"
+            >
+              Decline Proposal
+            </button>
+            <button
+              onClick={handleAcceptProposal}
+              disabled={actionLoading}
+              className="px-5 py-2 text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+            >
+              <Check className="w-4 h-4" /> Accept Contract
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Main Contract Header Card ────────────────────────────────────── */}
       <div className="bg-white rounded-3xl p-8 border border-gray-200/80 shadow-sm space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 pb-6 border-b border-gray-100">
           <div className="space-y-3 flex-1">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
-                contract.is_active
+                contract.status === 'ACTIVE'
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : contract.status === 'PENDING_ACCEPTANCE'
+                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                  : contract.status === 'TERMINATED'
+                  ? 'bg-red-50 text-red-700 border border-red-200'
                   : 'bg-blue-50 text-blue-700 border border-blue-200'
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${contract.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
-                {contract.is_active ? 'Active Contract' : 'Completed'}
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  contract.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' :
+                  contract.status === 'PENDING_ACCEPTANCE' ? 'bg-amber-500 animate-pulse' :
+                  contract.status === 'TERMINATED' ? 'bg-red-500' : 'bg-blue-500'
+                }`} />
+                {contract.status === 'ACTIVE' ? 'Active Contract' :
+                 contract.status === 'PENDING_ACCEPTANCE' ? 'Pending Acceptance' :
+                 contract.status === 'TERMINATED' ? 'Terminated' : 'Completed'}
               </span>
               <span className="text-xs font-semibold text-gray-400">Contract #{contract.id}</span>
               <span className="inline-flex items-center gap-1 text-xs font-bold text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-lg border border-primary-100">

@@ -7,6 +7,7 @@ class BidListSerializer(serializers.ModelSerializer):
     """Serializer for bid list view."""
     freelancer = UserSerializer(read_only=True)
     project = ProjectListSerializer(read_only=True)
+    contract_id = serializers.SerializerMethodField()
     
     class Meta:
         model = Bid
@@ -16,15 +17,20 @@ class BidListSerializer(serializers.ModelSerializer):
             'freelancer',
             'amount',
             'status',
+            'contract_id',
             'created_at',
             'updated_at',
         ]
+
+    def get_contract_id(self, obj):
+        return obj.contract.id if hasattr(obj, 'contract') else None
 
 
 class BidDetailSerializer(serializers.ModelSerializer):
     """Serializer for bid detail view."""
     freelancer = UserSerializer(read_only=True)
     project = ProjectListSerializer(read_only=True)
+    contract_id = serializers.SerializerMethodField()
     
     class Meta:
         model = Bid
@@ -35,9 +41,13 @@ class BidDetailSerializer(serializers.ModelSerializer):
             'amount',
             'cover_letter',
             'status',
+            'contract_id',
             'created_at',
             'updated_at',
         ]
+
+    def get_contract_id(self, obj):
+        return obj.contract.id if hasattr(obj, 'contract') else None
 
 
 class BidCreateSerializer(serializers.ModelSerializer):
@@ -92,6 +102,9 @@ class ContractSerializer(serializers.ModelSerializer):
 
 class ContractListSerializer(serializers.ModelSerializer):
     """Serializer for contract list view."""
+    project = ProjectListSerializer(read_only=True)
+    freelancer = UserSerializer(read_only=True)
+    client = UserSerializer(read_only=True)
     project_title = serializers.CharField(source='bid.project.title', read_only=True)
     freelancer_name = serializers.CharField(source='bid.freelancer.full_name', read_only=True)
     client_name = serializers.CharField(source='bid.project.client.full_name', read_only=True)
@@ -100,6 +113,9 @@ class ContractListSerializer(serializers.ModelSerializer):
         model = Contract
         fields = [
             'id',
+            'project',
+            'freelancer',
+            'client',
             'project_title',
             'freelancer_name',
             'client_name',

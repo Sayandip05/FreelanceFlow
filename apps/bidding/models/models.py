@@ -80,12 +80,22 @@ class Contract(models.Model):
 
     def save(self, *args, **kwargs):
         # Sync is_active and status
-        if not self.is_active and self.status in [self.Status.ACTIVE, self.Status.DISPUTED]:
-            self.status = self.Status.TERMINATED
-        elif self.status in [self.Status.ACTIVE, self.Status.DISPUTED]:
+        if self.pk:
+            try:
+                orig = Contract.objects.get(pk=self.pk)
+                # If it was active/disputed in DB, but now is_active is changed to False in memory
+                if orig.is_active and not self.is_active:
+                    if self.status in [self.Status.ACTIVE, self.Status.DISPUTED]:
+                        self.status = self.Status.TERMINATED
+            except Contract.DoesNotExist:
+                pass
+        
+        # Now sync status to is_active
+        if self.status in [self.Status.ACTIVE, self.Status.DISPUTED]:
             self.is_active = True
         else:
             self.is_active = False
+            
         super().save(*args, **kwargs)
     
     class Meta:

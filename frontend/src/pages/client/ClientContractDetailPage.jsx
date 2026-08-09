@@ -66,10 +66,14 @@ export default function ClientContractDetailPage() {
       ])
 
       if (contractRes.status === 'fulfilled') {
+        console.log('Contract detail response:', contractRes.value.data)
         setContract(contractRes.value.data)
       }
       if (milestonesRes.status === 'fulfilled') {
+        console.log('Milestones response:', milestonesRes.value.data)
         setMilestones(milestonesRes.value.data?.results || milestonesRes.value.data || [])
+      } else {
+        console.error('Milestones request rejected:', milestonesRes.reason)
       }
       if (deliverablesRes.status === 'fulfilled') {
         setDeliverables(deliverablesRes.value.data?.results || deliverablesRes.value.data || [])
@@ -106,6 +110,9 @@ export default function ClientContractDetailPage() {
     setActionLoading(true)
 
     try {
+      // Clear any existing default placeholder or custom milestones first
+      await paymentsAPI.clearMilestones(contractId)
+
       const count = parseInt(milestoneCount, 10) || 1
       const perMilestoneAmount = (totalBudget / count).toFixed(2)
       const now = new Date()
@@ -147,6 +154,11 @@ export default function ClientContractDetailPage() {
     setActionLoading(true)
 
     try {
+      // If we only have 1 milestone and it's equal to the total contract amount, it's the default one. Clear it!
+      if (milestones.length === 1 && parseFloat(milestones[0].amount) === totalBudget) {
+        await paymentsAPI.clearMilestones(contractId)
+      }
+
       await paymentsAPI.createMilestone(contractId, {
         title: customMilestone.title,
         description: customMilestone.description,
@@ -169,7 +181,7 @@ export default function ClientContractDetailPage() {
   const handleFundMilestone = async (milestone) => {
     setActionLoading(true)
     try {
-      const res = await paymentsAPI.createEscrow(contractId)
+      const res = await paymentsAPI.fundMilestone(milestone.id)
 
       // Open Razorpay Checkout or fallback simulation
       if (window.Razorpay && res.data?.razorpay_order_id) {
@@ -357,18 +369,43 @@ support@freelanceflow.com
         </div>
       </div>
 
+      {/* ── Proposal Pending Acceptance Banner ──────────────────────────────────── */}
+      {contract.status === 'PENDING_ACCEPTANCE' && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-amber-600 animate-pulse" />
+              Awaiting Freelancer Acceptance
+            </h3>
+            <p className="text-xs text-gray-500 max-w-2xl">
+              You have accepted the freelancer's bid and proposed this contract. You will be able to fund milestones once the freelancer accepts this proposal.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Main Contract Header Card ────────────────────────────────────── */}
       <div className="bg-white rounded-3xl p-8 border border-gray-200/80 shadow-sm space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 pb-6 border-b border-gray-100">
           <div className="space-y-3 flex-1">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
-                contract.is_active
+                contract.status === 'ACTIVE'
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : contract.status === 'PENDING_ACCEPTANCE'
+                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                  : contract.status === 'TERMINATED'
+                  ? 'bg-red-50 text-red-700 border border-red-200'
                   : 'bg-blue-50 text-blue-700 border border-blue-200'
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${contract.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
-                {contract.is_active ? 'Active Contract' : 'Completed'}
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  contract.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' :
+                  contract.status === 'PENDING_ACCEPTANCE' ? 'bg-amber-500 animate-pulse' :
+                  contract.status === 'TERMINATED' ? 'bg-red-500' : 'bg-blue-500'
+                }`} />
+                {contract.status === 'ACTIVE' ? 'Active Contract' :
+                 contract.status === 'PENDING_ACCEPTANCE' ? 'Pending Acceptance' :
+                 contract.status === 'TERMINATED' ? 'Terminated' : 'Completed'}
               </span>
               <span className="text-xs font-semibold text-gray-400">Contract #{contract.id}</span>
               <span className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-100">
