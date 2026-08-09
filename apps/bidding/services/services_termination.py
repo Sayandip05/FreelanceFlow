@@ -136,17 +136,30 @@ def approve_contract_termination(
         
         # Terminate contract
         contract.is_active = False
+        contract.status = Contract.Status.TERMINATED
         contract.end_date = timezone.now()
         contract.termination_reason = termination_request.reason
         contract.save()
         
-        # Handle payment/refund if escrow exists
-        if hasattr(contract, 'payment'):
+        # Clean up milestones
+        from apps.payments.models.models_milestone import PaymentMilestone
+        # Delete unfunded milestones
+        contract.milestones.filter(status=PaymentMilestone.Status.PENDING).delete()
+        # Mark in-progress/submitted milestones as REJECTED due to termination
+        contract.milestones.filter(
+            status__in=[PaymentMilestone.Status.IN_PROGRESS, PaymentMilestone.Status.SUBMITTED]
+        ).update(status=PaymentMilestone.Status.REJECTED)
+
+        # Handle payments/refunds for all currently escrowed milestones
+        from apps.payments.models import Payment
+        escrowed_payments = contract.payments.filter(status=Payment.Status.ESCROWED)
+        if escrowed_payments.exists():
             from apps.payments.services import process_contract_termination_payment
-            process_contract_termination_payment(
-                contract.payment,
-                refund_percentage
-            )
+            for payment in escrowed_payments:
+                process_contract_termination_payment(
+                    payment,
+                    refund_percentage
+                )
         
         # Notify both parties
         from apps.notifications.services import create_notification

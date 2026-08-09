@@ -12,6 +12,8 @@ from apps.bidding.serializers import (
 from apps.bidding.services import (
     submit_bid,
     accept_bid,
+    accept_contract,
+    decline_contract,
     reject_bid,
     withdraw_bid,
 )
@@ -109,14 +111,28 @@ class BidViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def accept(self, request, pk=None):
-        """Accept a bid (client only)."""
+        """Accept a bid and propose a contract (client only)."""
         bid = self.get_object()
         
+        milestones_mode = request.data.get("milestones_mode", "auto")
+        milestone_count = int(request.data.get("milestone_count", 1))
+        frequency = request.data.get("frequency", "monthly")
+        start_date = request.data.get("start_date")
+        custom_milestones = request.data.get("custom_milestones")
+
         try:
-            contract = accept_bid(bid.id, request.user)
+            contract = accept_bid(
+                bid_id=bid.id,
+                client=request.user,
+                milestones_mode=milestones_mode,
+                milestone_count=milestone_count,
+                frequency=frequency,
+                start_date=start_date,
+                custom_milestones=custom_milestones
+            )
             return Response(
                 {
-                    "message": "Bid accepted successfully.",
+                    "message": "Bid accepted and contract proposed successfully.",
                     "contract": ContractSerializer(contract).data,
                 },
                 status=status.HTTP_201_CREATED,
@@ -158,22 +174,28 @@ class BidViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class ContractViewSet(viewsets.ReadOnlyModelViewSet):
+class ContractViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for Contract operations (read-only).
+    ViewSet for Contract operations.
     
     Endpoints:
     - GET /api/contracts/ - List user's contracts
     - GET /api/contracts/{id}/ - Get contract detail
+    - POST /api/contracts/{id}/accept_proposal/ - Accept contract proposal (freelancer only)
+    - POST /api/contracts/{id}/decline_proposal/ - Decline contract proposal (freelancer only)
     """
     
     def get_queryset(self):
         user = self.request.user
         
         if user.role == 'FREELANCER':
-            return get_freelancer_active_contracts(user)
+            return Contract.objects.filter(
+                bid__freelancer=user
+            ).select_related('bid__project', 'bid__freelancer')
         else:
-            return get_client_active_contracts(user)
+            return Contract.objects.filter(
+                bid__project__client=user
+            ).select_related('bid__project', 'bid__freelancer')
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -181,3 +203,36 @@ class ContractViewSet(viewsets.ReadOnlyModelViewSet):
         return ContractSerializer
     
     permission_classes = [permissions.IsAuthenticated, IsContractParticipant]
+
+    @action(detail=True, methods=['post'])
+    def accept_proposal(self, request, pk=None):
+        """Accept a contract proposal (freelancer only)."""
+        try:
+            contract = accept_contract(pk, request.user)
+            return Response(
+                {
+                    "message": "Contract proposal accepted successfully.",
+                    "contract": ContractSerializer(contract).data
+                },
+                status=status.HTTP_200_OK
+            )
+        except ValidationError as e:
+            return Response(
+                {"error": e.message, "code": e.code, "field": e.field},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['post'])
+    def decline_proposal(self, request, pk=None):
+        """Decline a contract proposal (freelancer only)."""
+        try:
+            decline_contract(pk, request.user)
+            return Response(
+                {"message": "Contract proposal declined and deleted successfully."},
+                status=status.HTTP_200_OK
+            )
+        except ValidationError as e:
+            return Response(
+                {"error": e.message, "code": e.code, "field": e.field},
+                status=status.HTTP_400_BAD_REQUEST
+            )

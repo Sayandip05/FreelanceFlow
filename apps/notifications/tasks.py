@@ -48,10 +48,10 @@ def notify_freelancer_bid_accepted(self, contract_id: int):
 
         Notification.objects.create(
             recipient=freelancer,
-            title="Your bid was accepted!",
+            title="Contract Proposal Received!",
             body=(
                 f"Congratulations! Your bid for \"{project.title}\" has been accepted. "
-                f"A contract has been created. You can start working now."
+                f"A contract proposal has been created. Please review and accept the contract to begin working."
             ),
             notification_type="BID_ACCEPTED",
         )

@@ -64,8 +64,15 @@ class PaymentMilestoneViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
         """Mark milestone as completed (by freelancer)"""
+        desc = request.data.get("deliverable_description", "")
+        files = request.data.get("deliverable_files", [])
         try:
-            milestone = complete_milestone(pk, request.user)
+            milestone = complete_milestone(
+                pk, 
+                request.user, 
+                deliverable_description=desc, 
+                deliverable_files=files
+            )
             return Response({
                 'message': 'Milestone marked as completed',
                 'milestone': PaymentMilestoneSerializer(milestone).data
@@ -76,6 +83,24 @@ class PaymentMilestoneViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @action(detail=True, methods=['post'])
+    def fund(self, request, pk=None):
+        """Fund escrow for a specific milestone (by client)"""
+        from apps.payments.models.models_milestone import PaymentMilestone
+        from apps.payments.services import create_milestone_escrow
+        from apps.payments.serializers import PaymentSerializer
+        try:
+            milestone = PaymentMilestone.objects.select_related('contract', 'contract__bid__project').get(id=pk)
+            payment = create_milestone_escrow(milestone.contract, request.user, milestone)
+            return Response({
+                'message': 'Escrow order created successfully',
+                'payment': PaymentSerializer(payment).data
+            }, status=status.HTTP_201_CREATED)
+        except PaymentMilestone.DoesNotExist:
+            return Response({'error': 'Milestone not found'}, status=status.HTTP_404_NOT_FOUND)
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=['post'])
     def release(self, request, pk=None):
         """Release payment for a completed milestone (by client)"""

@@ -1,6 +1,8 @@
 from .services import (
     submit_bid,
     accept_bid,
+    accept_contract,
+    decline_contract,
     reject_bid,
     withdraw_bid,
     complete_contract,

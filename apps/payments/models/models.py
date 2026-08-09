@@ -15,10 +15,17 @@ class Payment(models.Model):
         PAYOUT_FAILED = "PAYOUT_FAILED", "Payout Failed"
         REFUNDED = "REFUNDED", "Refunded"
     
-    contract = models.OneToOneField(
+    contract = models.ForeignKey(
         Contract,
         on_delete=models.CASCADE,
-        related_name="payment"
+        related_name="payments"
+    )
+    milestone = models.OneToOneField(
+        "payments.PaymentMilestone",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payment_record"
     )
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
     status = models.CharField(

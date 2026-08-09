@@ -67,6 +67,7 @@ class ContractSerializer(serializers.ModelSerializer):
     freelancer = UserSerializer(read_only=True)
     client = UserSerializer(read_only=True)
     bid = BidDetailSerializer(read_only=True)
+    milestones = serializers.SerializerMethodField()
     
     class Meta:
         model = Contract
@@ -80,7 +81,13 @@ class ContractSerializer(serializers.ModelSerializer):
             'start_date',
             'end_date',
             'is_active',
+            'status',
+            'milestones',
         ]
+
+    def get_milestones(self, obj):
+        from apps.payments.serializers import PaymentMilestoneSerializer
+        return PaymentMilestoneSerializer(obj.milestones.all(), many=True).data
 
 
 class ContractListSerializer(serializers.ModelSerializer):
@@ -99,4 +106,5 @@ class ContractListSerializer(serializers.ModelSerializer):
             'agreed_amount',
             'start_date',
             'is_active',
+            'status',
         ]
