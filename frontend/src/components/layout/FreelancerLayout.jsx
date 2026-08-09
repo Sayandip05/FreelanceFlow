@@ -6,6 +6,7 @@ import {
   X, Mail, BookOpen, ShieldCheck, Home, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import PrivacyPolicyModal from '../ui/PrivacyPolicyModal'
 
 const NAV_LINKS = [
   { icon: Home,         label: 'Home',            path: '/freelancer/browse' },
@@ -86,7 +87,7 @@ const Avatar = ({ user, size = 'sm' }) => {
 }
 
 /* ── Bottom Sidebar Profile Card (Opens Upwards) ─────────────────────────── */
-const SidebarProfileCard = ({ collapsed, onOpenHelp }) => {
+const SidebarProfileCard = ({ collapsed, onOpenHelp, onOpenPrivacy }) => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -126,6 +127,12 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp }) => {
           >
             <HelpCircle className="w-4 h-4 text-gray-500" /> Help & Support
           </button>
+          <button
+            onClick={() => { onOpenPrivacy(); setOpen(false) }}
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          >
+            <FileText className="w-4 h-4 text-gray-500" /> Privacy Policy
+          </button>
           <div className="border-t border-gray-100 my-1" />
           <button
             id="logout-btn"
@@ -164,12 +171,41 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp }) => {
   )
 }
 
-/* ── Freelancer Layout ───────────────────────────────────────────────────── */
+/* ── Freelancer Layout ───────────────────────────────────────────────────────── */
 export default function FreelancerLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const active = location.pathname
   const [showHelp, setShowHelp] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
+  const [privacyMode, setPrivacyMode] = useState('view')
+  const { user, logout } = useAuth()
+
+  // One-time onboarding privacy popup after first registration
+  useEffect(() => {
+    if (!user?.id) return
+    const key = `privacy_accepted_${user.id}`
+    const accepted = localStorage.getItem(key)
+    if (!accepted) {
+      setPrivacyMode('onboarding')
+      setShowPrivacy(true)
+    }
+  }, [user?.id])
+
+  const handlePrivacyAccept = () => {
+    if (user?.id) localStorage.setItem(`privacy_accepted_${user.id}`, 'true')
+    setShowPrivacy(false)
+  }
+
+  const handlePrivacyDecline = () => {
+    logout()
+    navigate('/login')
+  }
+
+  const openPrivacyView = () => {
+    setPrivacyMode('view')
+    setShowPrivacy(true)
+  }
 
   // Persistent sidebar collapse state
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true')
@@ -241,8 +277,22 @@ export default function FreelancerLayout() {
           </nav>
         </div>
 
+        {/* Privacy Policy sidebar button */}
+        <div className={`px-3 pb-1 flex-shrink-0 ${collapsed ? 'flex justify-center' : ''}`}>
+          <button
+            onClick={openPrivacyView}
+            title={collapsed ? 'Privacy Policy' : undefined}
+            className={`flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-primary-600 transition-colors ${
+              collapsed ? 'p-2 rounded-lg hover:bg-primary-50' : 'px-3 py-2 rounded-lg hover:bg-gray-50 w-full'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+            {!collapsed && <span>Privacy Policy</span>}
+          </button>
+        </div>
+
         {/* Profile Card at bottom of left sidebar (Opens Upward) */}
-        <SidebarProfileCard collapsed={collapsed} onOpenHelp={() => setShowHelp(true)} />
+        <SidebarProfileCard collapsed={collapsed} onOpenHelp={() => setShowHelp(true)} onOpenPrivacy={openPrivacyView} />
       </aside>
 
       {/* ── Main Area ───────────────────────────────────────────────────── */}
@@ -262,6 +312,16 @@ export default function FreelancerLayout() {
 
       {/* Help Modal */}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacy && (
+        <PrivacyPolicyModal
+          mode={privacyMode}
+          onAccept={handlePrivacyAccept}
+          onDecline={handlePrivacyDecline}
+          onClose={() => setShowPrivacy(false)}
+        />
+      )}
     </div>
   )
 }
