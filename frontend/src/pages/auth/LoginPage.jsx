@@ -72,11 +72,11 @@ const LoginPage = () => {
 
         {/* ── Logo ─────────────────────────────────────────────────────────── */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
-              <Briefcase className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-gray-900">FreelanceFlow</span>
+          <Link to="/" className="inline-flex items-center gap-2.5 mb-6 group">
+            <img src="/logo.png" alt="FreelanceFlow" className="w-11 h-11 object-contain transition-transform group-hover:scale-105" />
+            <span className="text-2xl font-black text-gray-900 tracking-tight">
+              Freelance<span className="text-primary-600">Flow</span>
+            </span>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h1>
           <p className="text-gray-500 text-sm">Sign in to your account to continue</p>

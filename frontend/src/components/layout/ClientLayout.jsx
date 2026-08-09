@@ -228,11 +228,11 @@ export default function ClientLayout() {
           <div className={`h-14 border-b border-gray-100 flex items-center flex-shrink-0 ${collapsed ? 'px-3 justify-center' : 'px-4 justify-between'}`}>
             {!collapsed ? (
               <>
-                <button onClick={() => navigate('/client/dashboard')} className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Briefcase className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-base font-extrabold text-gray-900 tracking-tight truncate">FreelanceFlow</span>
+                <button onClick={() => navigate('/client/dashboard')} className="flex items-center gap-2.5 min-w-0">
+                  <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain flex-shrink-0" />
+                  <span className="text-base font-extrabold text-gray-900 tracking-tight truncate">
+                    Freelance<span className="text-indigo-600">Flow</span>
+                  </span>
                 </button>
                 <button
                   onClick={toggleSidebar}
@@ -246,9 +246,9 @@ export default function ClientLayout() {
               <button
                 onClick={toggleSidebar}
                 title="Expand sidebar"
-                className="p-2 rounded-xl bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors flex items-center justify-center"
+                className="p-1 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center"
               >
-                <PanelLeftOpen className="w-5 h-5" />
+                <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain" />
               </button>
             )}
           </div>
@@ -300,8 +300,9 @@ export default function ClientLayout() {
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {/* Top Navbar Header (Height: h-14 / 56px) */}
         <header className="h-14 bg-white border-b border-gray-100 px-6 flex items-center justify-end flex-shrink-0 sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-gray-400">FreelanceFlow Workplace</span>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="FreelanceFlow" className="w-5 h-5 object-contain" />
+            <span className="text-xs font-semibold text-gray-500">FreelanceFlow Workplace</span>
           </div>
         </header>
 

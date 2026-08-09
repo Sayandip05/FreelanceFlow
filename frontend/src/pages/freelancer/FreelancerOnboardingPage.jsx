@@ -148,10 +148,10 @@ export default function FreelancerOnboardingPage() {
       {/* ── Top Navigation & Brand Bar ───────────────────────────────────── */}
       <header className="max-w-3xl mx-auto w-full flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gray-900 rounded-xl flex items-center justify-center text-white font-black text-sm">
-            <Briefcase className="w-4 h-4" />
-          </div>
-          <span className="text-lg font-extrabold text-gray-900 tracking-tight">FreelanceFlow</span>
+          <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain" />
+          <span className="text-lg font-extrabold text-gray-900 tracking-tight">
+            Freelance<span className="text-primary-600">Flow</span>
+          </span>
         </div>
         <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
           Step {step} of 5

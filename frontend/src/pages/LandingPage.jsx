@@ -27,7 +27,12 @@ const LandingPage = () => {
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <a href="#" className="text-2xl font-bold tracking-tight text-blue-600">FreelanceFlow</a>
+          <a href="#" className="inline-flex items-center gap-2.5">
+            <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain" />
+            <span className="text-2xl font-black tracking-tight text-gray-900">
+              Freelance<span className="text-blue-600">Flow</span>
+            </span>
+          </a>
           <div className="hidden lg:flex items-center gap-5 text-sm font-medium text-gray-700">
             <a href="/login?role=CLIENT" className="hover:text-blue-600 transition-colors">Hire freelancers</a>
             <a href="/login?role=FREELANCER" className="hover:text-blue-600 transition-colors">Find work</a>
@@ -400,7 +405,8 @@ const LandingPage = () => {
       {/* Footer */}
       <footer className="bg-black text-gray-400 py-8 px-4 lg:px-8 border-t border-gray-900">
         <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="FreelanceFlow" className="w-6 h-6 object-contain" />
             <span className="text-sm font-bold tracking-tight text-white">FreelanceFlow</span>
             <span className="text-gray-700">|</span>
             <span className="text-gray-500">© 2026 FreelanceFlow Inc. All rights reserved.</span>
