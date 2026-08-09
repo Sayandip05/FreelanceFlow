@@ -69,13 +69,15 @@ def create_milestone(contract_id, title, description, amount, due_date=None):
 
 
 @transaction.atomic
-def complete_milestone(milestone_id, user):
+def complete_milestone(milestone_id, user, deliverable_description="", deliverable_files=None):
     """
-    Mark milestone as completed (by freelancer)
+    Mark milestone as completed/submitted (by freelancer)
     
     Args:
         milestone_id: ID of the milestone
         user: User instance (must be freelancer)
+        deliverable_description: Text/links submitted
+        deliverable_files: List of file links/paths
     
     Returns:
         PaymentMilestone instance
@@ -89,10 +91,13 @@ def complete_milestone(milestone_id, user):
     if milestone.contract.bid.freelancer != user:
         raise ValidationError("Only freelancer can mark milestone as completed")
     
-    # Check status
-    if milestone.status != PaymentMilestone.Status.PENDING:
-        raise ValidationError(f"Milestone status is {milestone.status}")
+    # Check status (must be funded/IN_PROGRESS)
+    if milestone.status != PaymentMilestone.Status.IN_PROGRESS:
+        raise ValidationError("Milestone must be funded (In Progress) before submission.")
     
+    milestone.deliverable_description = deliverable_description
+    if deliverable_files is not None:
+        milestone.deliverable_files = deliverable_files
     milestone.status = PaymentMilestone.Status.SUBMITTED
     milestone.submitted_at = timezone.now()
     milestone.save()
@@ -129,16 +134,16 @@ def release_milestone_payment(milestone_id, client):
         raise ValidationError("Milestone must be submitted before payment release")
     
     # Check if already paid
-    if milestone.payment_id:
+    if milestone.status == PaymentMilestone.Status.PAID or milestone.paid_at:
         raise ValidationError("Milestone already paid")
     
     try:
-        payment = Payment.objects.get(contract=milestone.contract)
+        payment = milestone.payment_record
     except Payment.DoesNotExist:
-        raise ValidationError("Contract escrow must be funded before milestone release")
+        raise ValidationError("Milestone escrow must be funded before milestone release")
     
     if payment.status != Payment.Status.ESCROWED:
-        raise ValidationError("Contract payment must be in escrow before milestone release")
+        raise ValidationError("Milestone payment must be in escrow before milestone release")
     
     # Link payment to milestone; payout task will mark it PAID after Razorpay payout succeeds.
     milestone.payment_id = str(payment.id)
@@ -147,8 +152,8 @@ def release_milestone_payment(milestone_id, client):
     milestone.approved_at = timezone.now()
     milestone.save()
     
-    # Release the contract escrow through the normal payout path.
-    payment = release_payment(milestone.contract, client)
+    # Release the milestone escrow through the normal payout path.
+    payment = release_payment(milestone.contract, client, payment_id=payment.id)
     
     return payment
 

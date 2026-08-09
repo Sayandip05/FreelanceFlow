@@ -31,8 +31,14 @@ export const paymentsAPI = {
   createMilestone: (contractId, data) =>
     api.post(`/payments/milestones/${contractId}/milestones/`, data),
 
+  clearMilestones: (contractId) =>
+    api.post(`/payments/milestones/${contractId}/clear/`),
+
   completeMilestone: (milestoneId, data = {}) =>
     api.post(`/payments/milestones/${milestoneId}/complete/`, data),
+
+  fundMilestone: (milestoneId) =>
+    api.post(`/payments/milestones/${milestoneId}/fund/`),
 
   releaseMilestone: (milestoneId) =>
     api.post(`/payments/milestones/${milestoneId}/release/`),

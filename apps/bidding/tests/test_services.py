@@ -9,6 +9,8 @@ from apps.bidding.models import Bid, Contract
 from apps.bidding.services import (
     submit_bid,
     accept_bid,
+    accept_contract,
+    decline_contract,
     reject_bid,
     withdraw_bid,
     complete_contract,
@@ -123,9 +125,64 @@ class AcceptBidTests(TestCase):
 
     @patch("apps.notifications.tasks.notify_freelancer_bid_accepted.delay")
     def test_accept_bid_sets_project_in_progress(self, mock_notify):
-        accept_bid(self.bid.id, self.client_user)
+        contract = accept_bid(self.bid.id, self.client_user)
+        accept_contract(contract.id, self.freelancer)
         self.project.refresh_from_db()
         self.assertEqual(self.project.status, Project.Status.IN_PROGRESS)
+
+    def test_contract_proposal_and_milestone_splitting(self):
+        from decimal import Decimal
+        # Propose with 3 auto milestones (amount: 3000)
+        contract = accept_bid(
+            bid_id=self.bid.id,
+            client=self.client_user,
+            milestones_mode="auto",
+            milestone_count=3,
+            frequency="monthly"
+        )
+        self.assertEqual(contract.status, Contract.Status.PENDING_ACCEPTANCE)
+        self.assertEqual(contract.is_active, False)
+        
+        # Verify 3 milestones created
+        milestones = list(contract.milestones.all().order_by("order"))
+        self.assertEqual(len(milestones), 3)
+        # 3000 / 3 = 1000 each
+        self.assertEqual(milestones[0].amount, Decimal('1000.00'))
+        self.assertEqual(milestones[1].amount, Decimal('1000.00'))
+        self.assertEqual(milestones[2].amount, Decimal('1000.00'))
+
+        # Propose with 3 auto milestones with rounding (amount: 5000)
+        bid2 = make_bid(
+            make_project(self.client_user, budget=10000, title="Project 2"),
+            self.freelancer,
+            amount=5000
+        )
+        contract2 = accept_bid(
+            bid_id=bid2.id,
+            client=self.client_user,
+            milestones_mode="auto",
+            milestone_count=3
+        )
+        ms2 = list(contract2.milestones.all().order_by("order"))
+        # 5000 / 3 = 1666.66, last absorbs rounding difference: 5000 - (1666.66 * 2) = 1666.68
+        self.assertEqual(ms2[0].amount, Decimal('1666.66'))
+        self.assertEqual(ms2[1].amount, Decimal('1666.66'))
+        self.assertEqual(ms2[2].amount, Decimal('1666.68'))
+
+    def test_decline_contract_reverts_bids(self):
+        freelancer2 = make_freelancer(email="fl2@test.com")
+        bid2 = make_bid(self.project, freelancer2, amount=2500)
+        
+        contract = accept_bid(self.bid.id, self.client_user)
+        self.assertEqual(Bid.objects.get(id=bid2.id).status, Bid.Status.REJECTED)
+        
+        decline_contract(contract.id, self.freelancer)
+        
+        # Check contract is deleted
+        self.assertFalse(Contract.objects.filter(id=contract.id).exists())
+        # Check bids are reverted
+        self.assertEqual(Bid.objects.get(id=self.bid.id).status, Bid.Status.PENDING)
+        self.assertEqual(Bid.objects.get(id=bid2.id).status, Bid.Status.PENDING)
 
     def test_non_owner_cannot_accept_bid(self):
         other_client = make_client(email="other@test.com")

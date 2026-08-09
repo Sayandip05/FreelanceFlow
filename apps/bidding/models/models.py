@@ -53,6 +53,13 @@ class Contract(models.Model):
     """
     Contract model created when a bid is accepted.
     """
+    class Status(models.TextChoices):
+        PENDING_ACCEPTANCE = "PENDING_ACCEPTANCE", "Pending Acceptance"
+        ACTIVE = "ACTIVE", "Active"
+        COMPLETED = "COMPLETED", "Completed"
+        DISPUTED = "DISPUTED", "Disputed"
+        TERMINATED = "TERMINATED", "Terminated"
+
     bid = models.OneToOneField(
         Bid,
         on_delete=models.CASCADE,
@@ -65,6 +72,31 @@ class Contract(models.Model):
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    status = models.CharField(
+        max_length=30,
+        choices=Status.choices,
+        default=Status.ACTIVE
+    )
+
+    def save(self, *args, **kwargs):
+        # Sync is_active and status
+        if self.pk:
+            try:
+                orig = Contract.objects.get(pk=self.pk)
+                # If it was active/disputed in DB, but now is_active is changed to False in memory
+                if orig.is_active and not self.is_active:
+                    if self.status in [self.Status.ACTIVE, self.Status.DISPUTED]:
+                        self.status = self.Status.TERMINATED
+            except Contract.DoesNotExist:
+                pass
+        
+        # Now sync status to is_active
+        if self.status in [self.Status.ACTIVE, self.Status.DISPUTED]:
+            self.is_active = True
+        else:
+            self.is_active = False
+            
+        super().save(*args, **kwargs)
     
     class Meta:
         db_table = "contracts"

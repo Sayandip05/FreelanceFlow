@@ -36,25 +36,73 @@ def _get_razorpay_client():
     )
 
 
+def create_milestone_escrow(contract: Contract, client, milestone) -> Payment:
+    """
+    Create escrow payment for a specific milestone.
+    Client pays milestone amount which is held in escrow.
+    """
+    if contract.client != client:
+        raise PermissionDeniedError("Only the client can fund a milestone.")
+
+    if milestone.contract != contract:
+        raise ValidationError("Milestone does not belong to this contract.")
+
+    # Check if a payment record already exists for this milestone
+    if hasattr(milestone, 'payment_record'):
+        if milestone.payment_record.status == Payment.Status.PENDING:
+            return milestone.payment_record
+        raise ValidationError("Payment already exists or is in progress for this milestone.")
+
+    logger.info(
+        "Creating Razorpay escrow order for milestone: contract_id=%s milestone_id=%s amount=%s",
+        contract.id, milestone.id, milestone.amount,
+    )
+
+    try:
+        order_data = {
+            'amount': int(milestone.amount * 100),  # paise
+            'currency': 'INR',
+            'receipt': f'milestone_{milestone.id}',
+            'notes': {
+                'contract_id': contract.id,
+                'milestone_id': milestone.id,
+                'project_title': contract.bid.project.title,
+                'milestone_title': milestone.title
+            },
+        }
+        razorpay_order = _get_razorpay_client().order.create(data=order_data)
+    except razorpay.errors.BadRequestError as e:
+        logger.error(
+            "Razorpay order creation failed for milestone: milestone_id=%s error=%s",
+            milestone.id, str(e),
+        )
+        raise ValidationError(f"Payment processing error: {str(e)}")
+
+    with transaction.atomic():
+        payment = Payment.objects.create(
+            contract=contract,
+            milestone=milestone,
+            total_amount=milestone.amount,
+            status=Payment.Status.PENDING,
+            razorpay_order_id=razorpay_order['id'],
+        )
+
+    logger.info(
+        "Milestone escrow payment record created: payment_id=%s order_id=%s",
+        payment.id, payment.razorpay_order_id,
+    )
+    return payment
+
+
 def create_escrow(contract: Contract, client) -> Payment:
     """
-    Create escrow payment for a contract.
+    Create escrow payment for a contract (non-milestone legacy fallback).
     Client pays full amount which is held in escrow.
-
-    The Razorpay order is created **before** the database transaction so that
-    a DB failure cannot leave a Razorpay order without a local record.
-
-    Args:
-        contract: Contract instance
-        client: User instance (must be contract client)
-
-    Returns:
-        Created Payment instance with Razorpay order details
     """
     if contract.client != client:
         raise PermissionDeniedError("Only the client can create escrow.")
 
-    if hasattr(contract, 'payment'):
+    if contract.payments.filter(milestone__isnull=True).exists():
         raise ValidationError("Payment already exists for this contract.")
 
     logger.info(
@@ -98,14 +146,8 @@ def create_escrow(contract: Contract, client) -> Payment:
 def confirm_escrow_payment(razorpay_order_id: str, razorpay_payment_id: str) -> Payment:
     """
     Confirm that escrow payment has been received (called by webhook or after payment verification).
-    
-    Args:
-        razorpay_order_id: Razorpay Order ID
-        razorpay_payment_id: Razorpay Payment ID
-    
-    Returns:
-        Updated Payment instance
     """
+    from apps.payments.models.models_milestone import PaymentMilestone
     with transaction.atomic():
         try:
             payment = Payment.objects.select_for_update().get(
@@ -134,6 +176,11 @@ def confirm_escrow_payment(razorpay_order_id: str, razorpay_payment_id: str) -> 
             held_amount=payment.total_amount,
         )
 
+        if payment.milestone:
+            milestone = payment.milestone
+            milestone.status = PaymentMilestone.Status.IN_PROGRESS
+            milestone.save()
+
     logger.info(
         "Escrow confirmed: payment_id=%s razorpay_payment_id=%s amount=%s",
         payment.id, razorpay_payment_id, payment.total_amount,
@@ -141,16 +188,9 @@ def confirm_escrow_payment(razorpay_order_id: str, razorpay_payment_id: str) -> 
     return payment
 
 
-def release_payment(contract: Contract, client) -> Payment:
+def release_payment(contract: Contract, client, payment_id: int = None) -> Payment:
     """
     Release payment to freelancer (minus platform cut).
-    
-    Args:
-        contract: Contract instance
-        client: User instance (must be contract client)
-    
-    Returns:
-        Updated Payment instance
     """
     from apps.payments.tasks import razorpay_transfer_to_freelancer_task
     if contract.client != client:
@@ -169,7 +209,10 @@ def release_payment(contract: Contract, client) -> Payment:
 
     with transaction.atomic():
         try:
-            payment = Payment.objects.select_for_update().get(contract=contract)
+            if payment_id:
+                payment = Payment.objects.select_for_update().get(id=payment_id, contract=contract)
+            else:
+                payment = Payment.objects.select_for_update().get(contract=contract)
         except Payment.DoesNotExist:
             raise NotFoundError("Payment not found.")
 

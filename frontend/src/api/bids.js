@@ -1,4 +1,4 @@
-﻿import api from './axiosConfig'
+import api from './axiosConfig'
 
 // Bid APIs
 export const bidsAPI = {
@@ -20,7 +20,8 @@ export const bidsAPI = {
     }),
 
   // Accept bid (client only)
-  acceptBid: (bidId) => api.post(`/bidding/bids/${bidId}/accept/`),
+  acceptBid: (bidId, milestoneData = {}) => 
+    api.post(`/bidding/bids/${bidId}/accept/`, milestoneData),
 
   // Reject bid (client only)
   rejectBid: (bidId) => api.post(`/bidding/bids/${bidId}/reject/`),
@@ -36,6 +37,12 @@ export const contractsAPI = {
 
   // Get single contract
   getContractDetail: (id) => api.get(`/bidding/contracts/${id}/`),
+
+  // Accept proposed contract (freelancer only)
+  acceptProposal: (contractId) => api.post(`/bidding/contracts/${contractId}/accept_proposal/`),
+
+  // Decline proposed contract (freelancer only)
+  declineProposal: (contractId) => api.post(`/bidding/contracts/${contractId}/decline_proposal/`),
 }
 
 export default { bidsAPI, contractsAPI }
