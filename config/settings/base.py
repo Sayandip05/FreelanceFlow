@@ -60,6 +60,7 @@ DJANGO_ENV = env("DJANGO_ENV")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
 DJANGO_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -207,16 +208,8 @@ REDIS_URL = env("REDIS_URL")
 # Channels Configuration (WebSocket with Upstash Redis)
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [REDIS_URL],
-            "prefix": "freelanceflow:channels:",
-            "capacity": 1500,
-            "expiry": 10,
-            "group_expiry": 86400,  # 24 hours
-            "symmetric_encryption_keys": [SECRET_KEY],
-        },
-    },
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
 }
 
 # Celery Configuration (Upstash Redis)

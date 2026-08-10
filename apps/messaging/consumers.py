@@ -57,13 +57,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.user = None
         self.conversation_id: int | None = None
 
-        # Step 1 — Authenticate via JWT in query string
+        await self.accept()
+
+        # Step 1 — Authenticate via JWT
         self.user = await self._get_user_from_token()
-        if isinstance(self.user, AnonymousUser):
+        if not self.user or isinstance(self.user, AnonymousUser) or not getattr(self.user, "is_authenticated", False):
             logger.warning(
                 "WebSocket rejected: unauthenticated connection attempt "
                 "for contract_id=%s", self.contract_id,
             )
+            await self._send_error("Authentication required")
             await self.close(code=4001)
             return
 
@@ -73,20 +76,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "WebSocket rejected: user_id=%s is not a participant "
                 "of contract_id=%s", self.user.id, self.contract_id,
             )
+            await self._send_error("Permission denied: participant only")
             await self.close(code=4003)
             return
 
-        # Step 3 — Join the Redis channel group for this contract
+        # Step 3 — Join the channel group for this contract
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
 
         logger.info(
             "WebSocket connected: user_id=%s joined group=%s",
             self.user.id, self.room_group_name,
         )
 
-        # Step 4 — Mark existing unread messages as read on connect and
-        #           broadcast the receipt so the sender's UI updates immediately.
+        # Step 4 — Mark existing unread messages as read on connect and broadcast
         await self._flush_unread_and_broadcast()
 
     async def disconnect(self, close_code):
@@ -130,7 +132,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def _handle_chat_message(self, data: dict):
         """Validate → persist → broadcast a new chat message."""
-        message_content: str = data.get("message", "").strip()
+        message_content: str = (data.get("message") or data.get("content") or "").strip()
         if not message_content:
             await self._send_error("Message content cannot be empty.")
             return
@@ -292,19 +294,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _get_user_from_token(self):
         """
         Parse the JWT from ?token=<value> in the WebSocket URL and return the
-        corresponding User instance with select_related pre-loaded so that
-        attribute access inside async methods (id, email, get_full_name)
-        does NOT trigger additional synchronous DB queries.
-
-        Returns AnonymousUser on any auth failure.
+        corresponding User instance.
         """
-        from apps.users.models import User  # local import avoids circular deps
+        import urllib.parse
+        from apps.users.models import User
 
-        query_string: str = self.scope.get("query_string", b"").decode()
-        if "token=" not in query_string:
-            return AnonymousUser()
+        query_string = self.scope.get("query_string", b"").decode()
+        params = urllib.parse.parse_qs(query_string)
+        raw_token = params.get("token", [None])[0]
 
-        raw_token = query_string.split("token=")[1].split("&")[0]
+        if not raw_token:
+            # Also check headers for Authorization: Bearer <token>
+            headers = dict(self.scope.get("headers", []))
+            auth_header = headers.get(b"authorization", b"").decode()
+            if auth_header.startswith("Bearer "):
+                raw_token = auth_header.split("Bearer ")[1]
+
         if not raw_token:
             return AnonymousUser()
 
@@ -324,25 +329,43 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def _is_contract_participant(self) -> bool:
         """
         Verify that self.user is either the client or the freelancer on the
-        contract identified by self.contract_id.
-
-        select_related pre-fetches bid → freelancer and bid → project → client
-        in a single JOIN query, avoiding implicit lazy DB hits.
+        contract or conversation identified by self.contract_id.
         """
-        from apps.bidding.models import Contract  # local import avoids circular deps
+        from apps.bidding.models import Contract
+        from apps.messaging.models import Conversation
 
         try:
+            # First try direct contract lookup
             contract = (
                 Contract.objects
                 .select_related("bid__freelancer", "bid__project__client")
-                .get(id=self.contract_id)
+                .filter(id=self.contract_id)
+                .first()
             )
+            
+            # If not found, try conversation lookup
+            if not contract:
+                conv = (
+                    Conversation.objects
+                    .select_related("contract__bid__freelancer", "contract__bid__project__client")
+                    .filter(id=self.contract_id)
+                    .first()
+                )
+                if conv and conv.contract:
+                    contract = conv.contract
+                    self.contract_id = str(contract.id)
+                    self.conversation_id = conv.id
+
+            if not contract:
+                return False
+
             allowed_ids = {
                 contract.bid.freelancer_id,
                 contract.bid.project.client_id,
             }
             return self.user.id in allowed_ids
-        except Contract.DoesNotExist:
+        except Exception as exc:
+            logger.debug("Participant check error: %s", exc)
             return False
 
     # ------------------------------------------------------------------ #

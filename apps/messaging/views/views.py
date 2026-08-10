@@ -100,5 +100,9 @@ class MessageViewSet(viewsets.ReadOnlyModelViewSet):
             return Message.objects.filter(
                 conversation_id=conversation_id,
                 conversation__in=get_user_conversations(self.request.user),
-            ).select_related('sender').order_by('-created_at')[:50]
+            ).select_related(
+                'sender',
+                'sender__freelancer_profile',
+                'sender__client_profile',
+            ).order_by('-created_at')[:50]
         return Message.objects.none()

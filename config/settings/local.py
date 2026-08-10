@@ -32,3 +32,12 @@ ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "django_elasticsearch_dsl.signals.BaseSigna
 # For test runs, use config/settings/test.py instead (via pytest.ini).
 # Example .env:
 #   DATABASE_URL=postgres://user:password@localhost:5432/freelanceflow
+
+# ── Channels WebSocket Layer (local dev) ──────────────────────────────────────
+# Use InMemoryChannelLayer so WebSocket real-time chat connects instantly
+# without requiring an active local Redis server.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}

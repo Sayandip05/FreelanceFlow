@@ -71,8 +71,13 @@ def handle_sigterm(signum, frame):
         raise SystemExit(0)
 
 
-# Register signal handlers
-signal.signal(signal.SIGTERM, handle_sigterm)
-signal.signal(signal.SIGINT, handle_sigterm)
+# Register signal handlers safely in main thread only
+try:
+    import threading
+    if threading.current_thread() is threading.main_thread():
+        signal.signal(signal.SIGTERM, handle_sigterm)
+        signal.signal(signal.SIGINT, handle_sigterm)
+except (ValueError, AttributeError):
+    pass
  
 
