@@ -1,4 +1,4 @@
-﻿import api from './axiosConfig'
+import api from './axiosConfig'
 
 // WorkLog APIs
 export const worklogAPI = {
@@ -107,4 +107,28 @@ export const proofAPI = {
 
   // Generate delivery proof
   generateProof: (contractId) => api.post(`/worklogs/proofs/${contractId}/`),
+}
+
+// End-to-End AI Worklog & Weekly Report APIs
+export const aiWorklogAPI = {
+  // Get complete context bundle for split-screen workspace
+  getContext: (contractId) => api.get('/worklogs/ai/context/', { params: { contract: contractId } }),
+
+  // Send conversational or drafting message to LangGraph agent
+  sendChatMessage: (contractId, message, conversationId = null) =>
+    api.post('/worklogs/ai/chat/', {
+      contract: contractId,
+      message,
+      conversation_id: conversationId,
+    }),
+
+  // Approve report draft & compile official WeasyPrint PDF
+  approveDraft: (contractId, draftId = null) =>
+    api.post('/worklogs/ai/approve/', {
+      contract: contractId,
+      draft_id: draftId,
+    }),
+
+  // Get conversation transcripts and previous drafts
+  getHistory: (contractId) => api.get('/worklogs/ai/history/', { params: { contract: contractId } }),
 }

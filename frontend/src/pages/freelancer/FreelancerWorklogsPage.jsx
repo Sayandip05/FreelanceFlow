@@ -1,279 +1,270 @@
 import { useState, useEffect } from 'react'
-import { deliverableAPI, worklogAPI } from '../../api/worklogs'
+import { useNavigate } from 'react-router-dom'
 import { contractsAPI } from '../../api/bids'
-import AIChatBox from '../../components/worklogs/AIChatBox'
-import DeliverableCard from '../../components/worklogs/DeliverableCard'
-import { PlusIcon, DocumentTextIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline'
+import {
+  SparklesIcon,
+  BriefcaseIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  ArrowRightIcon,
+  MagnifyingGlassIcon,
+  ShieldCheckIcon,
+  DocumentTextIcon,
+  UserCircleIcon,
+  CurrencyRupeeIcon,
+} from '@heroicons/react/24/outline'
 
 const FreelancerWorklogsPage = () => {
+  const navigate = useNavigate()
   const [contracts, setContracts] = useState([])
-  const [selectedContract, setSelectedContract] = useState(null)
-  const [deliverables, setDeliverables] = useState([])
-  const [worklogs, setWorklogs] = useState([])
-  const [activeTab, setActiveTab] = useState('deliverables')
-  const [showChat, setShowChat] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('ALL')
 
-  // Fetch contracts on mount
   useEffect(() => {
     fetchContracts()
   }, [])
 
-  // Fetch deliverables & worklogs when selected contract changes
-  useEffect(() => {
-    if (selectedContract?.id) {
-      loadContractLogsAndDeliverables(selectedContract.id)
-    }
-  }, [selectedContract?.id])
-
   const fetchContracts = async () => {
-    setIsLoading(true)
+    setLoading(true)
     try {
-      const response = await contractsAPI.getContracts()
-      const list = Array.isArray(response.data) ? response.data : (response.data.results || [])
+      const res = await contractsAPI.getContracts()
+      const list = Array.isArray(res.data) ? res.data : (res.data.results || [])
       setContracts(list)
-      if (list.length > 0) {
-        setSelectedContract(list[0])
-      } else {
-        setIsLoading(false)
-      }
-    } catch (error) {
-      console.error('Failed to fetch contracts:', error)
-      setIsLoading(false)
-    }
-  }
-
-  const loadContractLogsAndDeliverables = async (contractId) => {
-    setIsLoading(true)
-    try {
-      const [delivRes, logsRes] = await Promise.all([
-        deliverableAPI.getDeliverables(contractId),
-        worklogAPI.getWorkLogs(contractId),
-      ])
-      const delivData = Array.isArray(delivRes.data) ? delivRes.data : (delivRes.data.results || [])
-      const logsData = Array.isArray(logsRes.data) ? logsRes.data : (logsRes.data.results || [])
-      setDeliverables(delivData)
-      setWorklogs(logsData)
-    } catch (error) {
-      console.error('Failed to fetch deliverables and worklogs:', error)
+    } catch (err) {
+      console.error('Error fetching contracts:', err)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const handleDeliverableCreated = (newDeliverable) => {
-    setDeliverables((prev) => [newDeliverable, ...prev])
-    setShowChat(false)
-    setActiveTab('deliverables')
-  }
+  // Filter logic
+  const filteredContracts = contracts.filter((c) => {
+    const title = c.project?.title || c.bid?.project?.title || c.project_title || ''
+    const client =
+      c.client
+        ? `${c.client.first_name || ''} ${c.client.last_name || ''} ${c.client.email || ''}`
+        : c.bid?.project?.client
+        ? `${c.bid.project.client.first_name || ''} ${c.bid.project.client.last_name || ''} ${c.bid.project.client.email || ''}`
+        : c.client_name || ''
+    const matchesSearch =
+      title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.toLowerCase().includes(searchQuery.toLowerCase())
 
-  const getStatusCounts = () => {
-    return {
-      draft: deliverables.filter((d) => d.status === 'DRAFT').length,
-      pending: deliverables.filter((d) => d.status === 'SUBMITTED').length,
-      approved: deliverables.filter((d) => d.status === 'APPROVED').length,
-      total: deliverables.length,
-    }
-  }
+    if (statusFilter === 'ALL') return matchesSearch
+    if (statusFilter === 'ACTIVE') return matchesSearch && (c.is_active || c.status === 'ACTIVE')
+    if (statusFilter === 'COMPLETED') return matchesSearch && (c.status === 'COMPLETED' || !c.is_active)
+    return matchesSearch
+  })
 
-  const counts = getStatusCounts()
+  // Metrics summary
+  const totalContracts = contracts.length
+  const totalActive = contracts.filter((c) => c.is_active || c.status === 'ACTIVE').length
+  const totalBudget = contracts.reduce((sum, c) => sum + (parseFloat(c.agreed_amount || c.rate || 0)), 0)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">My Worklogs</h1>
-              <p className="text-gray-600 mt-1">
-                Track your work and submit deliverables for approval
-              </p>
+    <div className="min-h-screen bg-gray-50/60 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header with Dark Hero Banner matching FreelanceFlow theme */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-gray-900 via-slate-900 to-indigo-950 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
+          <div className="relative z-10 space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold text-indigo-200 border border-white/10">
+              <SparklesIcon className="w-4 h-4 text-indigo-300 animate-pulse" />
+              AI-Powered Workspace & Qdrant Grounding
             </div>
+            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+              Worklogs & Report Hub
+            </h1>
+            <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
+              Select an active contract to launch the AI Worklog Assistant, ground project requirements with Qdrant vector retrieval, synthesize weekly progress, and compile official PDF reports.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 relative z-10 shrink-0">
             <button
-              onClick={() => setShowChat(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              onClick={() => navigate('/freelancer/contracts')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-gray-900 text-sm font-bold hover:bg-gray-100 transition-all shadow-md active:scale-95"
             >
-              <PlusIcon className="w-5 h-5" />
-              New Deliverable
+              <BriefcaseIcon className="w-4 h-4 text-indigo-600" />
+              View All Contracts
             </button>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Contract Selector */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Contract
-          </label>
-          <select
-            value={selectedContract?.id || ''}
-            onChange={(e) => {
-              const contract = contracts.find((c) => c.id === parseInt(e.target.value))
-              setSelectedContract(contract)
-            }}
-            className="w-full max-w-md border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {contracts.length === 0 && (
-              <option value="">No active contracts found</option>
-            )}
-            {contracts.map((contract) => (
-              <option key={contract.id} value={contract.id}>
-                {contract.project?.title || `Contract #${contract.id}`} - {contract.client?.full_name || contract.client?.email || 'Client'}
-              </option>
-            ))}
-          </select>
+          {/* Decorative background glow */}
+          <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-sm text-gray-600">Total Deliverables</p>
-            <p className="text-2xl font-bold text-gray-900">{counts.total}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-sm text-gray-600">Drafts</p>
-            <p className="text-2xl font-bold text-yellow-600">{counts.draft}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-sm text-gray-600">Pending Review</p>
-            <p className="text-2xl font-bold text-blue-600">{counts.pending}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-sm text-gray-600">Approved</p>
-            <p className="text-2xl font-bold text-green-600">{counts.approved}</p>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Deliverables/Worklogs */}
-          <div className="lg:col-span-2">
-            {/* Tabs */}
-            <div className="flex gap-4 mb-6 border-b border-gray-200">
-              <button
-                onClick={() => setActiveTab('deliverables')}
-                className={`flex items-center gap-2 pb-3 text-sm font-medium transition-colors ${
-                  activeTab === 'deliverables'
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <DocumentTextIcon className="w-5 h-5" />
-                Deliverables ({deliverables.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('worklogs')}
-                className={`flex items-center gap-2 pb-3 text-sm font-medium transition-colors ${
-                  activeTab === 'worklogs'
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <ChatBubbleLeftRightIcon className="w-5 h-5" />
-                Work Logs ({worklogs.length})
-              </button>
+        {/* Overview Stats Grid (Clean White Cards) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+              <BriefcaseIcon className="w-6 h-6" />
             </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Active Workspaces</p>
+              <p className="text-2xl font-black text-gray-900">{totalActive}</p>
+              <p className="text-xs text-indigo-600 font-medium mt-0.5">Contracts ready for AI assistant</p>
+            </div>
+          </div>
 
-            {/* Content */}
-            {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+              <CurrencyRupeeIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Contract Value</p>
+              <p className="text-2xl font-black text-gray-900">₹{totalBudget.toLocaleString()}</p>
+              <p className="text-xs text-emerald-600 font-medium mt-0.5">Across active engagements</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+              <ShieldCheckIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Qdrant Vector Cloud</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span className="text-sm font-bold text-gray-900">Active Vector Grounding</span>
               </div>
-            ) : activeTab === 'deliverables' ? (
-              <div className="space-y-4">
-                {deliverables.length === 0 ? (
-                  <div className="text-center py-12 bg-white rounded-lg shadow">
-                    <DocumentTextIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      No deliverables yet
+              <p className="text-xs text-purple-600 font-medium mt-0.5">Smart AI Assistant</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Search & Filter Toolbar (Clean White) */}
+        <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search contracts by project or client..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            />
+          </div>
+
+          {/* Tab Filter */}
+          <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl self-start md:self-auto">
+            {[
+              { id: 'ALL', label: 'All Contracts', count: totalContracts },
+              { id: 'ACTIVE', label: 'Active', count: totalActive },
+              { id: 'COMPLETED', label: 'Completed', count: totalContracts - totalActive },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setStatusFilter(tab.id)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  statusFilter === tab.id
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Contracts Grid (White Cards) */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-gray-200 shadow-sm">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+            <p className="text-gray-500 text-sm mt-4 font-medium">Loading active workspaces...</p>
+          </div>
+        ) : filteredContracts.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300 p-8 shadow-sm">
+            <BriefcaseIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-gray-900">No contracts found</h3>
+            <p className="text-gray-500 text-sm mt-1 max-w-sm mx-auto">
+              {searchQuery ? 'No contracts match your search query.' : 'You currently do not have any contracts assigned.'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredContracts.map((contract) => {
+              const projectTitle =
+                contract.project?.title ||
+                contract.bid?.project?.title ||
+                contract.project_title ||
+                `Contract #${contract.id}`
+              const projectDesc =
+                contract.project?.description ||
+                contract.bid?.project?.description ||
+                contract.project_description ||
+                'No description provided for this contract.'
+              const clientObj = contract.client || contract.bid?.project?.client
+              const clientName = clientObj
+                ? `${clientObj.first_name || ''} ${clientObj.last_name || ''}`.trim() || clientObj.email || clientObj.username
+                : contract.client_name || 'Client'
+              const amount = contract.agreed_amount || contract.rate || 0
+              const isActive = contract.is_active || contract.status === 'ACTIVE'
+
+              return (
+                <div
+                  key={contract.id}
+                  className="group flex flex-col justify-between rounded-2xl bg-white border border-gray-200/90 hover:border-indigo-500/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300"
+                >
+                  <div>
+                    {/* Header Badges */}
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200">
+                        #{contract.id}
+                      </span>
+                      <span
+                        className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                          isActive
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-gray-100 text-gray-600 border border-gray-200'
+                        }`}
+                      >
+                        {contract.status || (isActive ? 'ACTIVE' : 'COMPLETED')}
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                      {projectTitle}
                     </h3>
-                    <p className="text-gray-600 mb-4">
-                      Start by creating a new deliverable using the AI assistant
+                    <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
+                      {projectDesc}
                     </p>
-                    <button
-                      onClick={() => setShowChat(true)}
-                      className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                    >
-                      Create First Deliverable
-                    </button>
-                  </div>
-                ) : (
-                  deliverables.map((deliverable) => (
-                    <DeliverableCard
-                      key={deliverable.id}
-                      deliverable={deliverable}
-                      userRole="FREELANCER"
-                      onStatusChange={fetchDeliverables}
-                    />
-                  ))
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {worklogs.length === 0 ? (
-                  <div className="text-center py-12 bg-white rounded-lg shadow">
-                    <p className="text-gray-600">No work logs yet</p>
-                  </div>
-                ) : (
-                  worklogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="bg-white rounded-lg shadow p-4 border-l-4 border-indigo-500"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-500">
-                          {new Date(log.date).toLocaleDateString()}
+
+                    {/* Meta Details */}
+                    <div className="mt-5 pt-4 border-t border-gray-100 space-y-2 text-xs text-gray-600">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-gray-500">
+                          <UserCircleIcon className="w-4 h-4" />
+                          Client:
                         </span>
-                        <span className="text-sm font-medium text-indigo-600">
-                          {log.hours_worked}h
+                        <span className="font-semibold text-gray-900">{clientName}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Contract Budget:</span>
+                        <span className="font-bold text-indigo-600 text-sm">
+                          ₹{parseFloat(amount).toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-gray-800">{log.description}</p>
-                      {log.status === 'APPROVED' && (
-                        <span className="inline-flex items-center gap-1 mt-2 text-xs text-green-600">
-                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                          Approved
-                        </span>
-                      )}
                     </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+                  </div>
 
-          {/* Right Column - AI Chat */}
-          <div className="lg:col-span-1">
-            {showChat ? (
-              <AIChatBox
-                contractId={selectedContract?.id}
-                projectName={selectedContract?.project?.title}
-                onDeliverableCreated={handleDeliverableCreated}
-              />
-            ) : (
-              <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 text-center">
-                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ChatBubbleLeftRightIcon className="w-8 h-8 text-indigo-600" />
+                  {/* Action Button */}
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => navigate(`/freelancer/work/${contract.id}`)}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-600/20 transition-all group-hover:scale-[1.02] active:scale-95"
+                    >
+                      <SparklesIcon className="w-4 h-4 text-indigo-200" />
+                      Open AI Assistant
+                      <ArrowRightIcon className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+                    </button>
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  AI Worklog Assistant
-                </h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Chat with our AI to document your work. Just describe what you've done, 
-                  upload screenshots, and the AI will generate a professional deliverable report.
-                </p>
-                <button
-                  onClick={() => setShowChat(true)}
-                  className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  Start Chat
-                </button>
-              </div>
-            )}
+              )
+            })}
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
