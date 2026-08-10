@@ -23,7 +23,13 @@ from apps.users.selectors import get_user_by_id
 from core.exceptions import ValidationError
 class AuthRateThrottle(AnonRateThrottle):
     """Custom rate throttle for authentication endpoints."""
+    scope = 'auth'
     rate = '5/minute'
+
+    def get_rate(self):
+        from django.conf import settings
+        rates = getattr(settings, 'REST_FRAMEWORK', {}).get('DEFAULT_THROTTLE_RATES', {})
+        return rates.get('auth', self.rate)
 
 
 class RegisterView(generics.CreateAPIView):

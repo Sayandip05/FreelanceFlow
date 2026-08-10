@@ -331,3 +331,23 @@ def generate_weekly_reports_for_all_contracts():
         triggered += 1
 
     return {"triggered": triggered}
+
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    queue="freelanceflow_low_priority",
+)
+def initialize_qdrant_collection_task(self, contract_id: int):
+    """
+    Asynchronously vectorizes contract scope and requirements into an isolated Qdrant collection.
+    Enqueued by post_save signal when a Contract becomes ACTIVE.
+    """
+    from apps.worklogs.services.qdrant_service import initialize_collection
+    try:
+        success = initialize_collection(contract_id)
+        return {"contract_id": contract_id, "initialized": success}
+    except Exception as exc:
+        raise self.retry(exc=exc)
+

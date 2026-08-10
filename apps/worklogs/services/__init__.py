@@ -27,7 +27,10 @@ from .groq_service import (
     GroqChatService,
     get_groq_service,
 )
-from .ai_service import (
-    get_groq_llm,
-    generate_weekly_report,
+from .qdrant_service import (
+    initialize_collection,
+    query_context,
+    add_feedback,
+    get_collection_name,
 )
+from .ai_service import run_ai_worklog_agent
