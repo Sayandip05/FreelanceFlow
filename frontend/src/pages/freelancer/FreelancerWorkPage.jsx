@@ -20,16 +20,21 @@ const FreelancerWorkPage = () => {
   const [activeTab, setActiveTab] = useState('chat') // 'chat' or 'deliverables'
 
   useEffect(() => {
-    fetchContractData()
-    fetchDeliverables()
+    loadPageData()
   }, [contractId])
 
-  const fetchContractData = async () => {
+  const loadPageData = async () => {
+    setLoading(true)
     try {
-      const response = await contractsAPI.getContractDetail(contractId)
-      setContract(response.data)
+      const [contractRes, delivRes] = await Promise.all([
+        contractsAPI.getContractDetail(contractId),
+        deliverableAPI.getDeliverables(contractId)
+      ])
+      setContract(contractRes.data)
+      const list = Array.isArray(delivRes.data) ? delivRes.data : (delivRes.data.results || [])
+      setDeliverables(list)
     } catch (error) {
-      console.error('Error fetching contract:', error)
+      console.error('Error loading work page data:', error)
     } finally {
       setLoading(false)
     }
@@ -38,7 +43,8 @@ const FreelancerWorkPage = () => {
   const fetchDeliverables = async () => {
     try {
       const response = await deliverableAPI.getDeliverables(contractId)
-      setDeliverables(response.data)
+      const list = Array.isArray(response.data) ? response.data : (response.data.results || [])
+      setDeliverables(list)
     } catch (error) {
       console.error('Error fetching deliverables:', error)
     }

@@ -1,4 +1,4 @@
-﻿import api from './axiosConfig'
+import api from './axiosConfig'
 
 export const messagesAPI = {
   // Get all conversations
@@ -7,9 +7,9 @@ export const messagesAPI = {
   // Get single conversation
   getConversation: (id) => api.get(`/messaging/conversations/${id}/`),
 
-  // Get messages for a conversation
-  getMessages: (conversationId) =>
-    api.get(`/messaging/conversations/${conversationId}/messages/`),
+  // Get messages for a conversation with pagination
+  getMessages: (conversationId, params = {}) =>
+    api.get(`/messaging/conversations/${conversationId}/messages/`, { params }),
 
   // Send message
   sendMessage: (conversationId, content) =>
@@ -18,6 +18,14 @@ export const messagesAPI = {
   // Mark messages as read
   markAsRead: (conversationId) =>
     api.post(`/messaging/conversations/${conversationId}/mark_read/`),
+
+  // Build WebSocket URL for contract chat
+  getChatWebSocketUrl: (contractId) => {
+    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token') || ''
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
+    return `${protocol}//${host}/ws/chat/${contractId}/?token=${token}`
+  },
 }
 
 export default messagesAPI

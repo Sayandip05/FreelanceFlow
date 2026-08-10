@@ -1,5 +1,6 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { deliverableAPI, worklogAPI } from '../../api/worklogs'
+import { contractsAPI } from '../../api/bids'
 import AIChatBox from '../../components/worklogs/AIChatBox'
 import DeliverableCard from '../../components/worklogs/DeliverableCard'
 import { PlusIcon, DocumentTextIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline'
@@ -18,48 +19,45 @@ const FreelancerWorklogsPage = () => {
     fetchContracts()
   }, [])
 
-  // Fetch deliverables when contract changes
+  // Fetch deliverables & worklogs when selected contract changes
   useEffect(() => {
-    if (selectedContract) {
-      fetchDeliverables()
-      fetchWorklogs()
+    if (selectedContract?.id) {
+      loadContractLogsAndDeliverables(selectedContract.id)
     }
-  }, [selectedContract])
+  }, [selectedContract?.id])
 
   const fetchContracts = async () => {
+    setIsLoading(true)
     try {
-      // This would be replaced with actual contracts API call
-      // For now, using mock data
-      setContracts([
-        { id: 1, project: { title: 'E-commerce Website' }, client: { full_name: 'John Doe' } },
-        { id: 2, project: { title: 'Mobile App Development' }, client: { full_name: 'Jane Smith' } },
-      ])
-      if (contracts.length > 0) {
-        setSelectedContract(contracts[0])
+      const response = await contractsAPI.getContracts()
+      const list = Array.isArray(response.data) ? response.data : (response.data.results || [])
+      setContracts(list)
+      if (list.length > 0) {
+        setSelectedContract(list[0])
+      } else {
+        setIsLoading(false)
       }
     } catch (error) {
       console.error('Failed to fetch contracts:', error)
-    }
-  }
-
-  const fetchDeliverables = async () => {
-    setIsLoading(true)
-    try {
-      const response = await deliverableAPI.getDeliverables(selectedContract.id)
-      setDeliverables(response.data.results || [])
-    } catch (error) {
-      console.error('Failed to fetch deliverables:', error)
-    } finally {
       setIsLoading(false)
     }
   }
 
-  const fetchWorklogs = async () => {
+  const loadContractLogsAndDeliverables = async (contractId) => {
+    setIsLoading(true)
     try {
-      const response = await worklogAPI.getWorkLogs(selectedContract.id)
-      setWorklogs(response.data.results || [])
+      const [delivRes, logsRes] = await Promise.all([
+        deliverableAPI.getDeliverables(contractId),
+        worklogAPI.getWorkLogs(contractId),
+      ])
+      const delivData = Array.isArray(delivRes.data) ? delivRes.data : (delivRes.data.results || [])
+      const logsData = Array.isArray(logsRes.data) ? logsRes.data : (logsRes.data.results || [])
+      setDeliverables(delivData)
+      setWorklogs(logsData)
     } catch (error) {
-      console.error('Failed to fetch worklogs:', error)
+      console.error('Failed to fetch deliverables and worklogs:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -117,9 +115,12 @@ const FreelancerWorklogsPage = () => {
             }}
             className="w-full max-w-md border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
+            {contracts.length === 0 && (
+              <option value="">No active contracts found</option>
+            )}
             {contracts.map((contract) => (
               <option key={contract.id} value={contract.id}>
-                {contract.project.title} - {contract.client.full_name}
+                {contract.project?.title || `Contract #${contract.id}`} - {contract.client?.full_name || contract.client?.email || 'Client'}
               </option>
             ))}
           </select>

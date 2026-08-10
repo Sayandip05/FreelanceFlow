@@ -32,9 +32,13 @@ const ClientDeliverableReviewPage = () => {
       const response = await deliverableAPI.getDeliverableDetail(deliverableId)
       setDeliverable(response.data)
       
-      // Fetch contract details
-      const contractResponse = await contractsAPI.getContractDetail(response.data.contract)
-      setContract(contractResponse.data)
+      // If contract is already embedded as an object, use it directly (0 additional latency)
+      if (typeof response.data.contract === 'object' && response.data.contract !== null) {
+        setContract(response.data.contract)
+      } else if (response.data.contract) {
+        const contractResponse = await contractsAPI.getContractDetail(response.data.contract)
+        setContract(contractResponse.data)
+      }
     } catch (error) {
       console.error('Error fetching deliverable:', error)
     } finally {
