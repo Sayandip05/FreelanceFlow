@@ -32,6 +32,9 @@ class ProjectDocument(Document):
             "updated_at",
         ]
         related_models = [User]
+
+        def get_queryset(self):
+            return super().get_queryset().select_related('client').prefetch_related('skills')
     
     def prepare_skills(self, instance):
         """Prepare skills from related ProjectSkill model."""
@@ -69,6 +72,9 @@ class FreelancerDocument(Document):
             "created_at",
         ]
         related_models = [User]
+
+        def get_queryset(self):
+            return super().get_queryset().select_related('user')
     
     def prepare_skills(self, instance):
         """Prepare skills from JSON field."""

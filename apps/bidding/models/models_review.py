@@ -68,8 +68,10 @@ class Review(models.Model):
         ordering = ["-created_at"]
         unique_together = ["contract", "reviewer"]
         indexes = [
-            models.Index(fields=["reviewee", "-created_at"]),
-            models.Index(fields=["rating"]),
+            models.Index(fields=["reviewee", "is_public", "-created_at"], name="review_reviewee_pub_idx"),
+            models.Index(fields=["reviewer", "-created_at"], name="review_reviewer_created_idx"),
+            models.Index(fields=["contract"], name="review_contract_idx"),
+            models.Index(fields=["rating"], name="review_rating_idx"),
         ]
     
     def __str__(self):

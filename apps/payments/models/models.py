@@ -67,6 +67,20 @@ class Payment(models.Model):
     class Meta:
         db_table = "payments"
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=['contract', 'status'],
+                name='payment_contract_status_idx'
+            ),
+            models.Index(
+                fields=['razorpay_order_id'],
+                name='payment_rzp_order_idx'
+            ),
+            models.Index(
+                fields=['razorpay_payment_id'],
+                name='payment_rzp_pay_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Payment {self.id} - {self.status}"

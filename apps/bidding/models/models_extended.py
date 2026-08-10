@@ -57,6 +57,12 @@ class CounterOffer(models.Model):
     class Meta:
         db_table = "counter_offers"
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=['bid', 'status'],
+                name='counter_bid_status_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Counter-offer for Bid {self.bid.id} - {self.status}"

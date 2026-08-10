@@ -78,8 +78,10 @@ class PaymentMilestone(models.Model):
         ordering = ["contract", "order"]
         unique_together = ["contract", "order"]
         indexes = [
-            models.Index(fields=["contract", "status"]),
-            models.Index(fields=["status"]),
+            models.Index(fields=["contract", "status"], name="milestone_contract_stat_idx"),
+            models.Index(fields=["status", "due_date"], name="milestone_stat_duedate_idx"),
+            models.Index(fields=["contract", "order"], name="milestone_contract_ord_idx"),
+            models.Index(fields=["status"], name="milestone_status_idx"),
         ]
     
     def __str__(self):

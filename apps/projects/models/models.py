@@ -49,6 +49,20 @@ class Project(models.Model):
     class Meta:
         db_table = "projects"
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=['status', '-created_at'],
+                name='project_status_created_idx'
+            ),
+            models.Index(
+                fields=['client', 'status', '-created_at'],
+                name='project_client_status_idx'
+            ),
+            models.Index(
+                fields=['status', 'budget'],
+                name='project_status_budget_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"{self.title} ({self.status})"
@@ -68,6 +82,12 @@ class ProjectSkill(models.Model):
     class Meta:
         db_table = "project_skills"
         unique_together = ["project", "skill_name"]
+        indexes = [
+            models.Index(
+                fields=['skill_name'],
+                name='project_skill_name_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"{self.project.title} - {self.skill_name}"

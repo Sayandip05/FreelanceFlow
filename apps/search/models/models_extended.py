@@ -27,7 +27,8 @@ class SearchHistory(models.Model):
         db_table = "search_history"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["user", "-created_at"]),
+            models.Index(fields=["user", "-created_at"], name="search_hist_user_created_idx"),
+            models.Index(fields=["user", "search_type", "-created_at"], name="search_hist_user_type_idx"),
         ]
     
     def __str__(self):
@@ -54,6 +55,12 @@ class SavedSearch(models.Model):
     class Meta:
         db_table = "saved_searches"
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=['user', 'is_active', '-created_at'],
+                name='saved_search_user_act_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"{self.user.email} - {self.name}"
@@ -80,8 +87,9 @@ class SearchSuggestion(models.Model):
         db_table = "search_suggestions"
         ordering = ["-popularity"]
         indexes = [
-            models.Index(fields=["term"]),
-            models.Index(fields=["-popularity"]),
+            models.Index(fields=["term"], name="search_sugg_term_idx"),
+            models.Index(fields=["-popularity"], name="search_sugg_pop_idx"),
+            models.Index(fields=["is_active", "-popularity"], name="search_sugg_active_pop_idx"),
         ]
     
     def __str__(self):

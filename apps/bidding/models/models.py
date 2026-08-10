@@ -44,6 +44,16 @@ class Bid(models.Model):
         db_table = "bids"
         ordering = ["-created_at"]
         unique_together = ["project", "freelancer"]
+        indexes = [
+            models.Index(
+                fields=['freelancer', 'status', '-created_at'],
+                name='bid_freelancer_status_idx'
+            ),
+            models.Index(
+                fields=['project', 'status'],
+                name='bid_project_status_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Bid by {self.freelancer.email} on {self.project.title}"
@@ -101,6 +111,12 @@ class Contract(models.Model):
     class Meta:
         db_table = "contracts"
         ordering = ["-start_date"]
+        indexes = [
+            models.Index(
+                fields=['status', 'is_active'],
+                name='contract_status_active_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Contract for {self.bid.project.title}"

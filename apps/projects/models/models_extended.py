@@ -43,6 +43,12 @@ class ProjectBookmark(models.Model):
         db_table = "project_bookmarks"
         unique_together = ["user", "project"]
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=['user', '-created_at'],
+                name='proj_bookmark_user_date_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"{self.user.email} bookmarked {self.project.title}"
@@ -74,6 +80,12 @@ class ProjectDraft(models.Model):
     class Meta:
         db_table = "project_drafts"
         ordering = ["-updated_at"]
+        indexes = [
+            models.Index(
+                fields=['client', '-updated_at'],
+                name='proj_draft_client_date_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Draft: {self.title}"

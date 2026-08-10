@@ -52,6 +52,12 @@ class User(AbstractUser):
     
     class Meta:
         db_table = "users"
+        indexes = [
+            models.Index(
+                fields=['role', 'is_deactivated'],
+                name='user_role_active_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"{self.email} ({self.role})"
@@ -137,6 +143,16 @@ class FreelancerProfile(models.Model):
     
     class Meta:
         db_table = "freelancer_profiles"
+        indexes = [
+            models.Index(
+                fields=['subscription_tier', '-average_rating'],
+                name='freelancer_tier_rating_idx'
+            ),
+            models.Index(
+                fields=['-total_earned'],
+                name='freelancer_earned_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Freelancer: {self.user.email}"

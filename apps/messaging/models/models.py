@@ -18,6 +18,12 @@ class Conversation(models.Model):
     class Meta:
         db_table = "conversations"
         ordering = ["-updated_at"]
+        indexes = [
+            models.Index(
+                fields=['-updated_at'],
+                name='conversation_updated_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Conversation for {self.contract.bid.project.title}"
@@ -52,6 +58,16 @@ class Message(models.Model):
     class Meta:
         db_table = "messages"
         ordering = ["created_at"]
+        indexes = [
+            models.Index(
+                fields=['conversation', '-created_at'],
+                name='msg_conv_created_idx'
+            ),
+            models.Index(
+                fields=['conversation', 'is_read', 'sender'],
+                name='msg_conv_unread_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Message from {self.sender.email} at {self.created_at}"

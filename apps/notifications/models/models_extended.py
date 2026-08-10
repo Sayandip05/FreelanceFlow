@@ -73,6 +73,12 @@ class SystemAnnouncement(models.Model):
     class Meta:
         db_table = "system_announcements"
         ordering = ["-start_date"]
+        indexes = [
+            models.Index(
+                fields=['is_active', 'start_date', 'end_date'],
+                name='announcement_active_wind_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"{self.title} - {self.announcement_type}"

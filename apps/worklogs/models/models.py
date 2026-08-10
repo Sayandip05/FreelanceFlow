@@ -74,6 +74,20 @@ class WorkLog(models.Model):
         db_table = "work_logs"
         ordering = ["-date", "-created_at"]
         unique_together = ["contract", "date"]
+        indexes = [
+            models.Index(
+                fields=['freelancer', '-date'],
+                name='worklog_freelancer_date_idx'
+            ),
+            models.Index(
+                fields=['contract', 'status'],
+                name='worklog_contract_status_idx'
+            ),
+            models.Index(
+                fields=['date'],
+                name='worklog_date_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Log for {self.contract.bid.project.title} on {self.date}"
@@ -196,6 +210,20 @@ class Deliverable(models.Model):
     class Meta:
         db_table = "deliverables"
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=['contract', 'status', '-created_at'],
+                name='deliverable_contract_stat_idx'
+            ),
+            models.Index(
+                fields=['freelancer', 'status', '-created_at'],
+                name='deliverable_free_stat_idx'
+            ),
+            models.Index(
+                fields=['status', '-created_at'],
+                name='deliverable_status_date_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Deliverable: {self.title} ({self.status})"

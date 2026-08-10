@@ -39,8 +39,9 @@ class ActivityLog(models.Model):
         db_table = "activity_logs"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["user", "-created_at"]),
-            models.Index(fields=["action_type"]),
+            models.Index(fields=["user", "-created_at"], name="act_log_user_created_idx"),
+            models.Index(fields=["action_type"], name="act_log_action_type_idx"),
+            models.Index(fields=["user", "action_type", "-created_at"], name="act_log_user_action_idx"),
         ]
     
     def __str__(self):
@@ -61,6 +62,12 @@ class UserOnlineStatus(models.Model):
     
     class Meta:
         db_table = "user_online_status"
+        indexes = [
+            models.Index(
+                fields=['is_online', 'last_seen'],
+                name='user_presence_idx'
+            ),
+        ]
     
     def __str__(self):
         status = "Online" if self.is_online else "Offline"

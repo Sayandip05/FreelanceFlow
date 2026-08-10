@@ -64,6 +64,16 @@ class PaymentDispute(models.Model):
     class Meta:
         db_table = "payment_disputes"
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=['disputer', 'status'],
+                name='dispute_user_status_idx'
+            ),
+            models.Index(
+                fields=['status', '-created_at'],
+                name='dispute_status_created_idx'
+            ),
+        ]
     
     def __str__(self):
         return f"Dispute for Payment {self.payment.id} - {self.status}"
