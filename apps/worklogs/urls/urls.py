@@ -11,6 +11,14 @@ from apps.worklogs.views import (
 )
 
 
+from apps.worklogs.views.views_ai import (
+    AIContextView,
+    AIChatView,
+    AIApproveDraftView,
+    AIHistoryView,
+)
+
+
 router = DefaultRouter()
 router.register(r'logs', WorkLogViewSet, basename='worklog')
 router.register(r'reports', WeeklyReportViewSet, basename='weeklyreport')
@@ -20,6 +28,10 @@ router.register(r'upload', FileUploadViewSet, basename='upload')
 router.register(r'report-schedule', ReportScheduleViewSet, basename='report-schedule')
 
 urlpatterns = [
+    path('ai/context/', AIContextView.as_view(), name='ai-context'),
+    path('ai/chat/', AIChatView.as_view(), name='ai-chat'),
+    path('ai/approve/', AIApproveDraftView.as_view(), name='ai-approve'),
+    path('ai/history/', AIHistoryView.as_view(), name='ai-history'),
     path('', include(router.urls)),
     path('proofs/<int:pk>/', DeliveryProofViewSet.as_view({
         'get': 'retrieve',

@@ -24,6 +24,19 @@ DATABASES = {
     }
 }
 
+# ── Cache ─────────────────────────────────────────────────────────────────────
+# Use isolated in-memory cache for tests to avoid remote Redis rate-limit pollution.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "test-cache",
+    },
+    "axes": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "test-axes-cache",
+    },
+}
+
 # ── Celery / Redis ────────────────────────────────────────────────────────────
 # Run tasks synchronously in tests so we never need a running broker.
 CELERY_TASK_ALWAYS_EAGER = True
@@ -44,6 +57,19 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 # Explicit no-op signal processor to prevent any ES connection attempts.
 ELASTICSEARCH_DSL_AUTOSYNC = False
 ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "django_elasticsearch_dsl.signals.BaseSignalProcessor"
+
+# ── Throttling ────────────────────────────────────────────────────────────────
+# Relax rate limits during test runs so batch test cases don't trip 429.
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    "DEFAULT_THROTTLE_CLASSES": [],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "10000/min",
+        "user": "10000/min",
+        "auth": "10000/min",
+        "oauth": "10000/min",
+    },
+}
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 # Silence all app loggers during tests to keep output clean.

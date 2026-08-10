@@ -29,7 +29,10 @@ env = environ.Env(
     RAZORPAY_ACCOUNT_NUMBER=(str, ""),
     AZURE_STORAGE_CONNECTION_STRING=(str, ""),
     AZURE_CONTAINER_NAME=(str, "media"),
+    QDRANT_URL=(str, ""),
+    QDRANT_API_KEY=(str, ""),
     GROQ_API_KEY=(str, ""),
+    GEMINI_API_KEY=(str, ""),
     LANGSMITH_API_KEY=(str, ""),
     LANGSMITH_PROJECT=(str, "freelanceflow"),
     LANGSMITH_TRACING=(bool, False),
@@ -224,10 +227,12 @@ CELERY_TASK_DEFAULT_QUEUE = "freelanceflow"
 CELERY_TASK_DEFAULT_EXCHANGE = "freelanceflow"
 CELERY_TASK_DEFAULT_ROUTING_KEY = "freelanceflow"
 
-# Celery Result Backend Settings
+# Celery Result Backend & Broker Settings (Upstash Redis)
 CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
-    "master_name": "mymaster",
-    "socket_keepalive": True,
+    "retry_on_timeout": True,
+    "health_check_interval": 30,
+}
+CELERY_BROKER_TRANSPORT_OPTIONS = {
     "retry_on_timeout": True,
     "health_check_interval": 30,
 }
@@ -236,7 +241,14 @@ CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_CONNECTION_RETRY = True
 CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
-CELERY_BROKER_POOL_LIMIT = 10
+import ssl
+
+CELERY_BROKER_USE_SSL = {
+    "ssl_cert_reqs": ssl.CERT_NONE,
+}
+CELERY_REDIS_BACKEND_USE_SSL = {
+    "ssl_cert_reqs": ssl.CERT_NONE,
+}
 
 # Task execution settings
 CELERY_TASK_TRACK_STARTED = True
@@ -292,13 +304,21 @@ RAZORPAY_ACCOUNT_NUMBER = env("RAZORPAY_ACCOUNT_NUMBER")
 AZURE_STORAGE_CONNECTION_STRING = env("AZURE_STORAGE_CONNECTION_STRING", default="")
 AZURE_CONTAINER_NAME = env("AZURE_CONTAINER_NAME", default="media")
 
-# Groq (for AI chat and reports)
+# Groq (Primary LLM for AI chat and reports)
 GROQ_API_KEY = env("GROQ_API_KEY")
+
+# Google Gemini (Fallback LLM when Groq is unavailable)
+GEMINI_API_KEY = env("GEMINI_API_KEY")
+
+# Qdrant Vector Cloud (for contract scope and requirement grounding)
+QDRANT_URL = env("QDRANT_URL")
+QDRANT_API_KEY = env("QDRANT_API_KEY")
 
 # LangSmith (for AI tracing and monitoring)
 LANGSMITH_API_KEY = env("LANGSMITH_API_KEY")
 LANGSMITH_PROJECT = env("LANGSMITH_PROJECT")
 LANGSMITH_TRACING = env("LANGSMITH_TRACING")
+LANGSMITH_ENDPOINT = env("LANGSMITH_ENDPOINT", default="https://api.smith.langchain.com")
 
 # Set LangSmith environment variables for tracing
 if LANGSMITH_TRACING and LANGSMITH_API_KEY:
@@ -307,6 +327,7 @@ if LANGSMITH_TRACING and LANGSMITH_API_KEY:
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
     os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
     os.environ["LANGCHAIN_PROJECT"] = LANGSMITH_PROJECT
+    os.environ["LANGCHAIN_ENDPOINT"] = LANGSMITH_ENDPOINT
 
 # Elasticsearch
 ELASTICSEARCH_URL = env("ELASTICSEARCH_URL")
@@ -345,9 +366,10 @@ CACHES = {
         "LOCATION": env("REDIS_URL"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_CLASS_KWARGS": {
+            "CONNECTION_POOL_KWARGS": {
                 "max_connections": 50,
                 "retry_on_timeout": True,
+                "ssl_cert_reqs": None,
             },
             "SOCKET_CONNECT_TIMEOUT": 5,
             "SOCKET_TIMEOUT": 5,

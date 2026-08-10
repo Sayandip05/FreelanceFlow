@@ -278,20 +278,6 @@ export default function ClientLayout() {
           </nav>
         </div>
 
-        {/* Privacy Policy sidebar button */}
-        <div className={`px-3 pb-1 flex-shrink-0 ${collapsed ? 'flex justify-center' : ''}`}>
-          <button
-            onClick={openPrivacyView}
-            title={collapsed ? 'Privacy Policy' : undefined}
-            className={`flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-indigo-600 transition-colors ${
-              collapsed ? 'p-2 rounded-lg hover:bg-indigo-50' : 'px-3 py-2 rounded-lg hover:bg-gray-50 w-full'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5 flex-shrink-0" />
-            {!collapsed && <span>Privacy Policy</span>}
-          </button>
-        </div>
-
         {/* Profile Card at bottom of left sidebar (Opens Upward) */}
         <SidebarProfileCard collapsed={collapsed} onOpenHelp={() => setShowHelp(true)} onOpenPrivacy={openPrivacyView} />
       </aside>
