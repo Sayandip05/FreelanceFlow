@@ -54,7 +54,15 @@ class BidViewSet(viewsets.ModelViewSet):
         # For clients, return bids on their projects
         return Bid.objects.filter(
             project__client=user
-        ).select_related('freelancer', 'project')
+        ).select_related(
+            'freelancer',
+            'freelancer__freelancer_profile',
+            'freelancer__client_profile',
+            'project',
+            'project__client',
+            'project__client__client_profile',
+            'project__client__freelancer_profile',
+        ).prefetch_related('project__skills')
     
     def get_serializer_class(self):
         if self.action == 'create':

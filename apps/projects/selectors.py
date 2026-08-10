@@ -28,7 +28,11 @@ def get_open_projects(
     """
     queryset = Project.objects.filter(
         status=Project.Status.OPEN
-    ).select_related('client').prefetch_related('skills')
+    ).select_related(
+        'client',
+        'client__client_profile',
+        'client__freelancer_profile'
+    ).prefetch_related('skills')
     
     if budget_min is not None:
         queryset = queryset.filter(budget__gte=budget_min)
@@ -52,7 +56,11 @@ def get_client_projects(client) -> QuerySet[Project]:
     """Get all projects for a specific client."""
     return Project.objects.filter(
         client=client
-    ).select_related('client').prefetch_related('skills')
+    ).select_related(
+        'client',
+        'client__client_profile',
+        'client__freelancer_profile'
+    ).prefetch_related('skills')
 
 
 def get_project_skills(project: Project) -> list[str]:

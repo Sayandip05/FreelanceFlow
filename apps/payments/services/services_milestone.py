@@ -162,6 +162,9 @@ def get_contract_milestones(contract_id):
     """Get all milestones for a contract"""
     return PaymentMilestone.objects.filter(
         contract_id=contract_id
+    ).select_related(
+        'contract__bid__project',
+        'contract__bid__freelancer'
     ).order_by('due_date', 'created_at')
 
 
@@ -208,4 +211,7 @@ def get_upcoming_milestones(user, days=30, limit=10):
         contract_id__in=contract_ids,
         status=PaymentMilestone.Status.PENDING,
         due_date__lte=end_date
-    ).select_related('contract').order_by('due_date')[:limit]
+    ).select_related(
+        'contract__bid__project',
+        'contract__bid__freelancer'
+    ).order_by('due_date')[:limit]

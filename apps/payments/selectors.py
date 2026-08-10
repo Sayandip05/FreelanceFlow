@@ -20,7 +20,11 @@ def get_client_payment_history(client) -> QuerySet[Payment]:
     """Get all payments made by a client."""
     return Payment.objects.filter(
         contract__bid__project__client=client
-    ).select_related('contract__bid__project')
+    ).select_related(
+        'contract__bid__project',
+        'contract__bid__project__client',
+        'contract__bid__freelancer'
+    )
 
 
 def get_freelancer_earnings(freelancer) -> QuerySet[Payment]:
@@ -28,7 +32,11 @@ def get_freelancer_earnings(freelancer) -> QuerySet[Payment]:
     return Payment.objects.filter(
         contract__bid__freelancer=freelancer,
         status=Payment.Status.RELEASED
-    ).select_related('contract__bid__project')
+    ).select_related(
+        'contract__bid__project',
+        'contract__bid__project__client',
+        'contract__bid__freelancer'
+    )
 
 
 def get_freelancer_total_earned(freelancer) -> float:

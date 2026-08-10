@@ -20,7 +20,7 @@ def get_pending_digests():
     return DigestEmail.objects.filter(
         is_enabled=True,
         next_send_at__lte=timezone.now()
-    )
+    ).select_related('user')
 
 
 @transaction.atomic

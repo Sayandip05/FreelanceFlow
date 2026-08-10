@@ -42,7 +42,16 @@ class ReviewViewSet(viewsets.ModelViewSet):
         # Show reviews given by user or received by user
         return Review.objects.filter(
             models.Q(reviewer=user) | models.Q(reviewee=user)
-        ).select_related('reviewer', 'reviewee', 'contract')
+        ).select_related(
+            'reviewer',
+            'reviewer__freelancer_profile',
+            'reviewer__client_profile',
+            'reviewee',
+            'reviewee__freelancer_profile',
+            'reviewee__client_profile',
+            'contract',
+            'contract__bid__project',
+        )
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -169,7 +178,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def given(self, request):
         """Get reviews given by current user."""
         reviews = Review.objects.filter(reviewer=request.user).select_related(
-            'reviewee', 'contract'
+            'reviewer',
+            'reviewer__freelancer_profile',
+            'reviewer__client_profile',
+            'reviewee',
+            'reviewee__freelancer_profile',
+            'reviewee__client_profile',
+            'contract',
+            'contract__bid__project',
         )
         
         page = self.paginate_queryset(reviews)

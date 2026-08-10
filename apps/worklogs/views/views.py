@@ -62,16 +62,30 @@ class WorkLogViewSet(viewsets.ModelViewSet):
         user = self.request.user
         contract_id = self.request.query_params.get('contract')
         
+        base_qs = WorkLog.objects.select_related(
+            'freelancer',
+            'freelancer__freelancer_profile',
+            'freelancer__client_profile',
+            'contract',
+            'contract__bid__project',
+            'contract__bid__project__client',
+            'contract__bid__project__client__client_profile',
+            'contract__bid__project__client__freelancer_profile',
+            'contract__bid__freelancer',
+            'contract__bid__freelancer__freelancer_profile',
+            'contract__bid__freelancer__client_profile',
+        ).prefetch_related(
+            'contract__milestones',
+            'contract__bid__project__skills'
+        )
+        
         if contract_id:
-            queryset = get_contract_worklogs(contract_id)
-            if user.role == 'FREELANCER':
-                return queryset.filter(freelancer=user)
-            return queryset.filter(contract__bid__project__client=user)
+            base_qs = base_qs.filter(contract_id=contract_id)
         
         if user.role == 'FREELANCER':
-            return WorkLog.objects.filter(freelancer=user)
+            return base_qs.filter(freelancer=user)
         
-        return WorkLog.objects.filter(
+        return base_qs.filter(
             contract__bid__project__client=user
         )
     
@@ -172,23 +186,31 @@ class WeeklyReportViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         contract_id = self.request.query_params.get('contract')
-        
-        if contract_id:
-            queryset = get_contract_weekly_reports(contract_id)
-            if self.request.user.role == 'FREELANCER':
-                return queryset.filter(contract__bid__freelancer=self.request.user)
-            return queryset.filter(contract__bid__project__client=self.request.user)
-        
         user = self.request.user
         
-        if user.role == 'FREELANCER':
-            return WeeklyReport.objects.filter(
-                contract__bid__freelancer=user
-            )
-        
-        return WeeklyReport.objects.filter(
-            contract__bid__project__client=user
+        base_qs = WeeklyReport.objects.select_related(
+            'contract',
+            'contract__bid__project',
+            'contract__bid__project__client',
+            'contract__bid__project__client__client_profile',
+            'contract__bid__project__client__freelancer_profile',
+            'contract__bid__freelancer',
+            'contract__bid__freelancer__freelancer_profile',
+            'contract__bid__freelancer__client_profile',
+        ).prefetch_related(
+            'contract__milestones',
+            'contract__bid__project__skills'
         )
+        
+        if contract_id:
+            if user.role == 'FREELANCER':
+                return base_qs.filter(contract_id=contract_id, contract__bid__freelancer=user)
+            return base_qs.filter(contract_id=contract_id, contract__bid__project__client=user)
+        
+        if user.role == 'FREELANCER':
+            return base_qs.filter(contract__bid__freelancer=user)
+        
+        return base_qs.filter(contract__bid__project__client=user)
 
 
 class DeliveryProofViewSet(viewsets.ViewSet):
@@ -266,7 +288,25 @@ class DeliverableViewSet(viewsets.ModelViewSet):
         else:
             queryset = queryset.filter(contract__bid__project__client=user)
         
-        return queryset.select_related('contract', 'freelancer', 'reviewed_by')
+        return queryset.select_related(
+            'freelancer',
+            'freelancer__freelancer_profile',
+            'freelancer__client_profile',
+            'reviewed_by',
+            'reviewed_by__freelancer_profile',
+            'reviewed_by__client_profile',
+            'contract',
+            'contract__bid__project',
+            'contract__bid__project__client',
+            'contract__bid__project__client__client_profile',
+            'contract__bid__project__client__freelancer_profile',
+            'contract__bid__freelancer',
+            'contract__bid__freelancer__freelancer_profile',
+            'contract__bid__freelancer__client_profile',
+        ).prefetch_related(
+            'contract__milestones',
+            'contract__bid__project__skills'
+        )
     
     def get_serializer_class(self):
         if self.action == 'create':

@@ -189,7 +189,14 @@ def create_review_response(
 def get_user_reviews(user: User, is_public_only: bool = True):
     """Get all reviews received by a user."""
     queryset = Review.objects.filter(reviewee=user).select_related(
-        'reviewer', 'contract'
+        'reviewer',
+        'reviewer__freelancer_profile',
+        'reviewer__client_profile',
+        'reviewee',
+        'reviewee__freelancer_profile',
+        'reviewee__client_profile',
+        'contract',
+        'contract__bid__project',
     )
     
     if is_public_only:

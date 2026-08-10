@@ -311,23 +311,23 @@ def generate_weekly_reports_for_all_contracts():
     last_monday = today - timedelta(days=today.weekday() + 7)
 
     # Only target contracts that have NOT been migrated to ReportSchedule
-    active_contracts = Contract.objects.filter(
+    active_contract_ids = Contract.objects.filter(
         is_active=True,
-    ).exclude(report_schedule__is_active=True)
+    ).exclude(report_schedule__is_active=True).values_list('id', flat=True)
+
+    week_end = last_monday + timedelta(days=6)
+    contracts_with_logs = WorkLog.objects.filter(
+        contract_id__in=active_contract_ids,
+        date__range=[last_monday, week_end],
+    ).values_list('contract_id', flat=True).distinct()
 
     triggered = 0
-    for contract in active_contracts:
-        has_logs = WorkLog.objects.filter(
-            contract=contract,
-            date__range=[last_monday, last_monday + timedelta(days=6)],
-        ).exists()
-
-        if has_logs:
-            generate_ai_report_task.delay(
-                contract.id,
-                last_monday.isoformat(),
-                7,  # default weekly interval
-            )
-            triggered += 1
+    for contract_id in contracts_with_logs:
+        generate_ai_report_task.delay(
+            contract_id,
+            last_monday.isoformat(),
+            7,  # default weekly interval
+        )
+        triggered += 1
 
     return {"triggered": triggered}

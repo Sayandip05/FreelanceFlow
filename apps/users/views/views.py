@@ -132,7 +132,7 @@ class UserDetailView(generics.RetrieveAPIView):
     GET /api/users/<id>/
     Get public profile of a specific user.
     """
-    queryset = User.objects.all()
+    queryset = User.objects.select_related('freelancer_profile', 'client_profile').all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'pk'

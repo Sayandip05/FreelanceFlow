@@ -168,7 +168,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
             'freelancer__freelancer_profile', 
             'freelancer__client_profile', 
             'project', 
-            'project__client'
+            'project__client',
+            'project__client__client_profile',
+            'project__client__freelancer_profile',
         ).prefetch_related('project__skills')
         
         page = self.paginate_queryset(bids)

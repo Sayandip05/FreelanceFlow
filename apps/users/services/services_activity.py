@@ -48,7 +48,7 @@ def get_user_activity_log(user, limit=50, action=None, resource_type=None):
     Returns:
         QuerySet of ActivityLog
     """
-    queryset = ActivityLog.objects.filter(user=user)
+    queryset = ActivityLog.objects.filter(user=user).select_related('user')
     
     if action:
         queryset = queryset.filter(action=action)
@@ -64,7 +64,7 @@ def get_recent_logins(user, limit=10):
     return ActivityLog.objects.filter(
         user=user,
         action='LOGIN'
-    ).order_by('-created_at')[:limit]
+    ).select_related('user').order_by('-created_at')[:limit]
 
 
 def get_security_events(user, limit=20):
@@ -81,7 +81,7 @@ def get_security_events(user, limit=20):
     return ActivityLog.objects.filter(
         user=user,
         action__in=security_actions
-    ).order_by('-created_at')[:limit]
+    ).select_related('user').order_by('-created_at')[:limit]
 
 
 def get_payment_activities(user, limit=20):
@@ -97,7 +97,7 @@ def get_payment_activities(user, limit=20):
     return ActivityLog.objects.filter(
         user=user,
         action__in=payment_actions
-    ).order_by('-created_at')[:limit]
+    ).select_related('user').order_by('-created_at')[:limit]
 
 
 def get_activity_summary(user, days=30):

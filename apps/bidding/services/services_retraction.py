@@ -91,7 +91,7 @@ def get_retracted_bids(freelancer, limit=20):
 def get_retraction_details(bid_id):
     """Get retraction details for a bid"""
     try:
-        retraction = BidRetraction.objects.select_related('bid').get(bid_id=bid_id)
+        retraction = BidRetraction.objects.select_related('bid__project').get(bid_id=bid_id)
         return {
             'bid_id': retraction.bid_id,
             'reason': retraction.reason,

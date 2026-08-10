@@ -73,6 +73,7 @@ def razorpay_transfer_to_freelancer_task(self, payment_id: int, amount: float):
     )
     try:
         payment = Payment.objects.select_related(
+            "escrow",
             "contract__bid__freelancer__freelancer_profile",
             "contract__bid__project",
         ).get(id=payment_id)

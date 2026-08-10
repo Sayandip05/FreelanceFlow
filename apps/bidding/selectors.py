@@ -26,7 +26,15 @@ def get_project_bids(project_id: int, status: str | None = None) -> QuerySet[Bid
     """
     queryset = Bid.objects.filter(
         project_id=project_id
-    ).select_related('freelancer', 'project__client')
+    ).select_related(
+        'freelancer',
+        'freelancer__freelancer_profile',
+        'freelancer__client_profile',
+        'project',
+        'project__client',
+        'project__client__client_profile',
+        'project__client__freelancer_profile',
+    ).prefetch_related('project__skills')
     
     if status:
         queryset = queryset.filter(status=status)
@@ -47,7 +55,15 @@ def get_freelancer_bids(freelancer, status: str | None = None) -> QuerySet[Bid]:
     """
     queryset = Bid.objects.filter(
         freelancer=freelancer
-    ).select_related('project', 'project__client')
+    ).select_related(
+        'freelancer',
+        'freelancer__freelancer_profile',
+        'freelancer__client_profile',
+        'project',
+        'project__client',
+        'project__client__client_profile',
+        'project__client__freelancer_profile',
+    ).prefetch_related('project__skills')
     
     if status:
         queryset = queryset.filter(status=status)
@@ -60,7 +76,16 @@ def get_freelancer_active_contracts(freelancer) -> QuerySet[Contract]:
     return Contract.objects.filter(
         bid__freelancer=freelancer,
         is_active=True
-    ).select_related('bid__project', 'bid__freelancer')
+    ).select_related(
+        'bid',
+        'bid__project',
+        'bid__project__client',
+        'bid__project__client__client_profile',
+        'bid__project__client__freelancer_profile',
+        'bid__freelancer',
+        'bid__freelancer__freelancer_profile',
+        'bid__freelancer__client_profile',
+    ).prefetch_related('bid__project__skills')
 
 
 def get_client_active_contracts(client) -> QuerySet[Contract]:
@@ -68,7 +93,16 @@ def get_client_active_contracts(client) -> QuerySet[Contract]:
     return Contract.objects.filter(
         bid__project__client=client,
         is_active=True
-    ).select_related('bid__project', 'bid__freelancer')
+    ).select_related(
+        'bid',
+        'bid__project',
+        'bid__project__client',
+        'bid__project__client__client_profile',
+        'bid__project__client__freelancer_profile',
+        'bid__freelancer',
+        'bid__freelancer__freelancer_profile',
+        'bid__freelancer__client_profile',
+    ).prefetch_related('bid__project__skills')
 
 
 def has_freelancer_bid_on_project(freelancer, project_id: int) -> bool:

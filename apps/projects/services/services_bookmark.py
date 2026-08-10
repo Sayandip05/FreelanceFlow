@@ -22,7 +22,7 @@ def remove_bookmark(user, project):
 
 def get_bookmarked_projects(user):
     """Get user's bookmarked projects"""
-    return ProjectBookmark.objects.filter(user=user).select_related('project')
+    return ProjectBookmark.objects.filter(user=user).select_related('project__client')
 
 
 def is_bookmarked(user, project):
