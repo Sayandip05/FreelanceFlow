@@ -17,11 +17,11 @@ X_FRAME_OPTIONS = "DENY"
 # CORS_ALLOWED_ORIGINS is set in base.py from env variable
 # Example in .env: CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 
-# Static files - use S3 in production
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-STATICFILES_STORAGE = "storages.backends.s3boto3.S3Storage"
-
-# S3 CloudFront is configured in base.py from env variable
+# Storage in production - WhiteNoise for static, Azure Blob Storage for media
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+DEFAULT_FILE_STORAGE = "storages.backends.azure_storage.AzureStorage"
+AZURE_CONNECTION_STRING = AZURE_STORAGE_CONNECTION_STRING
+AZURE_CONTAINER = AZURE_CONTAINER_NAME
 
 # Logging — override base.py to use JSON formatter in production
 # The file handler (logs/freelanceflow.log) and all loggers are

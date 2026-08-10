@@ -27,11 +27,8 @@ env = environ.Env(
     RAZORPAY_KEY_SECRET=(str, ""),
     RAZORPAY_WEBHOOK_SECRET=(str, ""),
     RAZORPAY_ACCOUNT_NUMBER=(str, ""),
-    AWS_ACCESS_KEY_ID=(str, ""),
-    AWS_SECRET_ACCESS_KEY=(str, ""),
-    AWS_STORAGE_BUCKET_NAME=(str, ""),
-    AWS_S3_REGION_NAME=(str, "us-east-1"),
-    AWS_CLOUDFRONT_DOMAIN=(str, ""),
+    AZURE_STORAGE_CONNECTION_STRING=(str, ""),
+    AZURE_CONTAINER_NAME=(str, "media"),
     GROQ_API_KEY=(str, ""),
     LANGSMITH_API_KEY=(str, ""),
     LANGSMITH_PROJECT=(str, "freelanceflow"),
@@ -288,17 +285,8 @@ RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET")
 RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET")
 RAZORPAY_ACCOUNT_NUMBER = env("RAZORPAY_ACCOUNT_NUMBER")
 
-# AWS S3 (legacy — kept for backward compatibility; not used for PDF uploads)
-AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
-AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
-AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
-AWS_CLOUDFRONT_DOMAIN = env("AWS_CLOUDFRONT_DOMAIN")
-AWS_S3_FILE_OVERWRITE = False
-AWS_DEFAULT_ACL = None
-
 # Azure Blob Storage
-# Used for all PDF uploads: progress reports, delivery proofs.
+# Used for all media & PDF uploads: progress reports, delivery proofs, avatars, attachments.
 # Container: AZURE_CONTAINER_NAME (default: "media")
 # Access: Private container, 7-day SAS URLs generated on upload.
 AZURE_STORAGE_CONNECTION_STRING = env("AZURE_STORAGE_CONNECTION_STRING", default="")

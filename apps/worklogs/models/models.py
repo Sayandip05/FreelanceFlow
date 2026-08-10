@@ -239,7 +239,7 @@ class DeliveryProof(models.Model):
         related_name="delivery_proof"
     )
     pdf_url = models.URLField(
-        help_text="S3 URL to generated PDF"
+        help_text="Azure Blob Storage SAS URL to generated PDF"
     )
     generated_at = models.DateTimeField(auto_now_add=True)
     total_hours = models.DecimalField(max_digits=10, decimal_places=2)
