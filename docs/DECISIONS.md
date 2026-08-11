@@ -121,3 +121,11 @@ A log of architectural and technical decisions made in FreelanceFlow explaining 
 - **Why**: Empowers users to customize alert channels per event type while preventing platform notification spam and unneeded email delivery costs.
 - **Alternatives considered**: Hardcoded notification rules per event, single global toggle (all on / all off).
 - **Tradeoff accepted**: Additional lookup on `NotificationPreference` for every notification event before dispatching background delivery tasks.
+
+---
+
+## 16. Entity Normalization vs. Single-Table Inlining (1-to-1 Schema Consolidation)
+- **What**: Consolidated redundant 1-to-1 extension models (`BidRetraction`, `ReviewResponse`, `WorklogApproval`, `MultiCurrencyPayment`, `ProjectShare`) directly into their root parent entities (`Bid`, `Review`, `WorkLog`, `Payment`, `Project`), while strictly preserving separate tables for models with distinct lifecycles, high-churn write isolation, or 1-to-many audit trails (`Escrow`, `PaymentEvent`, `WorkLog`, `ActivityLog`).
+- **Why**: Eliminates unnecessary SQL `JOIN`s, reverse OneToOne prefetching overhead, and dual-state synchronization bugs across app boundaries, reducing schema table count by ~20% while keeping write-heavy audit logs isolated.
+- **Alternatives considered**: Retaining fragmented extension models across multiple `models_*.py` files, completely denormalizing all sub-entities into monolithic JSONB blobs.
+- **Tradeoff accepted**: Parent entity tables contain a few additional nullable metadata columns (e.g., `retraction_reason`, `response_text`) in exchange for single-query fetches and simpler serialization graphs.
