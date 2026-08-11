@@ -325,7 +325,7 @@ export default function FreelancerContractDetailPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-primary-50/60 rounded-2xl p-4 border border-primary-100">
             <p className="text-[11px] font-bold text-primary-600 uppercase tracking-wider">Total Contract Budget</p>
-            <p className="text-2xl font-black text-primary-900 mt-1">{formatCurrency(totalBudget, 'INR')}</p>
+            <p className="text-2xl font-black text-primary-900 mt-1">{formatCurrency(totalBudget)}</p>
           </div>
 
           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -335,12 +335,12 @@ export default function FreelancerContractDetailPage() {
 
           <div className="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-100">
             <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Earnings Released</p>
-            <p className="text-xl font-black text-emerald-800 mt-1">{formatCurrency(releasedAmount, 'INR')}</p>
+            <p className="text-xl font-black text-emerald-800 mt-1">{formatCurrency(releasedAmount)}</p>
           </div>
 
           <div className="bg-indigo-50/60 rounded-2xl p-4 border border-indigo-100">
             <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Secured in Escrow</p>
-            <p className="text-xl font-black text-indigo-900 mt-1">{formatCurrency(inEscrowAmount, 'INR')}</p>
+            <p className="text-xl font-black text-indigo-900 mt-1">{formatCurrency(inEscrowAmount)}</p>
           </div>
         </div>
 
@@ -349,7 +349,7 @@ export default function FreelancerContractDetailPage() {
           <div className="flex flex-wrap items-center justify-between text-xs gap-2">
             <span className="font-bold text-gray-800 flex items-center gap-1.5">
               <DollarSign className="w-4 h-4 text-emerald-600" />
-              Contract Release Progress: {formatCurrency(releasedAmount, 'INR')} / {formatCurrency(totalBudget, 'INR')} released
+              Contract Release Progress: {formatCurrency(releasedAmount)} / {formatCurrency(totalBudget)} released
             </span>
             <span className="font-black text-primary-600">{progressPercent}% Completed</span>
           </div>
@@ -359,25 +359,25 @@ export default function FreelancerContractDetailPage() {
             <div
               className="bg-emerald-500 transition-all duration-300 rounded-l-full"
               style={{ width: `${progressPercent}%` }}
-              title={`Released: ${formatCurrency(releasedAmount, 'INR')}`}
+              title={`Released: ${formatCurrency(releasedAmount)}`}
             />
             <div
               className="bg-indigo-400 transition-all duration-300"
               style={{ width: `${totalBudget > 0 ? (inEscrowAmount / totalBudget) * 100 : 0}%` }}
-              title={`In Escrow: ${formatCurrency(inEscrowAmount, 'INR')}`}
+              title={`In Escrow: ${formatCurrency(inEscrowAmount)}`}
             />
           </div>
 
           {/* Chips legend */}
           <div className="flex flex-wrap items-center gap-4 text-[11px] text-gray-500 pt-1">
             <span className="flex items-center gap-1.5 font-medium">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Released ({formatCurrency(releasedAmount, 'INR')})
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Released ({formatCurrency(releasedAmount)})
             </span>
             <span className="flex items-center gap-1.5 font-medium">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400" /> Funded in Escrow ({formatCurrency(inEscrowAmount, 'INR')})
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400" /> Funded in Escrow ({formatCurrency(inEscrowAmount)})
             </span>
             <span className="flex items-center gap-1.5 font-medium">
-              <span className="w-2.5 h-2.5 rounded-full bg-gray-300" /> Awaiting Deposit ({formatCurrency(pendingFundingAmount, 'INR')})
+              <span className="w-2.5 h-2.5 rounded-full bg-gray-300" /> Awaiting Deposit ({formatCurrency(pendingFundingAmount)})
             </span>
           </div>
         </div>
@@ -409,7 +409,7 @@ export default function FreelancerContractDetailPage() {
                 <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="py-3.5 px-4">#</th>
                   <th className="py-3.5 px-4">Milestone Title & Scope</th>
-                  <th className="py-3.5 px-4">Amount (₹)</th>
+                  <th className="py-3.5 px-4">Amount ($)</th>
                   <th className="py-3.5 px-4">Due Date</th>
                   <th className="py-3.5 px-4">Escrow Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
@@ -441,7 +441,7 @@ export default function FreelancerContractDetailPage() {
                       </td>
 
                       <td className="py-4 px-4 font-black text-gray-900 whitespace-nowrap">
-                        {formatCurrency(m.amount, 'INR')}
+                        {formatCurrency(m.amount)}
                       </td>
 
                       <td className="py-4 px-4 text-xs font-semibold text-gray-600 whitespace-nowrap">
@@ -521,7 +521,7 @@ export default function FreelancerContractDetailPage() {
 
             <div>
               <h3 className="text-lg font-bold text-gray-900">Submit Milestone Work</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{selectedMilestone.title} ({formatCurrency(selectedMilestone.amount, 'INR')})</p>
+              <p className="text-xs text-gray-500 mt-0.5">{selectedMilestone.title} ({formatCurrency(selectedMilestone.amount)})</p>
             </div>
 
             <form onSubmit={handleSubmitDeliverable} className="space-y-4">

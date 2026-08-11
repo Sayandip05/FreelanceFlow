@@ -68,16 +68,59 @@ export default function FreelancerOnboardingPage() {
     setCustomSkill('')
   }
 
+  // Validate URL format (http/https or valid domain)
+  const isValidUrl = (url) => {
+    if (!url || !url.trim()) return true
+    const trimmed = url.trim()
+    const fullUrl = (trimmed.startsWith('http://') || trimmed.startsWith('https://'))
+      ? trimmed
+      : `https://${trimmed}`
+    try {
+      const parsed = new URL(fullUrl)
+      return Boolean(parsed.hostname && parsed.hostname.includes('.'))
+    } catch {
+      return false
+    }
+  }
+
+  // Format URL helper
+  const formatUrl = (url) => {
+    if (!url || !url.trim()) return ''
+    const trimmed = url.trim()
+    return (trimmed.startsWith('http://') || trimmed.startsWith('https://'))
+      ? trimmed
+      : `https://${trimmed}`
+  }
+
   // Save profile state to backend
   const handleSubmitProfile = async (completedOnboarding = true) => {
+    // Validate hourly rate
+    if (hourlyRate !== '' && hourlyRate !== null) {
+      const rateNum = parseFloat(hourlyRate)
+      if (isNaN(rateNum) || rateNum < 0 || rateNum > 1000) {
+        setError('Hourly rate must be between $0 and $1,000 / hr.')
+        return
+      }
+    }
+
+    // Validate portfolio URL
+    if (portfolioWebsite.trim() && !isValidUrl(portfolioWebsite)) {
+      setError('Please enter a valid portfolio or GitHub URL (e.g. https://github.com/username or https://myportfolio.com).')
+      return
+    }
+
     setLoading(true)
     setError('')
     try {
-      let formattedPortfolio = portfolioWebsite.trim()
-      if (formattedPortfolio && !formattedPortfolio.startsWith('http://') && !formattedPortfolio.startsWith('https://')) {
-        formattedPortfolio = `https://${formattedPortfolio}`
+      // 1. Upload images if selected
+      if (avatarFile) {
+        await uploadImage(avatarFile, 'avatar', setUploadingAvatar)
+      }
+      if (bannerFile) {
+        await uploadImage(bannerFile, 'banner', setUploadingBanner)
       }
 
+      const formattedPortfolio = formatUrl(portfolioWebsite)
       const payload = {
         city: city.trim(),
         country: country.trim(),
@@ -117,21 +160,17 @@ export default function FreelancerOnboardingPage() {
     }
   }
 
-  // Upload image to Azure via /api/users/upload-image/
+  // Upload image to local / Azure via /api/users/upload-image/
   const uploadImage = async (file, imageType, setUploading) => {
     if (!file) return
     setUploading(true)
     try {
-      const formData = new FormData()
-      formData.append('image', file)
-      formData.append('image_type', imageType)
-      const res = await api.post('/users/upload-image/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      if (res.data?.user) setUser(res.data.user)
+      const res = await usersAPI.uploadImage(file, imageType)
+      if (res?.data?.user) {
+        setUser(res.data.user)
+      }
     } catch (err) {
-      // Azure not configured in dev — silently continue; profile data still saves
-      console.warn('Image upload skipped (Azure may not be configured):', err.response?.data)
+      console.warn('Image upload error:', err.response?.data)
     } finally {
       setUploading(false)
     }
@@ -255,49 +294,96 @@ export default function FreelancerOnboardingPage() {
         {/* ── STEP 2: Skills & Expertise (Mandatory) ────────────────────── */}
         {step === 2 && (
           <div className="space-y-6 pt-2 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                Select your primary skills ({skills.length} selected)
-              </span>
-            </div>
-
-            {/* Clean Skill Pills */}
-            <div className="flex flex-wrap gap-2.5">
-              {POPULAR_SKILLS.map(skill => {
-                const isSelected = skills.includes(skill)
-                return (
-                  <button
-                    key={skill}
-                    type="button"
-                    onClick={() => toggleSkill(skill)}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
-                      isSelected
-                        ? 'bg-gray-900 border-gray-900 text-white shadow-sm'
-                        : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {isSelected ? '✓ ' : '+ '}{skill}
-                  </button>
-                )
-              })}
-            </div>
+            {/* Selected Skills Summary Container */}
+            {skills.length > 0 ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-2.5">
+                <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-primary-600" />
+                    Your Selected Skills ({skills.length})
+                  </span>
+                  <span className="text-gray-400 font-medium text-[11px]">Click × on tag to remove</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {skills.map(s => (
+                    <span
+                      key={s}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-xl text-xs font-semibold shadow-sm animate-in fade-in zoom-in-95 duration-150"
+                    >
+                      {s}
+                      <button
+                        type="button"
+                        onClick={() => toggleSkill(s)}
+                        className="hover:bg-white/20 rounded-full p-0.5 text-gray-300 hover:text-white transition-colors"
+                        title="Remove skill"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium rounded-xl flex items-center gap-2">
+                <span>Please select at least 1 skill or add your custom skills below to proceed.</span>
+              </div>
+            )}
 
             {/* Custom Skill Input */}
-            <form onSubmit={addCustomSkill} className="flex gap-3 pt-2">
-              <input
-                type="text"
-                value={customSkill}
-                onChange={e => setCustomSkill(e.target.value)}
-                placeholder="Add custom skill (e.g. AWS, Vue.js)..."
-                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm bg-gray-50/40 focus:bg-white text-gray-900"
-              />
-              <button
-                type="submit"
-                className="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold text-xs px-5 rounded-xl border border-gray-200 transition-colors"
-              >
-                Add Skill Tag
-              </button>
-            </form>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                Add Custom Skill
+              </label>
+              <div className="flex gap-2.5">
+                <input
+                  type="text"
+                  value={customSkill}
+                  onChange={e => setCustomSkill(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addCustomSkill(e)
+                    }
+                  }}
+                  placeholder="Type any skill (e.g. AWS, Kubernetes, Vue.js, Go) and press Add..."
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm bg-gray-50/40 focus:bg-white text-gray-900 font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomSkill}
+                  disabled={!customSkill.trim()}
+                  className="bg-gray-900 hover:bg-black text-white font-bold text-xs px-5 rounded-xl transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Skill
+                </button>
+              </div>
+            </div>
+
+            {/* Popular Skills Pills */}
+            <div className="space-y-2.5 pt-2">
+              <span className="block text-xs font-bold uppercase tracking-wider text-gray-500">
+                Or pick from popular skills:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {POPULAR_SKILLS.map(skill => {
+                  const isSelected = skills.includes(skill)
+                  return (
+                    <button
+                      key={skill}
+                      type="button"
+                      onClick={() => toggleSkill(skill)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                        isSelected
+                          ? 'bg-primary-50 border-primary-400 text-primary-800 shadow-sm'
+                          : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {isSelected ? '✓ ' : '+ '}{skill}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
             <div className="pt-6 flex items-center justify-between">
               <button
@@ -323,21 +409,39 @@ export default function FreelancerOnboardingPage() {
         {step === 3 && (
           <div className="space-y-6 pt-2 animate-in fade-in duration-200">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                Hourly Rate ($ / hour)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                  Hourly Rate ($ / hour)
+                </label>
+                <span className="text-[11px] text-gray-400 font-medium">Max $1,000 / hr</span>
+              </div>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-base">$</span>
                 <input
                   type="number"
                   step="0.01"
-                  min="1"
+                  min="0"
+                  max="1000"
                   value={hourlyRate}
                   onChange={e => setHourlyRate(e.target.value)}
                   placeholder="e.g. 45.00"
-                  className="w-full pl-9 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm bg-gray-50/40 focus:bg-white text-gray-900 font-medium"
+                  className={`w-full pl-9 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 text-sm bg-gray-50/40 focus:bg-white text-gray-900 font-medium ${
+                    parseFloat(hourlyRate) > 1000 || parseFloat(hourlyRate) < 0
+                      ? 'border-red-400 focus:ring-red-500'
+                      : 'border-gray-200 focus:ring-gray-900'
+                  }`}
                 />
               </div>
+              {parseFloat(hourlyRate) > 1000 && (
+                <p className="text-red-600 text-xs mt-1.5 font-medium">
+                  Hourly rate cannot exceed $1,000 / hr.
+                </p>
+              )}
+              {parseFloat(hourlyRate) < 0 && (
+                <p className="text-red-600 text-xs mt-1.5 font-medium">
+                  Hourly rate cannot be negative.
+                </p>
+              )}
             </div>
 
             <div>
@@ -371,8 +475,9 @@ export default function FreelancerOnboardingPage() {
                 </button>
                 <button
                   type="button"
+                  disabled={parseFloat(hourlyRate) > 1000 || parseFloat(hourlyRate) < 0}
                   onClick={() => setStep(4)}
-                  className="bg-gray-900 hover:bg-black text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2"
+                  className="bg-gray-900 hover:bg-black text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next: Portfolio <ArrowRight className="w-4 h-4" />
                 </button>
@@ -389,12 +494,26 @@ export default function FreelancerOnboardingPage() {
                 Portfolio Website / GitHub Link
               </label>
               <input
-                type="url"
+                type="text"
                 value={portfolioWebsite}
                 onChange={e => setPortfolioWebsite(e.target.value)}
-                placeholder="https://github.com/yourusername or portfolio URL"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm bg-gray-50/40 focus:bg-white text-gray-900 font-medium"
+                placeholder="https://github.com/yourusername or yourportfolio.com"
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 text-sm bg-gray-50/40 focus:bg-white text-gray-900 font-medium ${
+                  portfolioWebsite.trim() && !isValidUrl(portfolioWebsite)
+                    ? 'border-red-400 focus:ring-red-500'
+                    : 'border-gray-200 focus:ring-gray-900'
+                }`}
               />
+              {portfolioWebsite.trim() && !isValidUrl(portfolioWebsite) && (
+                <p className="text-red-600 text-xs mt-1.5 font-medium">
+                  Please enter a valid URL (e.g. https://github.com/username or https://myportfolio.com)
+                </p>
+              )}
+              {portfolioWebsite.trim() && isValidUrl(portfolioWebsite) && (
+                <p className="text-emerald-600 text-xs mt-1.5 font-medium flex items-center gap-1">
+                  ✓ Valid link format
+                </p>
+              )}
             </div>
 
             <div>
