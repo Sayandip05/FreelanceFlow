@@ -188,7 +188,7 @@ export default function ClientContractDetailPage() {
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
           amount: milestone.amount * 100,
-          currency: 'INR',
+          currency: 'USD',
           order_id: res.data.razorpay_order_id,
           name: 'FreelanceFlow Escrow',
           description: `Escrow funding for: ${milestone.title}`,
@@ -207,12 +207,12 @@ export default function ClientContractDetailPage() {
         rzp.open()
       } else {
         // Fallback for development without Razorpay keys
-        alert(`Milestone "${milestone.title}" funded in Escrow (${formatCurrency(milestone.amount, 'INR')})! Funds are securely locked until you approve the deliverable.`)
+        alert(`Milestone "${milestone.title}" funded in Escrow (${formatCurrency(milestone.amount)})! Funds are securely locked until you approve the deliverable.`)
         await loadContractData()
       }
     } catch (e) {
       console.error('Escrow funding error:', e)
-      alert(`Milestone "${milestone.title}" funded in Escrow (${formatCurrency(milestone.amount, 'INR')})! Safe escrow activated.`)
+      alert(`Milestone "${milestone.title}" funded in Escrow (${formatCurrency(milestone.amount)})! Safe escrow activated.`)
       loadContractData()
     } finally {
       setActionLoading(false)
@@ -293,7 +293,7 @@ Date:           ${new Date().toLocaleDateString('en-US', { year: 'numeric', mont
 Contract:       #${contract?.id} - ${projectTitle}
 Freelancer:     ${freelancerName}
 Milestone:      ${milestone.title}
-Amount:         ${formatCurrency(milestone.amount, 'INR')}
+Amount:         ${formatCurrency(milestone.amount)}
 Status:         RELEASED / PAID
 Protection:     Razorpay Escrow Verified
 =====================================================
@@ -455,7 +455,7 @@ support@freelanceflow.com
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-indigo-50/60 rounded-2xl p-4 border border-indigo-100">
             <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Total Contract Budget</p>
-            <p className="text-2xl font-black text-indigo-900 mt-1">{formatCurrency(totalBudget, 'INR')}</p>
+            <p className="text-2xl font-black text-indigo-900 mt-1">{formatCurrency(totalBudget)}</p>
           </div>
 
           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -470,7 +470,7 @@ support@freelanceflow.com
 
           <div className="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-100">
             <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Released to Freelancer</p>
-            <p className="text-xl font-black text-emerald-800 mt-1">{formatCurrency(releasedAmount, 'INR')}</p>
+            <p className="text-xl font-black text-emerald-800 mt-1">{formatCurrency(releasedAmount)}</p>
           </div>
         </div>
 
@@ -479,7 +479,7 @@ support@freelanceflow.com
           <div className="flex flex-wrap items-center justify-between text-xs gap-2">
             <span className="font-bold text-gray-800 flex items-center gap-1.5">
               <DollarSign className="w-4 h-4 text-emerald-600" />
-              Payment Release Progress: {formatCurrency(releasedAmount, 'INR')} / {formatCurrency(totalBudget, 'INR')} released
+              Payment Release Progress: {formatCurrency(releasedAmount)} / {formatCurrency(totalBudget)} released
             </span>
             <span className="font-black text-indigo-600">{progressPercent}% Completed</span>
           </div>
@@ -489,25 +489,25 @@ support@freelanceflow.com
             <div
               className="bg-emerald-500 transition-all duration-300 rounded-l-full"
               style={{ width: `${progressPercent}%` }}
-              title={`Released: ${formatCurrency(releasedAmount, 'INR')}`}
+              title={`Released: ${formatCurrency(releasedAmount)}`}
             />
             <div
               className="bg-indigo-400 transition-all duration-300"
               style={{ width: `${totalBudget > 0 ? (inEscrowAmount / totalBudget) * 100 : 0}%` }}
-              title={`In Escrow: ${formatCurrency(inEscrowAmount, 'INR')}`}
+              title={`In Escrow: ${formatCurrency(inEscrowAmount)}`}
             />
           </div>
 
           {/* Chips legend */}
           <div className="flex flex-wrap items-center gap-4 text-[11px] text-gray-500 pt-1">
             <span className="flex items-center gap-1.5 font-medium">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Released ({formatCurrency(releasedAmount, 'INR')})
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Released ({formatCurrency(releasedAmount)})
             </span>
             <span className="flex items-center gap-1.5 font-medium">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400" /> Funded in Escrow ({formatCurrency(inEscrowAmount, 'INR')})
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400" /> Funded in Escrow ({formatCurrency(inEscrowAmount)})
             </span>
             <span className="flex items-center gap-1.5 font-medium">
-              <span className="w-2.5 h-2.5 rounded-full bg-gray-300" /> Pending Funding ({formatCurrency(pendingFundingAmount, 'INR')})
+              <span className="w-2.5 h-2.5 rounded-full bg-gray-300" /> Pending Funding ({formatCurrency(pendingFundingAmount)})
             </span>
           </div>
         </div>
@@ -557,7 +557,7 @@ support@freelanceflow.com
                 <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="py-3.5 px-4">#</th>
                   <th className="py-3.5 px-4">Milestone Title & Scope</th>
-                  <th className="py-3.5 px-4">Amount (₹)</th>
+                  <th className="py-3.5 px-4">Amount ($)</th>
                   <th className="py-3.5 px-4">Due Date</th>
                   <th className="py-3.5 px-4">Escrow Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
@@ -589,7 +589,7 @@ support@freelanceflow.com
                       </td>
 
                       <td className="py-4 px-4 font-black text-gray-900 whitespace-nowrap">
-                        {formatCurrency(m.amount, 'INR')}
+                        {formatCurrency(m.amount)}
                         <span className="block text-[10px] text-gray-400 font-normal">
                           {m.percentage ? `${m.percentage}% of total` : ''}
                         </span>
@@ -713,7 +713,7 @@ support@freelanceflow.com
             <div>
               <h3 className="text-lg font-bold text-gray-900">Configure Milestone Schedule</h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Total Contract Budget: <span className="font-bold text-indigo-600">{formatCurrency(totalBudget, 'INR')}</span>
+                Total Contract Budget: <span className="font-bold text-indigo-600">{formatCurrency(totalBudget)}</span>
               </p>
             </div>
 
@@ -755,7 +755,7 @@ support@freelanceflow.com
 
               <p className="text-xs text-indigo-800">
                 Each milestone will be allocated exactly{' '}
-                <span className="font-bold">{formatCurrency(totalBudget / (parseInt(milestoneCount, 10) || 1), 'INR')}</span>.
+                <span className="font-bold">{formatCurrency(totalBudget / (parseInt(milestoneCount, 10) || 1))}</span>.
               </p>
 
               <button
@@ -789,14 +789,14 @@ support@freelanceflow.com
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Amount (₹)</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Amount ($)</label>
                   <input
                     type="number"
                     required
                     min="1"
                     value={customMilestone.amount}
                     onChange={(e) => setCustomMilestone({ ...customMilestone, amount: e.target.value })}
-                    placeholder="e.g. 15000"
+                    placeholder="e.g. 500"
                     className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -841,7 +841,7 @@ support@freelanceflow.com
             </div>
 
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
-              <p className="text-xs font-bold text-gray-700">Milestone Amount: {formatCurrency(selectedMilestone.amount, 'INR')}</p>
+              <p className="text-xs font-bold text-gray-700">Milestone Amount: {formatCurrency(selectedMilestone.amount)}</p>
               <p className="text-xs text-gray-600">{selectedMilestone.description}</p>
               {selectedMilestone.deliverable_description && (
                 <div className="pt-2">

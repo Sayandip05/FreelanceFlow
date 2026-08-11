@@ -5,10 +5,9 @@ django-cors-headers
 django-environ
 django-filter
 django-extensions
-psycopg2
+psycopg2-binary
 django-redis
 channels
-channels-redis
 daphne
 celery
 django-celery-beat
@@ -16,7 +15,7 @@ flower
 elasticsearch-dsl
 django-elasticsearch-dsl
 django-storages
-azure-storage-blob     # Azure Blob Storage: media, PDF reports & delivery proofs
+azure-storage-blob
 groq
 weasyprint
 razorpay
@@ -29,3 +28,6 @@ langchain
 langchain-core
 langchain-groq
 langgraph
+qdrant-client
+requests
+certifi

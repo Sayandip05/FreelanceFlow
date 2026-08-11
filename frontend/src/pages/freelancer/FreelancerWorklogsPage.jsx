@@ -11,7 +11,7 @@ import {
   ShieldCheckIcon,
   DocumentTextIcon,
   UserCircleIcon,
-  CurrencyRupeeIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline'
 
 const FreelancerWorklogsPage = () => {
@@ -38,234 +38,222 @@ const FreelancerWorklogsPage = () => {
     }
   }
 
-  // Filter logic
-  const filteredContracts = contracts.filter((c) => {
-    const title = c.project?.title || c.bid?.project?.title || c.project_title || ''
-    const client =
-      c.client
-        ? `${c.client.first_name || ''} ${c.client.last_name || ''} ${c.client.email || ''}`
-        : c.bid?.project?.client
-        ? `${c.bid.project.client.first_name || ''} ${c.bid.project.client.last_name || ''} ${c.bid.project.client.email || ''}`
-        : c.client_name || ''
-    const matchesSearch =
-      title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.toLowerCase().includes(searchQuery.toLowerCase())
+  const activeContracts = contracts.filter(c => c.status === 'ACTIVE')
+  const completedContracts = contracts.filter(c => c.status === 'COMPLETED')
+  const totalActive = activeContracts.length
+
+  const filteredContracts = contracts.filter(c => {
+    const titleMatch = (c.project?.title || c.title || '').toLowerCase().includes(searchQuery.toLowerCase())
+    const clientMatch = (c.client?.first_name || c.client?.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch = titleMatch || clientMatch
 
     if (statusFilter === 'ALL') return matchesSearch
-    if (statusFilter === 'ACTIVE') return matchesSearch && (c.is_active || c.status === 'ACTIVE')
-    if (statusFilter === 'COMPLETED') return matchesSearch && (c.status === 'COMPLETED' || !c.is_active)
-    return matchesSearch
+    return matchesSearch && c.status === statusFilter
   })
 
-  // Metrics summary
-  const totalContracts = contracts.length
-  const totalActive = contracts.filter((c) => c.is_active || c.status === 'ACTIVE').length
-  const totalBudget = contracts.reduce((sum, c) => sum + (parseFloat(c.agreed_amount || c.rate || 0)), 0)
+  // Total Contract Budget Aggregate
+  const totalBudget = contracts.reduce((acc, c) => acc + parseFloat(c.agreed_amount || c.total_amount || 0), 0)
 
   return (
-    <div className="min-h-screen bg-gray-50/60 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header with Dark Hero Banner matching FreelanceFlow theme */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-gray-900 via-slate-900 to-indigo-950 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
-          <div className="relative z-10 space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold text-indigo-200 border border-white/10">
-              <SparklesIcon className="w-4 h-4 text-indigo-300 animate-pulse" />
-              AI-Powered Workspace & Qdrant Grounding
-            </div>
-            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
-              Worklogs & Report Hub
+    <div className="max-w-7xl mx-auto space-y-8 pb-16">
+      {/* ── Top Header ────────────────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+              <SparklesIcon className="w-5 h-5" />
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+              Work & AI Assistant
             </h1>
-            <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Select an active contract to launch the AI Worklog Assistant, ground project requirements with Qdrant vector retrieval, synthesize weekly progress, and compile official PDF reports.
-            </p>
           </div>
+          <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+            Track milestones, chat with your AI project assistant grounded with Qdrant vector memory, and auto-generate client-ready deliverables.
+          </p>
+        </div>
 
-          <div className="flex items-center gap-3 relative z-10 shrink-0">
+        {/* Quick stat pill */}
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 bg-indigo-50 border border-indigo-100/80 rounded-2xl flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-xs font-bold text-indigo-950">
+              {totalActive} Active Projects Available
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Key Metrics Cards ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+            <BriefcaseIcon className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Active Workspaces</p>
+            <p className="text-2xl font-black text-gray-900">{totalActive}</p>
+            <p className="text-xs text-indigo-600 font-medium mt-0.5">Contracts ready for AI assistant</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+            <CurrencyDollarIcon className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Contract Value</p>
+            <p className="text-2xl font-black text-gray-900">${totalBudget.toLocaleString()}</p>
+            <p className="text-xs text-emerald-600 font-medium mt-0.5">Across active engagements</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+            <ShieldCheckIcon className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Qdrant Vector Cloud</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span className="text-sm font-bold text-gray-900">Active Vector Grounding</span>
+            </div>
+            <p className="text-xs text-purple-600 font-medium mt-0.5">Real-time semantic chat retrieval</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Toolbar: Search & Filter Tabs ─────────────────────────────────── */}
+      <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Search */}
+        <div className="relative flex-1 max-w-md">
+          <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search contracts or clients..."
+            className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+          />
+        </div>
+
+        {/* Status Pills */}
+        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
+          {[
+            { id: 'ALL', label: 'All Projects', count: contracts.length },
+            { id: 'ACTIVE', label: 'Active', count: activeContracts.length },
+            { id: 'COMPLETED', label: 'Completed', count: completedContracts.length },
+          ].map(tab => (
             <button
-              onClick={() => navigate('/freelancer/contracts')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-gray-900 text-sm font-bold hover:bg-gray-100 transition-all shadow-md active:scale-95"
+              key={tab.id}
+              onClick={() => setStatusFilter(tab.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                statusFilter === tab.id
+                  ? 'bg-white text-gray-900 shadow-xs'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
             >
-              <BriefcaseIcon className="w-4 h-4 text-indigo-600" />
-              View All Contracts
+              {tab.label}
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                statusFilter === tab.id ? 'bg-gray-100 text-gray-700' : 'bg-gray-200/70 text-gray-500'
+              }`}>
+                {tab.count}
+              </span>
             </button>
-          </div>
-
-          {/* Decorative background glow */}
-          <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+          ))}
         </div>
+      </div>
 
-        {/* Overview Stats Grid (Clean White Cards) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-              <BriefcaseIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Active Workspaces</p>
-              <p className="text-2xl font-black text-gray-900">{totalActive}</p>
-              <p className="text-xs text-indigo-600 font-medium mt-0.5">Contracts ready for AI assistant</p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-              <CurrencyRupeeIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Contract Value</p>
-              <p className="text-2xl font-black text-gray-900">₹{totalBudget.toLocaleString()}</p>
-              <p className="text-xs text-emerald-600 font-medium mt-0.5">Across active engagements</p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-              <ShieldCheckIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Qdrant Vector Cloud</p>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                <span className="text-sm font-bold text-gray-900">Active Vector Grounding</span>
-              </div>
-              <p className="text-xs text-purple-600 font-medium mt-0.5">Smart AI Assistant</p>
-            </div>
-          </div>
+      {/* ── Contracts Grid ────────────────────────────────────────────────── */}
+      {loading ? (
+        <div className="flex items-center justify-center py-24">
+          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : filteredContracts.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-3xl border border-gray-200/80 p-8 shadow-sm">
+          <BriefcaseIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-gray-900">No active work contracts found</h3>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+            When a client accepts your bid or hires you on a project, your AI worklog workspace will appear here.
+          </p>
+          <button
+            onClick={() => navigate('/freelancer/browse')}
+            className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+          >
+            Browse Open Projects <ArrowRightIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredContracts.map((contract) => {
+            const projectTitle = contract.project?.title || contract.title || 'Untitled Project'
+            const clientName = contract.client?.first_name
+              ? `${contract.client.first_name} ${contract.client.last_name || ''}`.trim()
+              : (contract.client?.email || 'Direct Client')
+            const amount = contract.agreed_amount || contract.total_amount || 0
+            const isActive = contract.status === 'ACTIVE'
 
-        {/* Search & Filter Toolbar (Clean White) */}
-        <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search contracts by project or client..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-            />
-          </div>
-
-          {/* Tab Filter */}
-          <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl self-start md:self-auto">
-            {[
-              { id: 'ALL', label: 'All Contracts', count: totalContracts },
-              { id: 'ACTIVE', label: 'Active', count: totalActive },
-              { id: 'COMPLETED', label: 'Completed', count: totalContracts - totalActive },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setStatusFilter(tab.id)}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                  statusFilter === tab.id
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
+            return (
+              <div
+                key={contract.id}
+                className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300 flex flex-col justify-between group"
               >
-                {tab.label} ({tab.count})
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Contracts Grid (White Cards) */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-gray-200 shadow-sm">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-            <p className="text-gray-500 text-sm mt-4 font-medium">Loading active workspaces...</p>
-          </div>
-        ) : filteredContracts.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300 p-8 shadow-sm">
-            <BriefcaseIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-gray-900">No contracts found</h3>
-            <p className="text-gray-500 text-sm mt-1 max-w-sm mx-auto">
-              {searchQuery ? 'No contracts match your search query.' : 'You currently do not have any contracts assigned.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredContracts.map((contract) => {
-              const projectTitle =
-                contract.project?.title ||
-                contract.bid?.project?.title ||
-                contract.project_title ||
-                `Contract #${contract.id}`
-              const projectDesc =
-                contract.project?.description ||
-                contract.bid?.project?.description ||
-                contract.project_description ||
-                'No description provided for this contract.'
-              const clientObj = contract.client || contract.bid?.project?.client
-              const clientName = clientObj
-                ? `${clientObj.first_name || ''} ${clientObj.last_name || ''}`.trim() || clientObj.email || clientObj.username
-                : contract.client_name || 'Client'
-              const amount = contract.agreed_amount || contract.rate || 0
-              const isActive = contract.is_active || contract.status === 'ACTIVE'
-
-              return (
-                <div
-                  key={contract.id}
-                  className="group flex flex-col justify-between rounded-2xl bg-white border border-gray-200/90 hover:border-indigo-500/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300"
-                >
-                  <div>
-                    {/* Header Badges */}
-                    <div className="flex items-center justify-between gap-2 mb-4">
-                      <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200">
-                        #{contract.id}
-                      </span>
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
-                          isActive
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-gray-100 text-gray-600 border border-gray-200'
-                        }`}
-                      >
-                        {contract.status || (isActive ? 'ACTIVE' : 'COMPLETED')}
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
-                      {projectTitle}
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
-                      {projectDesc}
-                    </p>
-
-                    {/* Meta Details */}
-                    <div className="mt-5 pt-4 border-t border-gray-100 space-y-2 text-xs text-gray-600">
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-gray-500">
-                          <UserCircleIcon className="w-4 h-4" />
-                          Client:
-                        </span>
-                        <span className="font-semibold text-gray-900">{clientName}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500">Contract Budget:</span>
-                        <span className="font-bold text-indigo-600 text-sm">
-                          ₹{parseFloat(amount).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
+                <div>
+                  {/* Top Status & Badge */}
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase ${
+                      isActive
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {contract.status || 'ACTIVE'}
+                    </span>
+                    <span className="text-[11px] text-gray-400 font-medium">
+                      #{contract.id?.slice(0, 8)}
+                    </span>
                   </div>
 
-                  {/* Action Button */}
-                  <div className="mt-6 pt-4 border-t border-gray-100">
-                    <button
-                      onClick={() => navigate(`/freelancer/contracts/${contract.id}/work`)}
-                      className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-600/20 transition-all group-hover:scale-[1.02] active:scale-95"
-                    >
-                      <SparklesIcon className="w-4 h-4 text-indigo-200" />
-                      Open AI Assistant
-                      <ArrowRightIcon className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
-                    </button>
+                  {/* Title & Description */}
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                    {projectTitle}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+                    {contract.project?.description || contract.description || 'Active milestone workspace with AI tracking enabled.'}
+                  </p>
+
+                  {/* Client and Rate Details */}
+                  <div className="mt-5 pt-4 border-t border-gray-100 space-y-2 text-xs text-gray-600">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-gray-500">
+                        <UserCircleIcon className="w-4 h-4" />
+                        Client:
+                      </span>
+                      <span className="font-semibold text-gray-900">{clientName}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Contract Budget:</span>
+                      <span className="font-bold text-indigo-600 text-sm">
+                        ${parseFloat(amount).toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+
+                {/* Action Button */}
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={() => navigate(`/freelancer/contracts/${contract.id}/work`)}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-600/20 transition-all group-hover:scale-[1.02] active:scale-95"
+                  >
+                    <SparklesIcon className="w-4 h-4 text-indigo-200" />
+                    Open AI Assistant
+                    <ArrowRightIcon className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

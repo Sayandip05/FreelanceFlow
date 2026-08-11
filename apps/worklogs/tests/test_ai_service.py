@@ -76,8 +76,9 @@ class AIWorklogUnitTests(TestCase):
         )
 
     def test_embedding_generation(self):
+        from apps.worklogs.services.qdrant_service import EMBEDDING_DIM
         emb = FastEmbeddingService.get_embedding("Build modern AI platform")
-        self.assertEqual(len(emb), 384)
+        self.assertEqual(len(emb), EMBEDDING_DIM)
         self.assertIsInstance(emb[0], float)
 
     def test_qdrant_collection_init_offline_or_online(self):

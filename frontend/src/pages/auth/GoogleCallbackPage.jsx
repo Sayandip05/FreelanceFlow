@@ -18,8 +18,12 @@ const GoogleCallbackPage = () => {
     const params = new URLSearchParams(window.location.search)
     const access  = params.get('access')  || params.get('access_token')
     const refresh = params.get('refresh') || params.get('refresh_token')
-    const role    = params.get('role')
-    const error   = params.get('error')
+    if (error === 'please_signup_first') {
+      const email = params.get('email') || ''
+      const userRole = params.get('role') || 'FREELANCER'
+      navigate(`/register?error=please_signup_first&email=${encodeURIComponent(email)}&role=${userRole}`, { replace: true })
+      return
+    }
 
     if (error || !access) {
       navigate('/login?error=oauth_failed', { replace: true })

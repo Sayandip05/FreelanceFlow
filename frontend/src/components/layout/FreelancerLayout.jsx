@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import PrivacyPolicyModal from '../ui/PrivacyPolicyModal'
+import NotificationBell from '../common/NotificationBell'
 
 const NAV_LINKS = [
   { icon: Home,         label: 'Home',            path: '/freelancer/browse' },
@@ -148,8 +149,8 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp, onOpenPrivacy }) => {
         id="profile-card-btn"
         onClick={() => setOpen(!open)}
         title={collapsed ? fullName : undefined}
-        className={`w-full hover:bg-gray-50/80 transition-colors text-left group ${
-          collapsed ? 'p-3 flex items-center justify-center' : 'p-4 flex items-center gap-3'
+        className={`w-full h-16 hover:bg-gray-50/80 transition-colors text-left group flex items-center ${
+          collapsed ? 'justify-center px-3' : 'gap-3 px-4'
         }`}
       >
         <Avatar user={user} size="lg" />
@@ -181,17 +182,6 @@ export default function FreelancerLayout() {
   const [privacyMode, setPrivacyMode] = useState('view')
   const { user, logout } = useAuth()
 
-  // One-time onboarding privacy popup after first registration
-  useEffect(() => {
-    if (!user?.id) return
-    const key = `privacy_accepted_${user.id}`
-    const accepted = localStorage.getItem(key)
-    if (!accepted) {
-      setPrivacyMode('onboarding')
-      setShowPrivacy(true)
-    }
-  }, [user?.id])
-
   const handlePrivacyAccept = () => {
     if (user?.id) localStorage.setItem(`privacy_accepted_${user.id}`, 'true')
     setShowPrivacy(false)
@@ -207,8 +197,10 @@ export default function FreelancerLayout() {
     setShowPrivacy(true)
   }
 
-  // Persistent sidebar collapse state
+  // Persistent sidebar collapse state & hover-to-expand
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true')
+  const [hovered, setHovered] = useState(false)
+  const isExpanded = !collapsed || hovered
 
   const toggleSidebar = () => {
     setCollapsed(prev => {
@@ -220,12 +212,16 @@ export default function FreelancerLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-100 h-screen sticky top-0 flex-shrink-0 flex flex-col justify-between z-20 transition-all duration-300 ease-in-out`}>
+      {/* ── Sidebar (Expands on cursor hover with constant spacious spacing) ── */}
+      <aside
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className={`${isExpanded ? 'w-64' : 'w-20'} bg-white border-r border-gray-100 h-screen sticky top-0 flex-shrink-0 flex flex-col justify-between z-30 transition-all duration-300 ease-in-out`}
+      >
         <div className="flex flex-col flex-1 min-h-0">
           {/* Logo Header (Height: h-14 / 56px) */}
-          <div className={`h-14 border-b border-gray-100 flex items-center flex-shrink-0 ${collapsed ? 'px-3 justify-center' : 'px-4 justify-between'}`}>
-            {!collapsed ? (
+          <div className={`h-14 border-b border-gray-100 flex items-center flex-shrink-0 ${!isExpanded ? 'px-3 justify-center' : 'px-4 justify-between'}`}>
+            {isExpanded ? (
               <>
                 <button onClick={() => navigate('/freelancer/browse')} className="flex items-center gap-2.5 min-w-0">
                   <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain flex-shrink-0" />
@@ -235,7 +231,7 @@ export default function FreelancerLayout() {
                 </button>
                 <button
                   onClick={toggleSidebar}
-                  title="Collapse sidebar"
+                  title={collapsed ? "Pin sidebar open" : "Collapse sidebar"}
                   className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
                 >
                   <PanelLeftClose className="w-5 h-5" />
@@ -252,17 +248,17 @@ export default function FreelancerLayout() {
             )}
           </div>
 
-          {/* Navigation links */}
-          <nav className="p-3 space-y-1 overflow-y-auto flex-1">
+          {/* Navigation links with unified spacious spacing */}
+          <nav className="p-3 space-y-2 overflow-y-auto flex-1">
             {NAV_LINKS.map(link => {
               const isActive = active === link.path || active.startsWith(link.path + '/')
               return (
                 <button
                   key={link.path}
-                  title={collapsed ? link.label : undefined}
+                  title={!isExpanded ? link.label : undefined}
                   onClick={() => navigate(link.path)}
-                  className={`w-full flex items-center rounded-xl text-sm font-medium transition-colors ${
-                    collapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'
+                  className={`w-full h-11 flex items-center rounded-xl text-sm font-semibold transition-all duration-150 ${
+                    !isExpanded ? 'justify-center px-0' : 'gap-3.5 px-3.5'
                   } ${
                     isActive
                       ? 'bg-primary-50 text-primary-700'
@@ -270,7 +266,7 @@ export default function FreelancerLayout() {
                   }`}
                 >
                   <link.icon className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && <span>{link.label}</span>}
+                  {isExpanded && <span className="truncate">{link.label}</span>}
                 </button>
               )
             })}
@@ -278,16 +274,23 @@ export default function FreelancerLayout() {
         </div>
 
         {/* Profile Card at bottom of left sidebar (Opens Upward) */}
-        <SidebarProfileCard collapsed={collapsed} onOpenHelp={() => setShowHelp(true)} onOpenPrivacy={openPrivacyView} />
+        <SidebarProfileCard collapsed={!isExpanded} onOpenHelp={() => setShowHelp(true)} onOpenPrivacy={openPrivacyView} />
       </aside>
 
       {/* ── Main Area ───────────────────────────────────────────────────── */}
       <div className={`flex-1 flex flex-col min-w-0 ${location.pathname.includes('/messages') ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
         {/* Top Navbar Header (Height: h-14 / 56px) */}
-        <header className="h-14 bg-white border-b border-gray-100 px-6 flex items-center justify-end flex-shrink-0 sticky top-0 z-10">
+        <header className="h-14 bg-white/95 backdrop-blur-md border-b border-gray-100 px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-20 shadow-xs">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="FreelanceFlow" className="w-5 h-5 object-contain" />
-            <span className="text-xs font-semibold text-gray-500">FreelanceFlow Workplace</span>
+            {/* Left header title / context */}
+          </div>
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+            <div className="h-4 w-px bg-gray-200" />
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="FreelanceFlow" className="w-5 h-5 object-contain" />
+              <span className="text-xs font-semibold text-gray-500">FreelanceFlow Workplace</span>
+            </div>
           </div>
         </header>
 

@@ -37,6 +37,10 @@ def submit_worklog_for_approval(worklog_id, freelancer):
     if WorklogApproval.objects.filter(worklog=worklog).exists():
         raise ValidationError("Worklog already submitted for approval")
     
+    # Update worklog status
+    worklog.status = WorkLog.Status.PENDING_APPROVAL
+    worklog.save(update_fields=['status'])
+    
     # Create approval request
     approval = WorklogApproval.objects.create(
         worklog=worklog,
@@ -84,10 +88,13 @@ def approve_worklog(approval_id, client, feedback=None):
     approval.approved_at = timezone.now()
     approval.save()
     
-    # Update worklog status
+    # Update canonical worklog status & audit fields
     worklog = approval.worklog
     worklog.status = WorkLog.Status.APPROVED
-    worklog.save()
+    worklog.client_notes = feedback or ""
+    worklog.approved_at = approval.approved_at
+    worklog.approved_by = client
+    worklog.save(update_fields=['status', 'client_notes', 'approved_at', 'approved_by'])
     
     return approval
 
@@ -131,10 +138,11 @@ def reject_worklog(approval_id, client, feedback):
     approval.feedback = feedback
     approval.save()
     
-    # Update worklog status
+    # Update canonical worklog status & audit fields
     worklog = approval.worklog
     worklog.status = WorkLog.Status.REJECTED
-    worklog.save()
+    worklog.client_notes = feedback
+    worklog.save(update_fields=['status', 'client_notes'])
     
     return approval
 

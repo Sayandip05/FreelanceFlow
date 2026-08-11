@@ -1,88 +1,218 @@
 # FreelanceFlow
 
-**AI-powered freelance marketplace connecting clients with skilled freelancers**
+**AI-Powered Freelance Marketplace with Milestone Escrow, Vector-Grounded Worklogs & Real-Time Collaboration**
 
-[![Django](https://img.shields.io/badge/Django-4.2-092E20?style=flat&logo=django)](https://www.djangoproject.com/)
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=flat&logo=vite)](https://vitejs.dev/)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=flat&logo=docker)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Django](https://img.shields.io/badge/Django-4.2-092E20?style=for-the-badge&logo=django)](https://www.djangoproject.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=for-the-badge&logo=vite)](https://vitejs.dev/)
+[![Qdrant](https://img.shields.io/badge/Qdrant-Vector_Cloud-DC2626?style=for-the-badge&logo=qdrant)](https://qdrant.tech/)
+[![Groq](https://img.shields.io/badge/Groq-Llama_3.3_70B-F55036?style=for-the-badge)](https://groq.com/)
+[![Gemini](https://img.shields.io/badge/Google_Gemini-2.0_Flash-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=for-the-badge&logo=docker)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 ---
 
 ## 🎯 Problem It Solves
 
-Traditional freelance platforms suffer from three core trust failures: clients pay upfront with no delivery guarantee, freelancers complete work but never get paid, and there is no transparent audit trail of work performed. FreelanceFlow solves all three with AI-assisted worklog generation, milestone-based escrow payments, real-time WebSocket communication, and automated weekly proof-of-work reports — ensuring full accountability for both sides.
+Traditional freelance platforms suffer from three core trust failures:
+1. **Clients pay upfront with zero delivery guarantee** or face opaque progress updates.
+2. **Freelancers complete work but face payout delays**, scope creep, or non-payment.
+3. **There is no tamper-evident audit trail** of tasks performed, hours logged, and milestone sign-offs.
+
+**FreelanceFlow** solves all three through:
+- 🛡️ **Milestone-Based Escrow**: Funds are locked in Razorpay Escrow before work begins and automatically released upon client deliverable sign-off.
+- 🤖 **Vector-Grounded AI Worklog Assistant**: Conversational LangGraph AI grounded via **Qdrant Vector Cloud** (`gemini-embedding-001` 3072-dim embeddings) and **Groq LLaMA 3.3 70B** (with automated **Gemini 2.0 Flash** fallback) to synthesize structured weekly deliverables and compile PDF reports.
+- ⚡ **Real-Time ASGI WebSockets**: In-memory channel communication powered by Daphne with live typing indicators and bi-directional read receipts (`✓` / `✓✓`).
+- 🔔 **Instant Notification Hub**: Persistent header bell with live unread badge, hover auto-expansion, and multi-channel preferences (In-App, Email, Push).
 
 ---
 
-## 🛠️ Tech Stack
+## 🧭 Interactive Workflow Diagrams
 
-### **Backend**
-- **Framework**: Django 4.2 — Modular Monolith
-- **Database**: PostgreSQL (Supabase)
-- **Caching & Broker**: Redis 7 (Docker)
-- **Task Queue**: Celery + Celery Beat (`DatabaseScheduler`)
-- **WebSockets**: Django Channels + Daphne (ASGI)
-- **Search Engine**: Elasticsearch 8.14 (`django-elasticsearch-dsl`)
+### 1. 🧑‍💻 Freelancer Experience Journey
 
-### **Frontend**
-- **Framework**: React 18 + Vite
-- **Styling**: TailwindCSS + PostCSS + Lucide Icons
-- **HTTP & State**: Axios, React Router v6
+```mermaid
+flowchart TD
+    classDef startEnd fill:#4F46E5,stroke:#312E81,stroke-width:2px,color:#fff;
+    classDef process fill:#EEF2FF,stroke:#6366F1,stroke-width:2px,color:#1E1B4B;
+    classDef ai fill:#FDF4FF,stroke:#A855F7,stroke-width:2px,color:#581C87;
+    classDef escrow fill:#ECFDF5,stroke:#10B981,stroke-width:2px,color:#064E3B;
 
-### **AI & Integrations**
-- **LLM**: Groq API — Llama 3.3 70B Versatile
-- **Orchestration**: LangChain + LangGraph (two separate state-machine graphs)
-- **Monitoring**: LangSmith — `@traceable` on every graph entrypoint
-- **Payments**: Razorpay Escrow + RazorpayX Automated Payout + Webhook
-- **PDF Generation**: WeasyPrint → bytes → Azure Blob Storage / S3
-
-### **Security & Auth**
-- **Authentication**: SimpleJWT (access 60 min / refresh 7 days, rotation, blacklist) + Google OAuth2 SSO
-- **Protection**: Rate throttling (Auth 5/min, OAuth 10/min), JWT blacklisting, RBAC (CLIENT / FREELANCER)
-- **Brute-force**: Django Axes — 5 failures → 5-min lockout
-
-### **DevOps & Infrastructure**
-- **Deployment**: Azure Virtual Machine (Linux / Gunicorn / Daphne)
-- **Cloud Storage**: Azure Blob Storage — PDFs, screenshots, invoices
-- **Containerization**: Docker Compose with Profile Support (`profiles: [app]`)
-- **Error tracking**: Sentry (production)
+    Start([Freelancer Sign Up / Google SSO]):::startEnd --> Onboard[Profile Setup: Skills, Hourly Rate, Bio]:::process
+    Onboard --> Browse[Browse Marketplace & Submit Proposal / Bid]:::process
+    Browse --> Hired{Client Accepts Bid?}
+    
+    Hired -- No --> Browse
+    Hired -- Yes --> Contract[Contract Activated & Milestones Set]:::escrow
+    
+    Contract --> AIBot[Open AI Worklog Assistant]:::ai
+    AIBot --> Context[Qdrant Semantic Grounding: Project Scope & Goals]:::ai
+    Context --> Chat[Log Daily Tasks via Natural Language Chat]:::ai
+    
+    Chat --> GenDraft[AI Synthesizes Structured Deliverable & PDF]:::ai
+    GenDraft --> Submit[Submit Milestone Deliverable with Proof]:::process
+    
+    Submit --> ClientReview{Client Approves Deliverable?}
+    ClientReview -- Revisions Requested --> Chat
+    ClientReview -- Approved --> EscrowRelease[Funds Released from Escrow]:::escrow
+    
+    EscrowRelease --> Review[Dual-Blind Client Review & Feedback]:::process
+    Review --> End([Project Completed & Earnings Paid]):::startEnd
+```
 
 ---
 
-## ✨ Key Features
+### 2. 🏢 Client Project & Escrow Journey
 
-| Feature | Details |
+```mermaid
+flowchart TD
+    classDef startEnd fill:#0F172A,stroke:#020617,stroke-width:2px,color:#fff;
+    classDef process fill:#F0F9FF,stroke:#0284C7,stroke-width:2px,color:#0C4A6E;
+    classDef escrow fill:#ECFDF5,stroke:#059669,stroke-width:2px,color:#064E3B;
+    classDef alert fill:#FFF1F2,stroke:#E11D48,stroke-width:2px,color:#881337;
+
+    Start([Client Sign Up / Google SSO]):::startEnd --> PostJob[Create Project: Title, Scope, Budget in USD]:::process
+    PostJob --> ReviewBids[Receive & Compare Freelancer Proposals]:::process
+    ReviewBids --> Award[Award Contract to Chosen Freelancer]:::process
+    
+    Award --> EscrowDeposit[Deposit Milestone Funds into Escrow]:::escrow
+    EscrowDeposit --> Secure[Funds Locked Securely in Razorpay Escrow]:::escrow
+    
+    Secure --> Collab[Live Chat & Progress Tracking via WebSockets]:::process
+    Collab --> ReceiveDeliverable[Receive AI Deliverable & WeasyPrint PDF]:::process
+    
+    ReceiveDeliverable --> Inspect{Inspect Work Quality & Deliverable}
+    Inspect -- Changes Needed --> RequestChanges[Request Revisions via Chat]:::process
+    RequestChanges --> Collab
+    Inspect -- Irreconcilable Dispute --> Dispute[Initiate Arbitration / Dispute]:::alert
+    
+    Inspect -- Approved --> ReleaseEscrow[Approve Milestone & Release Payment]:::escrow
+    ReleaseEscrow --> Receipt[Download Payment Receipt & Release Payout]:::escrow
+    Receipt --> Review[Submit Freelancer Rating & Dual-Blind Review]:::process
+    Review --> End([Contract Successfully Completed]):::startEnd
+```
+
+---
+
+### 3. 🏗️ Platform Core Architecture & Data Engine
+
+```mermaid
+graph TB
+    subgraph Frontend ["Frontend Layer (React 18 + Vite)"]
+        UI["Tailwind CSS 3 + Lucide Icons"]
+        Router["AppRouter & Protected RBAC Routes"]
+        Layout["Dynamic Hover Sidebar (h-11) + NotificationBell"]
+        WSClient["WebSocket Client (Auto Reconnect & Read Receipts)"]
+    end
+
+    subgraph Gateway ["ASGI Application Server"]
+        Daphne["Daphne ASGI Server (Port 8000)"]
+        ChannelLayer["InMemoryChannelLayer (Zero Redis for Chat)"]
+    end
+
+    subgraph BackendServices ["Backend Modular Monolith (Django 4.2)"]
+        UsersApp["apps/users: Google OAuth SSO, JWT & RBAC"]
+        ProjectsApp["apps/projects: Job Listings & Skills Taxonomy"]
+        BiddingApp["apps/bidding: Proposals & Contract State Machine"]
+        PaymentsApp["apps/payments: Razorpay Escrow & Idempotency"]
+        MessagingApp["apps/messaging: Real-Time Chat & Read Receipts"]
+        WorklogsApp["apps/worklogs: AI Deliverables & PDF Reports"]
+        NotifsApp["apps/notifications: Notification Hub & Preferences"]
+        SearchApp["apps/search: Elasticsearch 8 Hybrid Engine"]
+    end
+
+    subgraph AIEngine ["AI & Vector Grounding Engine"]
+        Qdrant[("Qdrant Vector Cloud\n(gemini-embedding-001 3072-dim)")]
+        GroqLLM["Groq LLaMA 3.3 70B (Primary LLM)"]
+        GeminiLLM["Google Gemini 2.0 Flash (Fallback LLM)"]
+        LangGraph["3-Node Stateful LangGraph Pipeline"]
+    end
+
+    subgraph DataStorage ["Data & Background Task Layer"]
+        PostgreSQL[("PostgreSQL\n(Composite B-Tree Indexes)")]
+        UpstashRedis[("Upstash Redis\n(Celery Task Queues Exclusively)")]
+        CeleryWorkers["Celery Workers & Beat Scheduler"]
+        AzureBlob[("Azure Blob Storage\n(Time-Limited SAS URLs)")]
+        Elasticsearch[("Elasticsearch 8.14\n(Dual Inverted Index)")]
+    end
+
+    Frontend -->|HTTP REST & JSON| Daphne
+    Frontend <-->|WebSocket ws://| Daphne
+    Daphne --> ChannelLayer
+    Daphne --> BackendServices
+
+    WorklogsApp --> LangGraph
+    LangGraph --> Qdrant
+    LangGraph --> GroqLLM
+    GroqLLM -.->|Failover| GeminiLLM
+
+    BackendServices --> PostgreSQL
+    BackendServices --> Elasticsearch
+    BackendServices -->|Queues Only| UpstashRedis
+    UpstashRedis --> CeleryWorkers
+    CeleryWorkers --> AzureBlob
+```
+
+---
+
+## 🛠️ Tech Stack & Engineering Standards
+
+| Layer | Technologies & Components |
 |---|---|
-| 🤖 **AI Chat Worklog** | Conversational assistant (LangGraph `ChatAgentState` graph) helps freelancers describe work in natural language → auto-generates a structured JSON deliverable. Async Django views + `sync_to_async` keep ASGI non-blocking. |
-| 📅 **Report Schedules** | Clients configure report cadence (7 / 14 / 30 days). Celery Beat triggers AI weekly report + PDF automatically; freelancer is notified 3 days before each deadline. Manual trigger available (`POST report-schedule/{id}/generate-now/`, rate-limited 1/hr). |
-| 📋 **Deliverable Lifecycle** | 6-state machine: DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED / REJECTED / REVISION_REQUESTED. Client approval automatically creates an associated WorkLog. |
-| 💰 **Escrow Payments** | Razorpay order → HMAC-SHA256 signature verify → funds escrowed → client releases → RazorpayX payout to freelancer. Webhook idempotency via `PaymentEvent` unique constraint. |
-| 📄 **PDF Proof Documents** | Weekly progress reports + tamper-evident delivery proof PDFs (WeasyPrint → S3 pre-signed 7-day URL). |
-| 🔍 **Smart Search** | Full-text + keyword search across projects and freelancer profiles via Elasticsearch. Search history, saved searches, autocomplete suggestions. |
-| 💬 **Live Chat** | Contract-scoped real-time messaging over WebSockets (Daphne + Django Channels, Redis group per contract). Online status updated via WebSocket. |
-| 🔐 **Auth & RBAC** | Google OAuth2 SSO + JWT, role-based permissions throughout. Subscription tier field (FREE / PRO) — model exists, billing not yet wired. |
-| 🔔 **Notifications** | In-app + email + push (FCM-ready). Per-user per-event toggles (21 boolean fields). Digest emails (DAILY / WEEKLY / MONTHLY). System announcements (role-targeted). |
+| **Frontend** | React 18, Vite 6, Tailwind CSS, Lucide React, Axios, React Router v6 |
+| **Backend Framework** | Django 4.2 (Modular Monolith architecture with `selectors.py` & `services.py`) |
+| **Database** | PostgreSQL with composite cardinality-first B-Tree indexes and strict N+1 query elimination |
+| **Vector Memory** | Qdrant Vector Cloud with Google Gemini 3072-dimensional normalized embeddings (`gemini-embedding-001`) |
+| **LLM Inference** | Primary: **Groq LLaMA 3.3 70B** (`llama-3.3-70b-versatile`) · Fallback: **Google Gemini 2.0 Flash** (`gemini-flash-latest`) |
+| **AI Orchestration** | LangGraph 3-Node Stateful State Machine (`context_assembler` → `report_generator` → `pdf_builder`) |
+| **WebSockets** | Daphne ASGI + `InMemoryChannelLayer` (single process, zero worker involvement, zero Redis for chat) |
+| **Task Queue** | Celery 5.3 + Celery Beat (`DatabaseScheduler`) backed exclusively by Upstash Redis |
+| **Escrow & Payments** | Razorpay Milestone Escrow with HMAC-SHA256 signature verification & `PaymentEvent` idempotency |
+| **Storage & Documents** | Azure Blob Storage (7-day SAS signed URLs) + WeasyPrint HTML-to-PDF rendering |
+| **Search Engine** | Elasticsearch 8.14 with typo-tolerant fuzzy matching, field boosting, and autocomplete |
+| **Authentication** | SimpleJWT with token blacklisting, Google OAuth2 SSO (`mode=login|register`), and TOTP 2FA |
+
+---
+
+## ✨ Key Platform Features
+
+### 🤖 1. Vector-Grounded AI Worklog Assistant
+- **Grounded Chat**: Ingests project scope, milestones, deliverables, and past reports into Qdrant Cloud.
+- **Natural Language Work Logging**: Freelancers describe daily progress in plain English; the AI validates completed items and drafts client-ready deliverables.
+- **Automated WeasyPrint PDF**: Generates branded, tamper-evident weekly progress PDFs with cryptographically verifiable report IDs.
+
+### 💰 2. Milestone Escrow & Protection
+- **Deposit before Work**: Clients deposit funds into escrow milestone-by-milestone.
+- **Release upon Approval**: Funds are safely held until the client inspects and approves submitted work.
+- **Universal USD Standard**: All financial values, budgets, invoices, and analytics formatted universally in USD (`$`).
+
+### 💬 3. Real-Time Chat & Read Receipts
+- **Bi-Directional Read Receipts**: Messages show single tick (`✓`) when sent and double blue tick (`✓✓`) when read by the recipient.
+- **Low-Latency ASGI**: Directly routed within Daphne via `InMemoryChannelLayer` without Redis Pub/Sub overhead.
+
+### 🎨 4. Zero-Layout-Shift Modern UI
+- **Hover Auto-Expanding Sidebar**: Sidebars smoothly expand to full width (`w-64`) on cursor hover and collapse to `w-20` on mouse exit, keeping fixed `h-11` element heights and `space-y-2` spacing with zero vertical jumping.
+- **Top Header Notification Hub**: Persistent bell icon with live unread badge, hover pop-down, and 180ms debounce for flicker-free inspection.
 
 ---
 
 ## ⚡ Quick Start with `Makefile`
 
 ```bash
-# Start Django Backend (Port 8000)
+# Start Django ASGI/WSGI Backend (Port 8000)
 make backend
 
-# Start Frontend Dev Server (Port 3000)
+# Start Vite Frontend Dev Server (Port 3000)
 make frontend-dev
 
-# Start Celery Worker
+# Start Celery Worker (Pre-configured queues)
 make worker
 
-# Run Auth Tests (--keepdb)
-make test-auth
+# Run test suite
+make test
 
-# Show all available commands
+# View all available management commands
 make help
 ```
 
@@ -91,17 +221,36 @@ make help
 ## 🚀 Manual Development Setup
 
 ### 1. Prerequisites
-- Docker & Docker Compose
 - Python 3.11+
 - Node.js 18+
+- Docker & Docker Compose
 
-### 2. Start Infrastructure (Redis + Elasticsearch)
-```bash
-git clone https://github.com/Sayandip05/FreelanceFlow.git
-cd FreelanceFlow
+### 2. Environment Configuration
+Create a `.env` file in the project root:
+```env
+# Django
+DJANGO_SECRET_KEY=your-secret-key-here
+DJANGO_SETTINGS_MODULE=config.settings.local
+DEBUG=True
 
-# Start Redis and Elasticsearch in background
-docker compose up -d
+# Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/freelanceflow
+
+# Redis (Upstash for Celery queues only)
+REDIS_URL=redis://localhost:6379/0
+
+# AI Credentials
+GROQ_API_KEY=gsk_...
+GEMINI_API_KEY=AIzaSy...
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+
+# Qdrant Vector Cloud
+QDRANT_URL=https://your-cluster.qdrant.io
+QDRANT_API_KEY=eyJ...
+
+# Payments (Razorpay)
+RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
 ```
 
 ### 3. Backend Setup
@@ -111,102 +260,33 @@ source venv/bin/activate
 
 pip install -r requirements/base.txt
 
-cp .env.example .env
-# Fill in GROQ_API_KEY, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET,
-# DATABASE_URL, AZURE_STORAGE_CONNECTION_STRING, etc.
-
 python manage.py migrate
 python manage.py runserver
 ```
 
-### 4. Celery Workers & Beat (Separate Terminals)
+### 4. Celery Worker (Separate Terminal)
 ```bash
-# Worker
-celery -A config worker -l info -Q freelanceflow,freelanceflow_high_priority,freelanceflow_low_priority
-
-# Beat scheduler
-celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+celery -A config worker -l info -Q freelanceflow_default,freelanceflow_high_priority,freelanceflow_low_priority
 ```
 
 ### 5. Frontend Setup
 ```bash
-cd frontend/
+cd frontend
 npm install
 npm run dev
 ```
 
 ---
 
-## 🐳 Running Full Stack via Docker
+## 📚 Comprehensive Documentation
 
-```bash
-docker compose --profile app up --build -d
-```
-
-| Service | Port | URL |
-|---|---|---|
-| **Frontend** | `5173` | `http://localhost:5173` |
-| **Django REST API** | `8000` | `http://localhost:8000/api/` |
-| **WebSocket Server** | `8001` | `ws://localhost:8001/ws/` |
-| **Elasticsearch** | `9200` | `http://localhost:9200` |
-| **Redis** | `6379` | `localhost:6379` |
-
----
-
-## 📐 System Architecture
-
-```
-                              ┌─────────────────────────┐
-                              │   React 18 + Vite UI    │
-                              └────────────┬────────────┘
-                                           │
-                              HTTP / WS Proxy (Vite)
-                                           │
-                    ┌──────────────────────┴──────────────────────┐
-                    │                                             │
-           ┌────────▼────────┐                           ┌────────▼────────┐
-           │  Django WSGI    │                           │  Daphne ASGI    │
-           │ (REST API 8000) │                           │(WebSockets 8001)│
-           └────────┬────────┘                           └────────┬────────┘
-                    │                                             │
-  ┌─────────────────┼──────────────┬──────────────────────────────┤
-  │                 │              │                              │
-┌─▼──────────┐  ┌───▼────┐  ┌─────▼──────┐              ┌───────▼──────┐
-│ PostgreSQL │  │ Redis  │  │   Celery   │              │Elasticsearch │
-│ (Supabase) │  │   7    │  │ Worker+Beat│              │   (Search)   │
-└────────────┘  └────────┘  └─────┬──────┘              └──────────────┘
-                                  │
-                    ┌─────────────┴────────────┐
-                    │                          │
-             ┌──────▼──────┐          ┌────────▼────────┐
-             │  Groq LLM   │          │  Azure Blob /   │
-             │ (LangGraph) │          │   S3 Storage    │
-             └─────────────┘          └─────────────────┘
-```
-
----
-
-## 🤖 AI Architecture Overview
-
-Two independent LangGraph state-machine pipelines power the AI features:
-
-**Graph 1 — Chat Agent** (`groq_service.py` · `GroqChatService`)  
-Used by `POST /api/worklogs/ai-chat/message/`. Freelancer chats naturally about their work; the graph routes between asking follow-up questions (`continue`) and emitting a structured JSON report (`generate_report`). Both AI endpoints are **async** (`sync_to_async`) to keep the ASGI thread non-blocking.
-
-**Graph 2 — Weekly Report Pipeline** (`ai_service.py`)  
-Triggered by Celery Beat. Three sequential nodes: `gather_logs` → `build_prompt` → `generate_report`. Produces a 3-section Markdown report (SUMMARY / DETAILS / NEXT STEPS) stored in `WeeklyReport.ai_summary`, then rendered to PDF via WeasyPrint and uploaded to S3.
-
-Both graphs fall back to a direct `groq.chat.completions.create()` call on any LangGraph failure, and further to a static template when `GROQ_API_KEY` is absent.
-
----
-
-## 📚 Documentation
-
-| Doc | Contents |
+| Document | Description |
 |---|---|
-| [docs/HLD.md](./docs/HLD.md) | High-level architecture, data model, API surface, all data flows, AI pipeline details |
-| [docs/API.md](./docs/API.md) | Full REST API reference with request/response examples |
-| [docs/folderstructure.md](./docs/folderstructure.md) | Comprehensive file & app structural mapping |
+| **[docs/HLD.md](./docs/HLD.md)** | High-Level Architecture, Domain Boundaries, and System Topology |
+| **[docs/FLOW.md](./docs/FLOW.md)** | Full Execution Flows, API Call Graphs, WebSocket & Signal Traces |
+| **[docs/DECISIONS.md](./docs/DECISIONS.md)** | 19 Architectural Decision Records (ADRs) explaining technical choices & tradeoffs |
+| **[docs/API.md](./docs/API.md)** | Complete REST API Reference with schema payloads and status codes |
+| **[docs/folderstructure.md](./docs/folderstructure.md)** | Codebase file hierarchy and component index |
 
 ---
 
@@ -220,5 +300,4 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 **Sayandip Bar**
 - GitHub: [@Sayandip05](https://github.com/Sayandip05)
-- Email: sayandipbar05@gmail.com
 - Repository: [Sayandip05/FreelanceFlow](https://github.com/Sayandip05/FreelanceFlow)

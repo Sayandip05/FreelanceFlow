@@ -9,7 +9,6 @@ from apps.bidding.models import Contract
 from apps.users.models import User
 from core.exceptions import ValidationError, PermissionDeniedError, NotFoundError
 from core.utils import generate_report_id
-from .groq_service import get_groq_service
 logger = logging.getLogger("apps.worklogs")
 
 
@@ -453,34 +452,39 @@ def update_deliverable_draft(
 # ============================================================================
 # AI CHAT SERVICES
 # ============================================================================
+# AI Worklog & Deliverable Services (Unified LangGraph Agent)
+# ============================================================================
 
 def process_ai_chat_message(
     contract_id: int,
     message: str,
     chat_history: List[Dict[str, str]],
-    project_name: str
+    project_name: str,
+    freelancer_id: Optional[int] = None,
 ) -> Dict:
     """
-    Process a message in the AI chat and get response.
-    
-    Args:
-        contract_id: Contract ID for context
-        message: User's message
-        chat_history: Previous messages in the conversation
-        project_name: Name of the project
-    
-    Returns:
-        Dict with AI response and report status
+    Process a message in the AI chat and get response using the unified LangGraph agent.
     """
-    service = get_groq_service()
-    
-    # Add user message to history
-    messages = chat_history + [{"role": "user", "content": message}]
-    
-    # Get AI response
-    response = service.chat(messages, project_name)
-    
-    return response
+    from .ai_service import run_ai_worklog_agent
+    if not freelancer_id:
+        try:
+            contract = Contract.objects.select_related('bid__freelancer').get(id=contract_id)
+            freelancer_id = contract.bid.freelancer_id
+        except Contract.DoesNotExist:
+            freelancer_id = 0
+
+    state = run_ai_worklog_agent(
+        contract_id=contract_id,
+        freelancer_id=freelancer_id,
+        user_message=message,
+        action="chat",
+    )
+    return {
+        "reply": state.get("llm_response", ""),
+        "message": state.get("llm_response", ""),
+        "report_draft": state.get("report_draft"),
+        "draft_ready": bool(state.get("report_draft")),
+    }
 
 
 def generate_deliverable_from_chat(
@@ -491,33 +495,33 @@ def generate_deliverable_from_chat(
     attached_files: List[str] = None
 ) -> Deliverable:
     """
-    Generate a complete deliverable from an AI chat conversation.
-    
-    Args:
-        chat_transcript: Full chat conversation
-        project_name: Name of the project
-        contract_id: Contract ID
-        freelancer: User instance
-        attached_files: List of uploaded file URLs
-    
-    Returns:
-        Created Deliverable instance
+    Generate a complete deliverable from an AI chat conversation using the unified agent.
     """
-    service = get_groq_service()
+    from .ai_service import run_ai_worklog_agent
+    last_msg = ""
+    if chat_transcript:
+        last_msg = chat_transcript[-1].get("content", "")
     
-    # Generate structured report from chat
-    report_data = service.generate_worklog_from_chat(chat_transcript, project_name)
+    state = run_ai_worklog_agent(
+        contract_id=contract_id,
+        freelancer_id=freelancer.id,
+        user_message=last_msg or "Generate deliverable report for current week",
+        action="chat",
+    )
+    draft = state.get("report_draft") or {}
     
-    # Create deliverable
+    title = draft.get("title") or f"Deliverable - {project_name}"
+    summary = draft.get("summary") or state.get("llm_response", "")
+    hours = draft.get("hours_worked", 0.0)
+    
     deliverable = create_deliverable_draft(
         freelancer=freelancer,
         contract_id=contract_id,
-        title=report_data.get("title", "Work Submission"),
-        description=report_data.get("description", ""),
+        title=title,
+        description=summary,
         ai_chat_transcript=chat_transcript,
-        ai_generated_report=json.dumps(report_data),
-        hours_logged=report_data.get("hours_worked", 0),
+        ai_generated_report=json.dumps(draft),
+        hours_logged=hours,
         attached_files=attached_files or [],
     )
-    
     return deliverable

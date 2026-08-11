@@ -219,19 +219,19 @@ apps/{app_name}/
 | **Digest Service** | Scheduled digest emails | `DigestEmail` tracks sends. Frequency: DAILY/WEEKLY/MONTHLY. |
 | **Announcement Service** | Platform-wide system announcements | `SystemAnnouncement` with target: all/freelancers/clients. Types: INFO, WARNING, MAINTENANCE, FEATURE. |
 | **Search Service** | Full-text ES search + history + saved searches + autocomplete | `SearchHistory` + `SavedSearch` + `SearchSuggestion` (populated via popularity field). |
-| **AI Service (Groq)** | Worklog generation via LangGraph | `groq_service.py` (20 KB) — **dedicated, private AI workspace** for freelancers to casually describe work. The AI asks clarifying questions and outputs a structured JSON report. **Does NOT read or parse freelancer–client contract messages.** Separate from `apps.messaging`. `ai_service.py` handles weekly report aggregation. Groq Llama 3.3 70B. LangSmith tracing. Fallback to direct Groq API. |
+| **AI Service (Groq + Gemini + Qdrant)** | 3-Node LangGraph AI Assistant & Vector Grounding | `ai_service.py` + `qdrant_service.py` — **dedicated, private AI workspace** for freelancers. Grounded via isolated Qdrant vector collections per contract (`contract_{id}_fl_{id}`) with Google Gemini embeddings (`gemini-embedding-001`, 3072-dim). Primary LLM: Groq LLaMA 3.3 70B; Fallback LLM: Google Gemini 2.0 Flash. Outputs 3-section structured draft (`AIReportDraft`) and WeasyPrint PDF compiled with tamper-evident ID (`RPT-{id}-{timestamp}`). LangSmith tracing. |
 
 ### Infrastructure Components
 
 | Component | Role |
 |---|---|
 | **PostgreSQL 15** | Primary ACID datastore, all domain data |
-| **Redis 7** | Celery broker + result backend, Django Channels layer, session store, cache |
+| **Upstash Redis** | Celery broker + result backend |
 | **Elasticsearch 8** | Inverted index: `projects` index + `freelancers` index |
+| **Qdrant Vector Cloud** | Isolated vector memory per contract for AI worklogs grounding |
 | **Celery + Beat** | Async background tasks + scheduled jobs |
-| **Gunicorn** | WSGI (REST API) |
-| **Daphne** | ASGI (WebSocket) |
-| **AWS S3** | Weekly report PDFs, delivery proof PDFs, worklog screenshots, invoice PDFs |
+| **Daphne** | ASGI WebSocket & REST server (`InMemoryChannelLayer`) |
+| **Azure Blob Storage** | Weekly report PDFs, delivery proof PDFs, worklog screenshots, invoice PDFs (SAS URL access) |
 | **Razorpay** | Order creation, payment capture, HMAC webhook, RazorpayX payouts (IMPS mode) |
 | **Groq API** | LLM inference (Llama 3.3 70B Versatile) |
 | **LangSmith** | AI tracing, latency, token tracking |
@@ -340,6 +340,9 @@ Conversation (1) ── (M) Message
 | `delivery_proofs` | contract_id (OneToOne), pdf_url (Azure Blob SAS), generated_at, total_hours, total_logs_count, total_deliverables, approved_deliverables, report_id (unique tamper-evident ID) |
 | `report_schedules` | contract_id (OneToOne), interval_days (7/14/30), next_report_date, is_active, created_by — index on (next_report_date, is_active) |
 | `time_offs` | freelancer_id, contract_id (optional), leave_type (VACATION/SICK/PERSONAL/OTHER), start_date, end_date, reason, status (PENDING/APPROVED/REJECTED), approved_by, approved_at |
+| `ai_conversations` | contract_id, freelancer_id, week_start, week_end, messages (JSON list of conversation history), created_at, updated_at |
+| `ai_report_drafts` | conversation_id, contract_id, freelancer_id, title, section_summary, section_deliverables (JSON list), section_next_steps, hours_worked, status (DRAFT/APPROVED/DISCARDED), pdf_url (Azure Blob SAS), approved_at |
+| `qdrant_collections` | contract_id (OneToOne), collection_name (unique `contract_{id}_fl_{id}`), is_initialized, vectors_count, last_synced_at |
 
 #### `apps.messaging`
 

@@ -242,7 +242,7 @@ const FreelancerWorkPage = () => {
           <div className="rounded-2xl bg-white border border-gray-200/90 p-5 space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Contract Scope & Budget</span>
-              <span className="text-sm font-black text-emerald-600">₹{parseFloat(contract.rate || 0).toLocaleString()}</span>
+              <span className="text-sm font-black text-emerald-600">${parseFloat(contract.rate || 0).toLocaleString()}</span>
             </div>
             <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">{contract.description}</p>
             <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">

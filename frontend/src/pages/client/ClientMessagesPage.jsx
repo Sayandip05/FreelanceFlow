@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Briefcase, CreditCard, MessageSquare, Star,
-  Send, Search, CircleDot, Wifi, WifiOff,
-  Loader2, X, ArrowDown
+  Search, FileText, Briefcase, DollarSign,
+  MessageSquare, Clock, Send, CircleDot, Wifi, WifiOff,
+  Loader2, X, ArrowDown, Check, CheckCheck
 } from 'lucide-react'
 import { messagesAPI } from '../../api/messages'
 
@@ -103,6 +103,15 @@ const ClientMessagesPage = () => {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
+
+        if (data.type === 'read_receipt') {
+          const readIds = new Set(data.message_ids || [])
+          setMessages((prev) =>
+            prev.map((m) => (readIds.size === 0 || readIds.has(m.id) ? { ...m, is_read: true } : m))
+          )
+          return
+        }
+
         if (data.type === 'chat_message' || (data.id && data.content)) {
           const incomingMsg = {
             id: data.id,
@@ -115,6 +124,14 @@ const ClientMessagesPage = () => {
             if (prev.some((m) => m.id === incomingMsg.id)) return prev
             return [...prev, incomingMsg]
           })
+
+          // If incoming message is from the other user, emit read receipt back
+          const otherId = selected.other_user?.id || selected.contract?.freelancer?.id
+          if (incomingMsg.sender === otherId && ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send(JSON.stringify({ type: 'read_receipt' }))
+            } catch {}
+          }
 
           // Update conversation list item and sort to top
           setConversations((prev) => {
@@ -523,7 +540,16 @@ const ClientMessagesPage = () => {
                             })}
                           </span>
                           {isMe && (
-                            <span className="font-semibold text-[11px] ml-0.5">✓✓</span>
+                            <span
+                              className="inline-flex items-center ml-1 text-[11px]"
+                              title={msg.is_read ? 'Read' : 'Delivered'}
+                            >
+                              {msg.is_read ? (
+                                <CheckCheck className="w-3.5 h-3.5 text-sky-200" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5 text-white/70" />
+                              )}
+                            </span>
                           )}
                         </div>
                       </div>

@@ -3,7 +3,7 @@ export { authAPI } from './auth'
 export { projectsAPI } from './projects'
 export { bidsAPI, contractsAPI } from './bids'
 export { paymentsAPI } from './payments'
-export { worklogAPI, deliverableAPI, aiChatAPI, uploadAPI, reportAPI, proofAPI } from './worklogs'
+export { worklogAPI, deliverableAPI, aiChatAPI, uploadAPI, reportAPI, proofAPI, aiWorklogAPI } from './worklogs'
 export { messagesAPI } from './messages'
 export { notificationsAPI } from './notifications'
 export { searchAPI } from './search'
@@ -13,7 +13,7 @@ import { authAPI } from './auth'
 import { projectsAPI } from './projects'
 import { bidsAPI, contractsAPI } from './bids'
 import { paymentsAPI } from './payments'
-import { worklogAPI, deliverableAPI, aiChatAPI, uploadAPI, reportAPI, proofAPI } from './worklogs'
+import { worklogAPI, deliverableAPI, aiChatAPI, uploadAPI, reportAPI, proofAPI, aiWorklogAPI } from './worklogs'
 import { messagesAPI } from './messages'
 import { notificationsAPI } from './notifications'
 import { searchAPI } from './search'
@@ -27,6 +27,7 @@ export default {
   worklogs: worklogAPI,
   deliverables: deliverableAPI,
   aiChat: aiChatAPI,
+  aiWorklog: aiWorklogAPI,
   upload: uploadAPI,
   reports: reportAPI,
   proofs: proofAPI,
