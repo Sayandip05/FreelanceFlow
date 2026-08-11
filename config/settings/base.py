@@ -33,6 +33,7 @@ env = environ.Env(
     QDRANT_API_KEY=(str, ""),
     GROQ_API_KEY=(str, ""),
     GEMINI_API_KEY=(str, ""),
+    GEMINI_EMBEDDING_MODEL=(str, "gemini-embedding-001"),
     LANGSMITH_API_KEY=(str, ""),
     LANGSMITH_PROJECT=(str, "freelanceflow"),
     LANGSMITH_TRACING=(bool, False),
@@ -307,8 +308,9 @@ AZURE_CONTAINER_NAME = env("AZURE_CONTAINER_NAME", default="media")
 # Groq (Primary LLM for AI chat and reports)
 GROQ_API_KEY = env("GROQ_API_KEY")
 
-# Google Gemini (Fallback LLM when Groq is unavailable)
+# Google Gemini (Fallback LLM & Vector Embeddings for Qdrant)
 GEMINI_API_KEY = env("GEMINI_API_KEY")
+GEMINI_EMBEDDING_MODEL = env("GEMINI_EMBEDDING_MODEL", default="gemini-embedding-001")
 
 # Qdrant Vector Cloud (for contract scope and requirement grounding)
 QDRANT_URL = env("QDRANT_URL")

@@ -29,6 +29,5 @@ langchain-core
 langchain-groq
 langgraph
 qdrant-client
-sentence-transformers
 requests
 certifi

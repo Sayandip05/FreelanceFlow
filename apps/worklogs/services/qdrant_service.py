@@ -8,14 +8,14 @@ Strict Rules:
 - Collection naming: contract_{contract_id}_fl_{freelancer_id}
 - Vectorized content: Project description, required skills, deliverables, client guidelines/feedback.
 - Work logs and AI-generated reports NEVER go into Qdrant.
+- Embeddings: Google Gemini (gemini-embedding-001, 3072-dim).
 """
 import json
 import logging
 import hashlib
 import math
 from typing import List, Dict, Any, Optional
-import urllib.request
-import urllib.error
+import requests
 from django.conf import settings
 from django.utils import timezone
 from apps.bidding.models import Contract
@@ -23,44 +23,55 @@ from apps.worklogs.models import QdrantCollection
 
 logger = logging.getLogger(__name__)
 
-# Vector dimension for all-MiniLM-L6-v2 embeddings
-EMBEDDING_DIM = 384
+# Vector dimension for Google Gemini gemini-embedding-001
+EMBEDDING_DIM = 3072
 
 
-class FastEmbeddingService:
+class GeminiEmbeddingService:
     """
-    Generates 384-dimensional dense semantic embeddings.
-    Uses sentence-transformers if installed; otherwise uses high-entropy normalized
-    trigram token embeddings with cosine compatibility for offline environments.
+    Generates 3072-dimensional semantic embeddings using Google Gemini API.
+    Provides automatic fallback to high-entropy deterministic embeddings if the
+    API is unreachable or unconfigured.
     """
-    _model = None
 
     @classmethod
     def get_embedding(cls, text: str) -> List[float]:
         if not text or not text.strip():
             return [0.0] * EMBEDDING_DIM
 
-        # Try sentence-transformers if available
-        if cls._model is None:
-            try:
-                from sentence_transformers import SentenceTransformer
-                cls._model = SentenceTransformer("all-MiniLM-L6-v2")
-            except Exception:
-                cls._model = False
+        api_key = getattr(settings, "GEMINI_API_KEY", "")
+        model_name = getattr(settings, "GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
 
-        if cls._model and cls._model is not False:
+        if api_key:
             try:
-                emb = cls._model.encode(text, normalize_embeddings=True)
-                return emb.tolist()
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:embedContent?key={api_key}"
+                payload = {
+                    "content": {
+                        "parts": [{"text": text.strip()}]
+                    }
+                }
+                resp = requests.post(url, json=payload, timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    values = data.get("embedding", {}).get("values", [])
+                    if values and len(values) == EMBEDDING_DIM:
+                        return values
+                    elif values:
+                        # Normalize/pad to EMBEDDING_DIM if dimension differs
+                        if len(values) < EMBEDDING_DIM:
+                            return values + [0.0] * (EMBEDDING_DIM - len(values))
+                        return values[:EMBEDDING_DIM]
+                else:
+                    logger.warning("Gemini Embedding API returned %s: %s", resp.status_code, resp.text[:200])
             except Exception as e:
-                logger.warning("SentenceTransformer encode error: %s", e)
+                logger.warning("Gemini Embedding request error: %s", e)
 
-        # Fallback deterministic dense semantic projection (384-dim, normalized)
+        # Fallback deterministic dense semantic projection (3072-dim, normalized)
         return cls._fallback_dense_embedding(text)
 
     @classmethod
     def _fallback_dense_embedding(cls, text: str) -> List[float]:
-        """Deterministic 384-dim normalized vector for zero-dependency runtime."""
+        """Deterministic 3072-dim normalized vector for zero-dependency runtime."""
         vector = [0.0] * EMBEDDING_DIM
         cleaned = text.lower().strip()
         words = cleaned.split()
@@ -81,6 +92,10 @@ class FastEmbeddingService:
         # L2 Normalize
         norm = math.sqrt(sum(x * x for x in vector)) or 1.0
         return [float(x / norm) for x in vector]
+
+
+# Alias for backward compatibility
+FastEmbeddingService = GeminiEmbeddingService
 
 
 class QdrantClientWrapper:
@@ -106,31 +121,49 @@ class QdrantClientWrapper:
             "Content-Type": "application/json",
             "api-key": self.api_key,
         }
-        data = json.dumps(payload).encode("utf-8") if payload else None
 
-        req = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=10) as response:
-                res_data = response.read().decode("utf-8")
-                return json.loads(res_data) if res_data else {"status": "ok"}
-        except urllib.error.HTTPError as e:
-            err_body = e.read().decode("utf-8", errors="ignore")
-            logger.error("Qdrant HTTP Error %s %s: %s", e.code, e.reason, err_body)
-            # 409 means collection already exists, treat gracefully
-            if e.code == 409:
+            if method.upper() == "GET":
+                resp = requests.get(url, headers=headers, timeout=10)
+            elif method.upper() == "PUT":
+                resp = requests.put(url, headers=headers, json=payload, timeout=10)
+            elif method.upper() == "POST":
+                resp = requests.post(url, headers=headers, json=payload, timeout=10)
+            elif method.upper() == "DELETE":
+                resp = requests.delete(url, headers=headers, timeout=10)
+            else:
+                resp = requests.request(method, url, headers=headers, json=payload, timeout=10)
+
+            if resp.status_code in [200, 201]:
+                return resp.json() if resp.text else {"status": "ok"}
+            elif resp.status_code == 409:
                 return {"status": "already_exists"}
-            return None
+            else:
+                logger.error("Qdrant HTTP %s to %s: %s", resp.status_code, url, resp.text[:200])
+                return None
         except Exception as e:
             logger.error("Qdrant connection error to %s: %s", url, e)
             return None
 
     def ensure_collection(self, collection_name: str) -> bool:
-        """Create collection if not existing."""
+        """
+        Create collection if not existing or recreate if vector dimension changed.
+        """
         check = self._make_request(f"/collections/{collection_name}", method="GET")
-        if check and check.get("result", {}).get("status") == "green":
-            return True
+        if check and check.get("result"):
+            res = check.get("result", {})
+            existing_size = (
+                res.get("config", {}).get("params", {}).get("vectors", {}).get("size")
+            )
+            # If collection exists and size matches, all good
+            if existing_size == EMBEDDING_DIM and res.get("status") in ["green", "yellow", "ok"]:
+                return True
+            elif existing_size and existing_size != EMBEDDING_DIM:
+                # Dimension changed (e.g. 384 -> 3072 for Gemini), recreate collection
+                logger.info("Recreating collection %s for updated dimension %s -> %s", collection_name, existing_size, EMBEDDING_DIM)
+                self._make_request(f"/collections/{collection_name}", method="DELETE")
 
-        # Create collection
+        # Create collection with EMBEDDING_DIM
         payload = {
             "vectors": {
                 "size": EMBEDDING_DIM,
@@ -168,7 +201,7 @@ def get_collection_name(contract_id: int, freelancer_id: int) -> str:
 
 def initialize_collection(contract_id: int) -> bool:
     """
-    Vectorizes contract scope, deliverables, and client requirements into Qdrant.
+    Vectorizes contract scope, deliverables, and client requirements into Qdrant using Gemini Embeddings.
     Never stores work logs or reports.
     """
     try:
@@ -198,7 +231,7 @@ def initialize_collection(contract_id: int) -> bool:
         )
         return True
 
-    # Ensure isolated collection in Qdrant
+    # Ensure isolated collection in Qdrant with Gemini dimension
     created = qdrant.ensure_collection(collection_name)
     if not created:
         logger.warning("Failed to create/ensure Qdrant collection %s", collection_name)
@@ -215,7 +248,7 @@ def initialize_collection(contract_id: int) -> bool:
     )
     points.append({
         "id": point_id,
-        "vector": FastEmbeddingService.get_embedding(project_doc),
+        "vector": GeminiEmbeddingService.get_embedding(project_doc),
         "payload": {
             "type": "project_scope",
             "title": project.title,
@@ -230,7 +263,7 @@ def initialize_collection(contract_id: int) -> bool:
         skills_text = f"Required Skills and Expertise: {project.skills}"
         points.append({
             "id": point_id,
-            "vector": FastEmbeddingService.get_embedding(skills_text),
+            "vector": GeminiEmbeddingService.get_embedding(skills_text),
             "payload": {
                 "type": "required_skills",
                 "text": skills_text,
@@ -248,7 +281,7 @@ def initialize_collection(contract_id: int) -> bool:
         )
         points.append({
             "id": point_id,
-            "vector": FastEmbeddingService.get_embedding(deliv_doc),
+            "vector": GeminiEmbeddingService.get_embedding(deliv_doc),
             "payload": {
                 "type": "deliverable_requirement",
                 "deliverable_id": deliverable.id,
@@ -264,7 +297,7 @@ def initialize_collection(contract_id: int) -> bool:
         bid_doc = f"Agreed Proposal & Approach: {contract.bid.cover_letter}"
         points.append({
             "id": point_id,
-            "vector": FastEmbeddingService.get_embedding(bid_doc),
+            "vector": GeminiEmbeddingService.get_embedding(bid_doc),
             "payload": {
                 "type": "proposal_approach",
                 "text": bid_doc,
@@ -286,13 +319,13 @@ def initialize_collection(contract_id: int) -> bool:
             "last_synced_at": timezone.now(),
         }
     )
-    logger.info("Qdrant collection %s initialized with %s points", collection_name, len(points))
+    logger.info("Qdrant collection %s initialized with %s Gemini vectors", collection_name, len(points))
     return True
 
 
 def query_context(contract_id: int, query_text: str, top_k: int = 5) -> List[Dict[str, Any]]:
     """
-    Search Qdrant for semantic contract requirements matching user message.
+    Search Qdrant for semantic contract requirements matching user message using Gemini Embeddings.
     Falls back to PostgreSQL scope data if Qdrant is unavailable.
     """
     try:
@@ -304,7 +337,7 @@ def query_context(contract_id: int, query_text: str, top_k: int = 5) -> List[Dic
     qdrant = QdrantClientWrapper()
 
     if qdrant.is_configured:
-        query_vector = FastEmbeddingService.get_embedding(query_text)
+        query_vector = GeminiEmbeddingService.get_embedding(query_text)
         results = qdrant.search_points(collection_name, query_vector, limit=top_k)
         if results:
             return [
@@ -331,7 +364,7 @@ def query_context(contract_id: int, query_text: str, top_k: int = 5) -> List[Dic
 
 def add_feedback(contract_id: int, feedback_text: str, metadata: Optional[Dict] = None) -> bool:
     """
-    Vectorizes client feedback or amendment notes and adds to Qdrant collection.
+    Vectorizes client feedback or amendment notes and adds to Qdrant collection via Gemini Embeddings.
     """
     if not feedback_text or not feedback_text.strip():
         return False
@@ -345,7 +378,7 @@ def add_feedback(contract_id: int, feedback_text: str, metadata: Optional[Dict] 
     qdrant = QdrantClientWrapper()
 
     point_id = int(hashlib.md5(f"{feedback_text}_{timezone.now().isoformat()}".encode("utf-8")).hexdigest()[:8], 16)
-    vector = FastEmbeddingService.get_embedding(feedback_text)
+    vector = GeminiEmbeddingService.get_embedding(feedback_text)
     payload = {
         "type": "client_feedback",
         "text": f"Client Guidance/Feedback: {feedback_text}",
