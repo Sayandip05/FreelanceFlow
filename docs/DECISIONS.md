@@ -129,3 +129,28 @@ A log of architectural and technical decisions made in FreelanceFlow explaining 
 - **Why**: Eliminates unnecessary SQL `JOIN`s, reverse OneToOne prefetching overhead, and dual-state synchronization bugs across app boundaries, reducing schema table count by ~20% while keeping write-heavy audit logs isolated.
 - **Alternatives considered**: Retaining fragmented extension models across multiple `models_*.py` files, completely denormalizing all sub-entities into monolithic JSONB blobs.
 - **Tradeoff accepted**: Parent entity tables contain a few additional nullable metadata columns (e.g., `retraction_reason`, `response_text`) in exchange for single-query fetches and simpler serialization graphs.
+
+---
+
+## 17. Universal USD ($) Currency Standard across Platform Surfaces
+- **What**: Standardized all frontend components (`formatCurrency.js`, contracts, worklogs, milestones, and payment receipts) and backend AI vector grounding context (`qdrant_service.py`) to USD (`$`) exclusively.
+- **Why**: Eliminates confusing mixed-currency symbols (`₹` vs `$`) across international freelancer and client workspaces, ensuring predictable financial figures and escrow accounting.
+- **Alternatives considered**: Multi-currency conversion switcher on every page (adds currency exchange API dependency and real-time drift during milestone approval).
+- **Tradeoff accepted**: All monetary amounts are formatted in USD with standard 2-decimal formatting.
+
+---
+
+## 18. Zero-Layout-Shift Hover-State Shell Architecture & Notification Hub
+- **What**: Designed sidebar navigation shells in `FreelancerLayout.jsx` and `ClientLayout.jsx` with constant `h-11` item dimensions, fixed `space-y-2` gaps, and smooth hover expansion (`onMouseEnter` / `onMouseLeave`), paired with a persistent sticky header `NotificationBell` with live unread badge and debounced hover pop-down.
+- **Why**: Allows users to quickly glance at navigation items and notification updates without explicit click interactions, while eliminating visual vertical jumping/shifting during expand/collapse transitions.
+- **Alternatives considered**: Click-only sidebar toggle (requires extra user clicks), instant close on mouse exit (causes jittery pop-over flickers without debounce).
+- **Tradeoff accepted**: Requires small 180ms debounce timers on popover menus to allow smooth cursor traversal.
+
+---
+
+## 19. WebSocket Bi-Directional Read Receipts for Real-Time Chat
+- **What**: Integrated automatic client-side and server-side read receipt emissions (`type: "read_receipt"`) over existing Daphne ASGI WebSockets, rendering single checks (`✓`) for sent/delivered messages and double blue checks (`✓✓`) upon reader receipt.
+- **Why**: Provides instantaneous feedback on message delivery and read status without polling or extra HTTP round-trips.
+- **Alternatives considered**: Periodic HTTP polling for read status (high database read overhead), marking messages read only on manual user scroll triggers.
+- **Tradeoff accepted**: Extra lightweight WebSocket event frames broadcasted to conversation rooms when unread messages are viewed.
+

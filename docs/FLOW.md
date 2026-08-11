@@ -403,3 +403,46 @@ Detailed, verified execution call paths across all entry points (HTTP REST route
 
 - **AI Services (`apps/worklogs/services/ai_service.py`)**: Unified across all endpoints (`/api/worklogs/ai/chat/`, `/api/worklogs/ai-chat/`, `/api/worklogs/deliverables/`). All AI requests execute through the 3-node LangGraph pipeline with Qdrant vector memory (Google Gemini 3072-dim embeddings), Groq LLaMA 3.3 70B (Primary) + Google Gemini 2.0 Flash (Fallback). Legacy `groq_service.py` is safely deleted.
 - **Worklog Approvals (`apps/bidding/services/services_worklog_approval.py`)**: Harmonized with `apps/worklogs/services/services.py`. All approval and rejection events update canonical `WorkLog` status and audit fields (`client_notes`, `approved_at`, `approved_by`) atomically.
+
+---
+
+# 11. Real-Time Interaction & Workspace Navigation Flows
+
+## Google OAuth Authentication Flow with Mode Differentiation
+- **Trigger**: User clicks "Sign in with Google" (login mode) or "Sign up with Google" (register mode).
+- **Path**: `frontend:AuthPage.jsx` → `GET /api/users/auth/google/init/?mode={login|register}` → Google OAuth Consent Screen → `GET /api/users/auth/google/callback/?code=...&state=...` → `apps/users/views/views_google_oauth.py:GoogleOAuthCallbackView`.
+- **Branches**:
+  - **Login Mode & User Not in DB**: Redirects to frontend `/auth/google/callback?error=please_signup_first&email=...` → Frontend auto-switches to Register tab, prefills email, and displays alert.
+  - **Register Mode & User in DB**: Redirects with existing tokens or switches to login tab.
+  - **Existing / Valid User**: Issues JWT access & refresh tokens and redirects to role dashboard (`/client/dashboard` or `/freelancer/browse`).
+
+---
+
+## Persistent In-App Notification Hub Flow
+- **Trigger**: Sticky header `NotificationBell` mounted in `FreelancerLayout.jsx` and `ClientLayout.jsx`.
+- **Path**: `GET /api/notifications/unread_count/` & `GET /api/notifications/` → `apps/notifications/views/views.py:NotificationViewSet`.
+- **Actions**:
+  - **Hover / Click**: Opens dropdown menu without layout shift.
+  - **Mark One Read**: `POST /api/notifications/{id}/mark_read/` → `mark_notification_as_read`.
+  - **Mark All Read**: `POST /api/notifications/mark_all_read/` → `mark_all_as_read`.
+
+---
+
+## WebSocket Bi-Directional Chat & Real-Time Read Receipts
+- **Trigger**: Client or Freelancer enters conversation room `/ws/chat/{contract_id}/`.
+- **Path**: `Daphne ASGI` → `apps/messaging/consumers.py:ChatConsumer`.
+- **Execution Flow**:
+  1. Sender sends message frame `{ type: "message", content: "..." }`.
+  2. Consumer persists message in DB via `send_message(conversation_id, sender, content)` and broadcasts `type: "chat_message"` to room group.
+  3. Recipient socket receives `chat_message`.
+  4. If recipient is active in the room, consumer calls `_flush_unread_and_broadcast()` updating `Message.is_read=True` in DB.
+  5. Consumer broadcasts `type: "read_receipt"` with `message_ids` to the room group.
+  6. Sender socket receives `read_receipt` and flips message status from single tick (`✓`) to double blue tick (`✓✓`).
+
+---
+
+## AI Worklog Assistant Navigation & Qdrant Grounding
+- **Trigger**: Freelancer clicks "Open AI Assistant" on any active contract from `/freelancer/worklogs`.
+- **Path**: Client-side route `/freelancer/work/:contractId` (and `/freelancer/worklogs/:contractId`) under `<FreelancerLayout>` → `FreelancerWorkPage.jsx` → `GET /api/worklogs/ai/context/{contract_id}/`.
+- **Context Grounding**: Fetches contract scope, active milestones, deliverables, past reports, and Qdrant vector memory collection status before opening real-time LangGraph assistant session.
+

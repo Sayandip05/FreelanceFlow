@@ -138,7 +138,13 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         max_digits=10, 
         decimal_places=2, 
         required=False,
-        allow_null=True
+        allow_null=True,
+        min_value=0,
+        max_value=1000,
+        error_messages={
+            "max_value": "Hourly rate cannot exceed $1,000 / hr.",
+            "min_value": "Hourly rate cannot be negative.",
+        }
     )
     company_name = serializers.CharField(required=False, allow_blank=True)
     city = serializers.CharField(required=False, allow_blank=True)
@@ -171,6 +177,20 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'company_size',
             'website',
         ]
+
+    def validate_portfolio_website(self, value):
+        if not value or not value.strip():
+            return ""
+        v = value.strip()
+        if not (v.startswith("http://") or v.startswith("https://")):
+            v = f"https://{v}"
+        from django.core.validators import URLValidator
+        validator = URLValidator()
+        try:
+            validator(v)
+        except DjangoValidationError:
+            raise serializers.ValidationError("Enter a valid URL (e.g. https://github.com/username or https://portfolio.com)")
+        return v
     
     def update(self, instance, validated_data):
         # Extract profile fields

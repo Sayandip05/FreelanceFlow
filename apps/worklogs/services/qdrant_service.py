@@ -244,7 +244,7 @@ def initialize_collection(contract_id: int) -> bool:
         f"Project Title: {project.title}\n"
         f"Description: {project.description}\n"
         f"Category: {getattr(project, 'category', 'General')}\n"
-        f"Budget: ₹{getattr(contract, 'agreed_amount', 0)}"
+        f"Budget: ${getattr(contract, 'agreed_amount', 0)}"
     )
     points.append({
         "id": point_id,

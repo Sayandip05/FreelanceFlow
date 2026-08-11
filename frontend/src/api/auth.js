@@ -32,6 +32,20 @@ export const authAPI = {
       new_password: newPassword
     }),
 
+  // Update user avatar
+  updateAvatar: (avatarUrl) =>
+    api.post('/users/avatar/', { avatar_url: avatarUrl }),
+
+  // Upload image (avatar or banner) to backend / Azure
+  uploadImage: (imageFile, imageType = 'avatar') => {
+    const formData = new FormData()
+    formData.append('image', imageFile)
+    formData.append('image_type', imageType)
+    return api.post('/users/upload-image/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+
   // Get user by ID
   getUser: (id) => api.get(`/users/${id}/`),
 

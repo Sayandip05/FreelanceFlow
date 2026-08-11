@@ -48,13 +48,13 @@ def _get_google_credentials():
 
 class GoogleOAuthInitView(APIView):
     """
-    GET /api/users/auth/google/?role=CLIENT|FREELANCER
+    GET /api/users/auth/google/?role=CLIENT|FREELANCER&mode=login|register
 
     Returns:
         { "auth_url": "<Google OAuth URL>" }
 
     The frontend should redirect the user to this URL.
-    The `role` param is encoded in `state` and echoed back after the callback.
+    The `role:mode` param is encoded in `state` and echoed back after the callback.
     """
     permission_classes = [AllowAny]
     throttle_classes = [OAuthRateThrottle]
@@ -62,8 +62,11 @@ class GoogleOAuthInitView(APIView):
     def get(self, request):
         client_id, _, redirect_uri, _ = _get_google_credentials()
         role = request.query_params.get("role", "CLIENT").upper()
+        mode = request.query_params.get("mode", "login").lower()
         if role not in ("CLIENT", "FREELANCER"):
             role = "CLIENT"
+        if mode not in ("login", "register"):
+            mode = "login"
 
         params = {
             "client_id": client_id,
@@ -71,7 +74,7 @@ class GoogleOAuthInitView(APIView):
             "response_type": "code",
             "scope": "openid email profile",
             "access_type": "offline",
-            "state": role,   # piggyback role through OAuth state
+            "state": f"{role}:{mode}",   # piggyback role and mode through OAuth state
             "prompt": "select_account",
         }
         auth_url = f"{GOOGLE_AUTH_URL}?{urlencode(params)}"
@@ -80,11 +83,11 @@ class GoogleOAuthInitView(APIView):
 
 class GoogleOAuthCallbackView(APIView):
     """
-    GET /api/users/auth/google/callback/?code=...&state=CLIENT|FREELANCER
+    GET /api/users/auth/google/callback/?code=...&state=ROLE:MODE
 
     Exchanges the Google auth code for tokens, fetches the user profile,
-    creates or retrieves the local User, issues a JWT pair, then redirects
-    the browser to the frontend callback page with the tokens.
+    checks if user exists (redirects to signup if trying to login without account),
+    creates user on registration, issues a JWT pair, and redirects to frontend.
     """
     permission_classes = [AllowAny]
     throttle_classes = [OAuthRateThrottle]
@@ -92,9 +95,16 @@ class GoogleOAuthCallbackView(APIView):
     def get(self, request):
         client_id, client_secret, redirect_uri, frontend_url = _get_google_credentials()
         code = request.query_params.get("code")
-        role = (request.query_params.get("state") or "CLIENT").upper()
-        error = request.query_params.get("error")
+        state_raw = request.query_params.get("state") or "CLIENT:login"
+        if ":" in state_raw:
+            role_part, mode_part = state_raw.split(":", 1)
+            role = role_part.upper()
+            mode = mode_part.lower()
+        else:
+            role = state_raw.upper()
+            mode = "login"
 
+        error = request.query_params.get("error")
         frontend_callback = f"{frontend_url}/auth/google/callback"
 
         if error or not code:
@@ -140,28 +150,38 @@ class GoogleOAuthCallbackView(APIView):
         if role not in ("CLIENT", "FREELANCER"):
             role = "CLIENT"
 
-        # ── Step 3: Get or create the local User ─────────────────────────────
-        try:
-            with transaction.atomic():
-                user, created = User.objects.get_or_create(
-                    email=email,
-                    defaults={
-                        "first_name": user_info.get("given_name", ""),
-                        "last_name": user_info.get("family_name", ""),
-                        "role": role,
-                        "is_active": True,
-                    },
-                )
-                if created:
-                    # Set an unusable password — user will log in via Google only
+        # ── Step 3: Check existence / Get or create local User ─────────────────
+        user = User.objects.filter(email=email).first()
+
+        # If user is trying to LOG IN, but no account exists in DB:
+        if mode == "login" and not user:
+            logger.info("Google OAuth login attempted for uncreated account: %s", email)
+            err_params = urlencode({
+                "error": "please_signup_first",
+                "email": email,
+                "role": role,
+            })
+            return HttpResponseRedirect(f"{frontend_callback}?{err_params}")
+
+        # If user does not exist and mode is register, create user
+        if not user:
+            try:
+                with transaction.atomic():
+                    user = User.objects.create(
+                        email=email,
+                        first_name=user_info.get("given_name", ""),
+                        last_name=user_info.get("family_name", ""),
+                        role=role,
+                        is_active=True,
+                    )
                     user.set_unusable_password()
                     user.save(update_fields=["password"])
-                    logger.info("New user created via Google OAuth: %s (role=%s)", email, role)
-                else:
-                    logger.info("Existing user signed in via Google OAuth: %s", email)
-        except Exception as exc:
-            logger.error("User creation/lookup failed for %s: %s", email, exc)
-            return HttpResponseRedirect(f"{frontend_callback}?error=user_creation_failed")
+                    logger.info("New user registered via Google OAuth: %s (role=%s)", email, role)
+            except Exception as exc:
+                logger.error("User creation failed for %s: %s", email, exc)
+                return HttpResponseRedirect(f"{frontend_callback}?error=user_creation_failed")
+        else:
+            logger.info("Existing user authenticated via Google OAuth: %s", email)
 
         # ── Step 4: Issue JWT tokens ──────────────────────────────────────────
         refresh = RefreshToken.for_user(user)

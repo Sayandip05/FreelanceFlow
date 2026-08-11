@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom'
 import {
   Briefcase, Mail, Lock, Eye, EyeOff, AlertCircle,
@@ -39,13 +39,14 @@ const AuthPage = () => {
   const [searchParams] = useSearchParams()
   const { login, setUser } = useAuth()
 
-  // If path is /register, default to register tab
-  const defaultTab = location.pathname === '/register' ? 'register' : 'login'
+  // If path is /register or error is please_signup_first, default to register tab
+  const defaultTab = (location.pathname === '/register' || searchParams.get('error') === 'please_signup_first') ? 'register' : 'login'
   const [tab, setTab] = useState(defaultTab)
 
   // Shared
   const [error, setError] = useState(() => {
     const err = searchParams.get('error')
+    if (err === 'please_signup_first') return 'No account found with this Google email. Please sign up first!'
     if (err === 'oauth_failed') return 'Google sign-in failed. Please try again.'
     if (err === 'no_token') return 'Authentication error. Please try again.'
     return ''
@@ -59,22 +60,49 @@ const AuthPage = () => {
 
   // Register state
   const [regForm, setRegForm] = useState({
-    firstName: '', lastName: '', email: '', password: '', confirmPassword: '',
-    role: 'FREELANCER',
+    firstName: '',
+    lastName: '',
+    email: searchParams.get('email') || '',
+    password: '',
+    confirmPassword: '',
+    role: (searchParams.get('role') || 'FREELANCER').toUpperCase(),
   })
   const [regLoading, setRegLoading] = useState(false)
   const [showRegPwd, setShowRegPwd] = useState(false)
 
-  // Google role for OAuth
-  const role = (searchParams.get('role') || regForm.role || 'FREELANCER').toUpperCase()
+  // Reset googleLoading if user navigates back from Google or switches tabs
+  useEffect(() => {
+    const handleResetLoading = () => {
+      setGoogleLoading(false)
+    }
+    window.addEventListener('pageshow', handleResetLoading)
+    window.addEventListener('focus', handleResetLoading)
+    document.addEventListener('visibilitychange', handleResetLoading)
+
+    setGoogleLoading(false)
+
+    return () => {
+      window.removeEventListener('pageshow', handleResetLoading)
+      window.removeEventListener('focus', handleResetLoading)
+      document.removeEventListener('visibilitychange', handleResetLoading)
+    }
+  }, [])
 
   /* ── Handlers ─────────────────────────────────────────────────────────── */
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
     setError('')
     try {
-      const resp = await api.get(`/users/auth/google/?role=${role}`)
-      window.location.href = resp.data.auth_url
+      const currentRole = (tab === 'register' ? regForm.role : (searchParams.get('role') || 'FREELANCER')).toUpperCase()
+      const currentMode = tab === 'register' ? 'register' : 'login'
+      const resp = await api.get(`/users/auth/google/?role=${currentRole}&mode=${currentMode}`)
+      if (resp.data?.auth_url) {
+        window.location.href = resp.data.auth_url
+        // Reset loading after 3 seconds in case user cancels or navigates back via bfcache
+        setTimeout(() => setGoogleLoading(false), 3000)
+      } else {
+        setGoogleLoading(false)
+      }
     } catch {
       setError('Could not connect to Google. Please try again.')
       setGoogleLoading(false)
@@ -195,7 +223,12 @@ const AuthPage = () => {
               ? <span className="w-4 h-4 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" />
               : <GoogleIcon />
             }
-            {googleLoading ? 'Redirecting…' : `Continue with Google`}
+            {googleLoading
+              ? 'Redirecting…'
+              : tab === 'login'
+                ? 'Sign in with Google'
+                : `Sign up with Google (${regForm.role === 'CLIENT' ? 'Client' : 'Freelancer'})`
+            }
           </button>
 
           {/* Divider */}

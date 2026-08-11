@@ -3,8 +3,8 @@
 #  Usage: make <target>
 # ============================================================
 
-VENV     = .venv
-PYTHON   = python
+VENV     = venv
+PYTHON   = $(VENV)/bin/python
 MANAGE   = $(PYTHON) manage.py
 FRONTEND = frontend
 
