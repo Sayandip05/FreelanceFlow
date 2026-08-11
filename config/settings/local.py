@@ -41,3 +41,17 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
+
+# ── Local Cache Configuration ──────────────────────────────────────────────────
+# Use LocMemCache instead of Redis for caching in local development to avoid
+# extra dependencies and comply with the strict project rules.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "freelanceflow-local",
+    },
+    "axes": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "axes",
+    },
+}
