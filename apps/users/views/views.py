@@ -92,7 +92,9 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def patch(self, request, *args, **kwargs):
         user = self.get_object()
         serializer = UserProfileUpdateSerializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            logger.warning("Profile update validation failed for user_id=%s: %s", user.id, serializer.errors)
+            serializer.is_valid(raise_exception=True)
         
         updated_user = update_profile(user, serializer.validated_data)
         
