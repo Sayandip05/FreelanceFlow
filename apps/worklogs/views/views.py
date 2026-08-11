@@ -456,12 +456,13 @@ class AIChatViewSet(viewsets.ViewSet):
                     status=status.HTTP_403_FORBIDDEN,
                 )
             
-            # Async AI call (non-blocking)
+            # Async AI call (non-blocking via unified LangGraph agent)
             response = await sync_to_async(process_ai_chat_message)(
                 contract_id=int(contract_id),
                 message=serializer.validated_data['message'],
                 chat_history=serializer.validated_data.get('chat_history', []),
                 project_name=contract.bid.project.title,
+                freelancer_id=request.user.id,
             )
             
             return Response(response, status=status.HTTP_200_OK)
