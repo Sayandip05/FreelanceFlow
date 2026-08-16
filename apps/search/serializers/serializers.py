@@ -1,28 +1,31 @@
 from rest_framework import serializers
+
+
 class ProjectSearchSerializer(serializers.Serializer):
     """Serializer for project search results."""
-    id = serializers.IntegerField()
-    title = serializers.CharField()
-    description = serializers.CharField()
-    budget = serializers.DecimalField(max_digits=12, decimal_places=2)
-    deadline = serializers.DateField(required=False, allow_null=True)
-    client_name = serializers.CharField()
-    client_email = serializers.CharField()
-    skills = serializers.ListField(child=serializers.CharField())
-    status = serializers.CharField()
-    created_at = serializers.DateTimeField()
+    id = serializers.IntegerField(required=False)
+    title = serializers.CharField(required=False, allow_blank=True, default="")
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    budget = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True, default=0)
+    deadline = serializers.DateTimeField(required=False, allow_null=True)
+
+    client_name = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
+    client_email = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
+    skills = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    status = serializers.CharField(required=False, allow_blank=True, default="OPEN")
+    created_at = serializers.DateTimeField(required=False, allow_null=True)
 
 
 class FreelancerSearchSerializer(serializers.Serializer):
     """Serializer for freelancer search results."""
-    id = serializers.IntegerField()
-    full_name = serializers.CharField()
-    email = serializers.CharField()
-    bio = serializers.CharField()
-    hourly_rate = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
-    skills = serializers.ListField(child=serializers.CharField())
-    subscription_tier = serializers.CharField()
-    total_earned = serializers.DecimalField(max_digits=15, decimal_places=2)
+    id = serializers.IntegerField(required=False)
+    full_name = serializers.CharField(required=False, allow_blank=True, default="")
+    email = serializers.CharField(required=False, allow_blank=True, default="")
+    bio = serializers.CharField(required=False, allow_blank=True, default="")
+    hourly_rate = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True, default=0)
+    skills = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    subscription_tier = serializers.CharField(required=False, allow_blank=True, default="FREE")
+    total_earned = serializers.DecimalField(max_digits=15, decimal_places=2, required=False, allow_null=True, default=0)
 
 
 class SearchQuerySerializer(serializers.Serializer):
@@ -35,6 +38,7 @@ class SearchQuerySerializer(serializers.Serializer):
     )
     skills = serializers.CharField(
         required=False,
+        allow_blank=True,
         help_text="Comma-separated list of skills to filter by"
     )
     min_budget = serializers.DecimalField(

@@ -1,7 +1,7 @@
-from rest_framework import status
+from rest_framework import status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+
 from elasticsearch_dsl import Q
 from apps.search.documents import ProjectDocument, FreelancerDocument
 from apps.search.serializers import (
@@ -16,7 +16,7 @@ class SearchView(APIView):
     
     GET /api/search/?q=web+developer&type=projects&skills=python,django
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = StandardResultsPagination
     
     def get(self, request):
@@ -56,108 +56,159 @@ class SearchView(APIView):
         return Response(results)
     
     def _search_projects(self, query, skills, min_budget, max_budget):
-        """Search projects using Elasticsearch."""
-        search = ProjectDocument.search()
-        
-        # Text search
-        if query:
-            search = search.query(
-                Q("multi_match", query=query, fields=["title^3", "description", "skills"])
-            )
-        
-        # Filter by skills
-        if skills:
-            skill_list = [s.strip() for s in skills.split(",")]
-            search = search.filter("terms", skills=skill_list)
-        
-        # Filter by budget range
-        if min_budget is not None:
-            search = search.filter("range", budget={"gte": float(min_budget)})
-        if max_budget is not None:
-            search = search.filter("range", budget={"lte": float(max_budget)})
-        
-        # Only show open projects
-        search = search.filter("term", status="OPEN")
-        
-        # Execute and return results
-        response = search[:50].execute()
-        return [hit.to_dict() for hit in response]
-    
+        """Search projects using Elasticsearch with PostgreSQL DB fallback."""
+        try:
+            search = ProjectDocument.search()
+            if query:
+                search = search.query(
+                    Q("multi_match", query=query, fields=["title^3", "description", "skills"])
+                )
+            if skills:
+                skill_list = [s.strip() for s in skills.split(",")]
+                search = search.filter("terms", skills=skill_list)
+            if min_budget is not None:
+                search = search.filter("range", budget={"gte": float(min_budget)})
+            if max_budget is not None:
+                search = search.filter("range", budget={"lte": float(max_budget)})
+
+            search = search.filter("term", status="OPEN")
+            response = search[:50].execute()
+            return [hit.to_dict() for hit in response]
+        except Exception:
+            from apps.projects.models import Project
+            qs = Project.objects.filter(status="OPEN")
+            if query:
+                qs = qs.filter(title__icontains=query)
+            return [
+                {
+                    "id": p.id,
+                    "title": p.title,
+                    "description": p.description,
+                    "status": p.status,
+                    "budget": float(p.budget_max or p.budget_min or 0),
+                    "client_id": p.client_id,
+                    "created_at": p.created_at.isoformat() if p.created_at else None,
+                }
+                for p in qs[:50]
+            ]
+
     def _search_freelancers(self, query, skills):
-        """Search freelancers using Elasticsearch."""
-        search = FreelancerDocument.search()
-        
-        # Text search
-        if query:
-            search = search.query(
-                Q("multi_match", query=query, fields=["full_name^2", "bio", "skills"])
-            )
-        
-        # Filter by skills
-        if skills:
-            skill_list = [s.strip() for s in skills.split(",")]
-            search = search.filter("terms", skills=skill_list)
-        
-        # All indexed freelancers are considered available
-        pass  # No availability filter needed
-        
-        # Execute and return results
-        response = search[:50].execute()
-        return [hit.to_dict() for hit in response]
+        """Search freelancers using Elasticsearch with PostgreSQL DB fallback."""
+        try:
+            search = FreelancerDocument.search()
+            if query:
+                search = search.query(
+                    Q("multi_match", query=query, fields=["full_name^2", "bio", "skills"])
+                )
+            if skills:
+                skill_list = [s.strip() for s in skills.split(",")]
+                search = search.filter("terms", skills=skill_list)
+
+            response = search[:50].execute()
+            return [hit.to_dict() for hit in response]
+        except Exception:
+            from apps.users.models import FreelancerProfile
+            qs = FreelancerProfile.objects.select_related("user").all()
+            if query:
+                qs = qs.filter(title__icontains=query)
+            return [
+                {
+                    "id": f.id,
+                    "user_id": f.user_id,
+                    "full_name": f.user.get_full_name() or f.user.email,
+                    "title": f.title,
+                    "bio": f.bio,
+                    "hourly_rate": float(f.hourly_rate or 0),
+                    "skills": f.skills if isinstance(f.skills, list) else [],
+                }
+                for f in qs[:50]
+            ]
 
 
 class ProjectSearchView(APIView):
-    """Dedicated endpoint for project search."""
-    permission_classes = [IsAuthenticated]
-    
+    """Dedicated endpoint for project search with DB fallback."""
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
     def get(self, request):
         """Search projects."""
         query = request.query_params.get("q", "")
         skills = request.query_params.get("skills", "")
-        
-        search = ProjectDocument.search()
-        
-        if query:
-            search = search.query(
-                Q("multi_match", query=query, fields=["title^3", "description"])
-            )
-        
-        if skills:
-            skill_list = [s.strip() for s in skills.split(",")]
-            search = search.filter("terms", skills=skill_list)
-        
-        search = search.filter("term", status="OPEN")
-        
-        response = search[:50].execute()
-        results = [hit.to_dict() for hit in response]
-        
-        return Response({"results": ProjectSearchSerializer(results, many=True).data})
+
+        try:
+            search = ProjectDocument.search()
+            if query:
+                search = search.query(
+                    Q("multi_match", query=query, fields=["title^3", "description"])
+                )
+            if skills:
+                skill_list = [s.strip() for s in skills.split(",")]
+                search = search.filter("terms", skills=skill_list)
+
+            search = search.filter("term", status="OPEN")
+            response = search[:50].execute()
+            results = [hit.to_dict() for hit in response]
+            return Response({"results": ProjectSearchSerializer(results, many=True).data})
+        except Exception:
+            from apps.projects.models import Project
+            qs = Project.objects.filter(status="OPEN")
+            if query:
+                qs = qs.filter(title__icontains=query)
+            results = [
+                {
+                    "id": p.id,
+                    "title": p.title,
+                    "description": p.description,
+                    "status": p.status,
+                    "budget": float(p.budget_max or p.budget_min or 0),
+                    "client_id": p.client_id,
+                    "created_at": p.created_at.isoformat() if p.created_at else None,
+                }
+                for p in qs[:50]
+            ]
+            return Response({"results": results})
 
 
 class FreelancerSearchView(APIView):
-    """Dedicated endpoint for freelancer search."""
-    permission_classes = [IsAuthenticated]
-    
+    """Dedicated endpoint for freelancer search with DB fallback."""
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
     def get(self, request):
         """Search freelancers."""
         query = request.query_params.get("q", "")
         skills = request.query_params.get("skills", "")
-        
-        search = FreelancerDocument.search()
-        
-        if query:
-            search = search.query(
-                Q("multi_match", query=query, fields=["full_name^2", "bio", "skills"])
-            )
-        
-        if skills:
-            skill_list = [s.strip() for s in skills.split(",")]
-            search = search.filter("terms", skills=skill_list)
-        
-        response = search[:50].execute()
-        results = [hit.to_dict() for hit in response]
-        
-        return Response({"results": FreelancerSearchSerializer(results, many=True).data})
+
+        try:
+            search = FreelancerDocument.search()
+            if query:
+                search = search.query(
+                    Q("multi_match", query=query, fields=["full_name^2", "bio", "skills"])
+                )
+            if skills:
+                skill_list = [s.strip() for s in skills.split(",")]
+                search = search.filter("terms", skills=skill_list)
+
+            response = search[:50].execute()
+            results = [hit.to_dict() for hit in response]
+            return Response({"results": FreelancerSearchSerializer(results, many=True).data})
+        except Exception:
+            from apps.users.models import FreelancerProfile
+            qs = FreelancerProfile.objects.select_related("user").all()
+            if query:
+                qs = qs.filter(title__icontains=query)
+            results = [
+                {
+                    "id": f.id,
+                    "user_id": f.user_id,
+                    "full_name": f.user.get_full_name() or f.user.email,
+                    "title": f.title,
+                    "bio": f.bio,
+                    "hourly_rate": float(f.hourly_rate or 0),
+                    "skills": f.skills if isinstance(f.skills, list) else [],
+                }
+                for f in qs[:50]
+            ]
+            return Response({"results": results})
+
 
 
 class AutocompleteView(APIView):
@@ -168,7 +219,7 @@ class AutocompleteView(APIView):
     Returns a list of search suggestions based on the query.
     Falls back gracefully when Elasticsearch is unavailable.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get(self, request):
         query = request.query_params.get("q", "").strip()

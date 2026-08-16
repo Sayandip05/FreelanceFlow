@@ -40,10 +40,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # If client, return their projects
-        if user.role == 'CLIENT':
+        if user.is_authenticated and getattr(user, 'role', None) == 'CLIENT':
             return get_client_projects(user)
         
-        # For freelancers, return open projects with filtering
+        # For freelancers and public visitors, return open projects with filtering
         budget_min = self.request.query_params.get('budget_min')
         budget_max = self.request.query_params.get('budget_max')
         skills = self.request.query_params.getlist('skills')
@@ -70,7 +70,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), IsClient()]
         elif self.action in ['update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsProjectOwner()]
+        elif self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
+
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

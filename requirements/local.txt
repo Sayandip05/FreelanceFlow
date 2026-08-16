@@ -1,5 +1,8 @@
-﻿-r base.txt
+-r base.txt
 django-debug-toolbar
 pytest
 pytest-django
 factory-boy
+locust
+websocket-client
+tabulate

@@ -108,11 +108,13 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "core.middleware.RequestLoggingMiddleware",  # After auth so request.user is set
+    "core.middleware.PerformanceProfilingMiddleware",  # SQL profiling, N+1 detection, and slow query monitoring
     "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.CORSCustomMiddleware",
 ]
+
 
 ROOT_URLCONF = "config.urls"
 
@@ -243,13 +245,19 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_CONNECTION_RETRY = True
 CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
 import ssl
+import certifi
 
 CELERY_BROKER_USE_SSL = {
-    "ssl_cert_reqs": ssl.CERT_NONE,
+    "ssl_cert_reqs": ssl.CERT_REQUIRED,
+    "ssl_ca_certs": certifi.where(),
 }
+
 CELERY_REDIS_BACKEND_USE_SSL = {
-    "ssl_cert_reqs": ssl.CERT_NONE,
+    "ssl_cert_reqs": ssl.CERT_REQUIRED,
+    "ssl_ca_certs": certifi.where(),
 }
+
+
 
 # Task execution settings
 CELERY_TASK_TRACK_STARTED = True

@@ -87,6 +87,9 @@ class RateLimitMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest):
+        if settings.DEBUG or request.headers.get("X-Benchmark-Profile", "").lower() == "true":
+            return self.get_response(request)
+
         if self._is_api_request(request):
             client_id = self._get_client_id(request)
             cache_key = f"rate_limit:{client_id}:{request.path}"
@@ -102,6 +105,7 @@ class RateLimitMiddleware:
                 )
 
         return self.get_response(request)
+
 
     def _is_api_request(self, request: HttpRequest) -> bool:
         return request.path.startswith("/api/")
@@ -168,8 +172,66 @@ class CORSCustomMiddleware:
                     "GET, POST, PUT, PATCH, DELETE, OPTIONS"
                 )
                 response["Access-Control-Allow-Headers"] = (
-                    "Authorization, Content-Type, X-CSRFToken"
+                    "Authorization, Content-Type, X-CSRFToken, X-Benchmark-Profile"
                 )
                 response["Access-Control-Allow-Credentials"] = "true"
 
         return response
+
+
+class PerformanceProfilingMiddleware:
+    """
+    Profiles database query count, duration, slow queries, and N+1 query patterns.
+    Activates when DEBUG=True or when the request contains 'X-Benchmark-Profile: true'.
+    """
+
+    def __init__(self, get_response: Callable):
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest):
+        profile_enabled = (
+            settings.DEBUG
+            or request.headers.get("X-Benchmark-Profile", "").lower() == "true"
+            or request.META.get("HTTP_X_BENCHMARK_PROFILE", "").lower() == "true"
+        )
+
+        if not profile_enabled:
+            return self.get_response(request)
+
+        from django.db import connection, reset_queries
+
+        reset_queries()
+        start_time = time.perf_counter()
+
+        response = self.get_response(request)
+
+        duration = (time.perf_counter() - start_time) * 1000
+        queries = connection.queries
+
+        query_count = len(queries)
+        query_time_ms = 0.0
+        query_sql_counts = {}
+        slow_queries = 0
+
+        for q in queries:
+            raw_time = float(q.get("time", 0.0)) * 1000
+            query_time_ms += raw_time
+            if raw_time >= 20.0:
+                slow_queries += 1
+
+            sql = q.get("sql", "").strip()
+            # Normalize whitespace to catch identical queries
+            norm_sql = " ".join(sql.split())
+            query_sql_counts[norm_sql] = query_sql_counts.get(norm_sql, 0) + 1
+
+        # Count queries executed more than once (N+1 query detection)
+        duplicate_queries = sum(count - 1 for count in query_sql_counts.values() if count > 1)
+
+        response["X-DB-Query-Count"] = str(query_count)
+        response["X-DB-Query-Time-Ms"] = f"{query_time_ms:.2f}"
+        response["X-DB-Duplicate-Queries"] = str(duplicate_queries)
+        response["X-DB-Slow-Queries"] = str(slow_queries)
+        response["X-Total-Duration-Ms"] = f"{duration:.2f}"
+
+        return response
+

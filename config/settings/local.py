@@ -41,3 +41,14 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
+
+# ── Throttling & Axes (local & benchmark) ───────────────────────────────────────
+REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+    "anon": "100000/hour",
+    "user": "500000/hour",
+    "auth": "100000/minute",
+}
+AXES_ENABLED = False
+
+

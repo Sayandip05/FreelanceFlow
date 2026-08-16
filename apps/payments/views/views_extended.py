@@ -19,16 +19,21 @@ from apps.payments.services.services_milestone import (
 class PaymentMilestoneViewSet(viewsets.ViewSet):
     """
     ViewSet for Payment Milestones
-    
-    Endpoints:
-    - POST /api/payments/contracts/{id}/milestones/ - Create milestone
-    - GET /api/payments/contracts/{id}/milestones/ - List milestones
-    - POST /api/payments/milestones/{id}/complete/ - Mark complete
-    - POST /api/payments/milestones/{id}/release/ - Release payment
-    - GET /api/payments/contracts/{id}/milestone-progress/ - Get progress
-    - GET /api/payments/milestones/upcoming/ - Get upcoming milestones
     """
     permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        """List all milestones for the authenticated user."""
+        from apps.payments.models import PaymentMilestone
+        user = request.user
+        if getattr(user, 'role', None) == 'CLIENT':
+            milestones = PaymentMilestone.objects.filter(contract__bid__project__client=user)
+        else:
+            milestones = PaymentMilestone.objects.filter(contract__bid__freelancer=user)
+        serializer = PaymentMilestoneSerializer(milestones, many=True)
+        return Response(serializer.data)
+
+
     
     @action(detail=True, methods=['post'], url_path='clear')
     def clear_milestones(self, request, pk=None):
