@@ -208,7 +208,7 @@ const FreelancerWorklogsPage = () => {
                       {contract.status || 'ACTIVE'}
                     </span>
                     <span className="text-[11px] text-gray-400 font-medium">
-                      #{contract.id?.slice(0, 8)}
+                      #{contract.id}
                     </span>
                   </div>
 

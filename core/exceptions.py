@@ -44,6 +44,25 @@ def custom_exception_handler(exc, context):
                 },
                 status=response.status_code,
             )
+            
+    # Handle custom BusinessError exceptions
+    if isinstance(exc, BusinessError):
+        status_code = status.HTTP_400_BAD_REQUEST
+        if isinstance(exc, PermissionDeniedError):
+            status_code = status.HTTP_403_FORBIDDEN
+        elif isinstance(exc, NotFoundError):
+            status_code = status.HTTP_404_NOT_FOUND
+        elif isinstance(exc, ValidationError):
+            status_code = status.HTTP_400_BAD_REQUEST
+            
+        return Response(
+            {
+                "error": exc.message,
+                "code": exc.code,
+                "field": getattr(exc, "field", None)
+            },
+            status=status_code
+        )
     
     # Handle unexpected errors
     return Response(
