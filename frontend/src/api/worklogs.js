@@ -77,13 +77,14 @@ export const aiChatAPI = {
 // File Upload APIs
 export const uploadAPI = {
   // Upload file (screenshot, attachment)
-  uploadFile: (file, description = '') => {
+  uploadFile: (file, description = '', onUploadProgress = null) => {
     const formData = new FormData()
     formData.append('file', file)
     if (description) formData.append('description', description)
     
     return api.post('/worklogs/upload/upload/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress,
     })
   },
 }

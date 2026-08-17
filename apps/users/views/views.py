@@ -324,14 +324,21 @@ class UploadImageView(generics.GenericAPIView):
         unique_name = f"{uuid.uuid4().hex}{ext}"
         relative_path = f"{image_type}s/{user.id}/{unique_name}"
 
-        # ── Try Azure Blob Storage first ──────────────────────────────────
+        # ── Try Azure Blob Storage first with timeout and local fallback ────
         connection_string = getattr(settings, 'AZURE_STORAGE_CONNECTION_STRING', '')
         container_name = getattr(settings, 'AZURE_CONTAINER_NAME', 'media')
+
+        uploaded_to_azure = False
+        image_url = None
 
         if connection_string:
             try:
                 from azure.storage.blob import BlobServiceClient, ContentSettings
-                blob_service = BlobServiceClient.from_connection_string(connection_string)
+                blob_service = BlobServiceClient.from_connection_string(
+                    connection_string,
+                    connection_timeout=3,
+                    read_timeout=3
+                )
                 container_client = blob_service.get_container_client(container_name)
                 content_settings = ContentSettings(content_type=image_file.content_type)
                 container_client.upload_blob(
@@ -342,14 +349,15 @@ class UploadImageView(generics.GenericAPIView):
                 )
                 account_name = blob_service.account_name
                 image_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{relative_path}"
+                uploaded_to_azure = True
             except Exception as exc:
-                return Response(
-                    {"detail": f"Azure upload failed: {str(exc)}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-        else:
+                logger.warning("Azure image upload failed (falling back to local): %s", exc)
+
+        if not uploaded_to_azure:
             # ── Local fallback: save to MEDIA_ROOT ───────────────────────
             try:
+                # Reset read pointer in case it was partially read during the failed Azure attempt
+                image_file.seek(0)
                 media_root = Path(settings.MEDIA_ROOT)
                 save_dir = media_root / f"{image_type}s" / str(user.id)
                 save_dir.mkdir(parents=True, exist_ok=True)
@@ -359,7 +367,7 @@ class UploadImageView(generics.GenericAPIView):
                     for chunk in image_file.chunks():
                         dest.write(chunk)
 
-                # Build a URL the frontend can reach:  http://localhost:8000/media/avatars/1/abc.jpg
+                # Build a URL the frontend can reach
                 backend_url = getattr(settings, 'BACKEND_URL', 'http://localhost:8000').rstrip('/')
                 media_url = settings.MEDIA_URL.rstrip('/')
                 image_url = f"{backend_url}{media_url}/{image_type}s/{user.id}/{unique_name}"

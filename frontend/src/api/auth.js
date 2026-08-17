@@ -36,13 +36,13 @@ export const authAPI = {
   updateAvatar: (avatarUrl) =>
     api.post('/users/avatar/', { avatar_url: avatarUrl }),
 
-  // Upload image (avatar or banner) to backend / Azure
-  uploadImage: (imageFile, imageType = 'avatar') => {
+  uploadImage: (imageFile, imageType = 'avatar', onUploadProgress = null) => {
     const formData = new FormData()
     formData.append('image', imageFile)
     formData.append('image_type', imageType)
     return api.post('/users/upload-image/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress,
     })
   },
 
