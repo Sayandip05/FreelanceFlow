@@ -4,53 +4,19 @@ import {
   Bell, Check, CheckCheck, MessageSquare, Briefcase,
   DollarSign, Clock, Sparkles, X, ChevronRight, CheckCircle2
 } from 'lucide-react'
-import api from '../../api/axiosConfig'
+import { useNotifications } from '../../context/NotificationContext'
 
 const NotificationBell = () => {
   const navigate = useNavigate()
+  // Pull live state from context (fed by WebSocket + REST)
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications() || {}
+  const safeNotifications = notifications || []
+  const safeUnreadCount = unreadCount || 0
+
   const [open, setOpen] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [notifications, setNotifications] = useState([])
-  const [loading, setLoading] = useState(false)
   const menuRef = useRef(null)
   const closeTimerRef = useRef(null)
 
-  // Fetch unread count & initial list
-  const fetchNotifications = async () => {
-    try {
-      const [countRes, listRes] = await Promise.allSettled([
-        api.get('/notifications/unread_count/'),
-        api.get('/notifications/'),
-      ])
-
-      if (countRes.status === 'fulfilled' && countRes.value.data) {
-        setUnreadCount(countRes.value.data.unread_count || 0)
-      }
-
-      if (listRes.status === 'fulfilled' && listRes.value.data) {
-        const rawList = Array.isArray(listRes.value.data)
-          ? listRes.value.data
-          : (listRes.value.data.results || [])
-        setNotifications(rawList)
-      }
-    } catch {
-      // Silently catch in dev
-    }
-  }
-
-  useEffect(() => {
-    fetchNotifications()
-    const interval = setInterval(fetchNotifications, 12000) // update every 12s
-
-    const handleFocus = () => fetchNotifications()
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('focus', handleFocus)
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
-    }
-  }, [])
 
   // Auto open on hover & close when cursor moves away
   const handleMouseEnter = () => {
@@ -85,24 +51,12 @@ const NotificationBell = () => {
   }, [open])
 
   const handleMarkAllRead = async () => {
-    try {
-      await api.post('/notifications/mark_all_read/')
-      setUnreadCount(0)
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
-    } catch {
-      setUnreadCount(0)
-    }
+    if (markAllRead) markAllRead()
   }
 
   const handleNotificationClick = async (notif) => {
-    try {
-      if (!notif.is_read) {
-        await api.post(`/notifications/${notif.id}/mark_read/`)
-        setUnreadCount(prev => Math.max(0, prev - 1))
-        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n))
-      }
-    } catch {
-      // Continue
+    if (!notif.is_read && markRead) {
+      markRead(notif.id)
     }
 
     setOpen(false)
@@ -153,7 +107,6 @@ const NotificationBell = () => {
         id="notification-bell-btn"
         onClick={() => {
           setOpen(prev => !prev)
-          if (!open) fetchNotifications()
         }}
         className={`relative p-2 rounded-xl transition-all duration-200 flex items-center justify-center ${
           open
@@ -163,9 +116,9 @@ const NotificationBell = () => {
         title="Notifications"
       >
         <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
+        {safeUnreadCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm animate-pulse border-2 border-white">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {safeUnreadCount > 9 ? '9+' : safeUnreadCount}
           </span>
         )}
       </button>
@@ -177,13 +130,13 @@ const NotificationBell = () => {
           <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
             <div className="flex items-center gap-2">
               <span className="text-sm font-extrabold text-gray-900">Notifications</span>
-              {unreadCount > 0 && (
+              {safeUnreadCount > 0 && (
                 <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-full">
-                  {unreadCount} unread
+                  {safeUnreadCount} unread
                 </span>
               )}
             </div>
-            {unreadCount > 0 && (
+            {safeUnreadCount > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAllRead}
@@ -196,7 +149,7 @@ const NotificationBell = () => {
 
           {/* List */}
           <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
-            {notifications.length === 0 ? (
+            {safeNotifications.length === 0 ? (
               <div className="py-12 px-4 text-center">
                 <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-2 text-gray-400">
                   <Bell className="w-5 h-5" />
@@ -205,7 +158,7 @@ const NotificationBell = () => {
                 <p className="text-[11px] text-gray-400 mt-0.5">No new notifications right now</p>
               </div>
             ) : (
-              notifications.slice(0, 15).map(notif => {
+              safeNotifications.slice(0, 15).map(notif => {
                 const isUnread = !notif.is_read
                 return (
                   <div
