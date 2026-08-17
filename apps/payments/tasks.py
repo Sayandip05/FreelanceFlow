@@ -57,6 +57,53 @@ def process_razorpay_webhook_task(event_id: str, event_type: str, event_data: di
                 razorpay_order_id,
             )
 
+    elif event_type == 'payout.processed':
+        # Razorpay confirmed the payout reached the freelancer's account
+        payout_entity = event_data.get('payout', {}).get('entity', {})
+        payout_id = payout_entity.get('id')
+        logger.info("payout.processed received: payout_id=%s event_id=%s", payout_id, event_id)
+        if payout_id:
+            updated = Payment.objects.filter(
+                razorpay_payout_id=payout_id,
+            ).exclude(
+                status=Payment.Status.PAID,
+            ).update(
+                status=Payment.Status.PAID,
+                payout_error="",
+            )
+            if updated:
+                logger.info("Payment marked PAID via payout.processed webhook: payout_id=%s", payout_id)
+            else:
+                logger.debug("payout.processed: no matching payment found or already PAID for payout_id=%s", payout_id)
+        else:
+            logger.warning("payout.processed webhook missing payout entity id: event_id=%s", event_id)
+
+    elif event_type == 'payout.failed':
+        # Payout was rejected — mark the payment as PAYOUT_FAILED with the reason
+        payout_entity = event_data.get('payout', {}).get('entity', {})
+        payout_id = payout_entity.get('id')
+        failure_reason = payout_entity.get('failure_reason', '') or 'Payout failed (Razorpay webhook)'
+        logger.warning(
+            "payout.failed received: payout_id=%s reason=%s event_id=%s",
+            payout_id, failure_reason, event_id,
+        )
+        if payout_id:
+            updated = Payment.objects.filter(
+                razorpay_payout_id=payout_id,
+            ).exclude(
+                status=Payment.Status.PAYOUT_FAILED,
+            ).update(
+                status=Payment.Status.PAYOUT_FAILED,
+                payout_error=failure_reason,
+            )
+            if updated:
+                logger.warning(
+                    "Payment marked PAYOUT_FAILED via webhook: payout_id=%s reason=%s",
+                    payout_id, failure_reason,
+                )
+        else:
+            logger.warning("payout.failed webhook missing payout entity id: event_id=%s", event_id)
+
     else:
         logger.debug("Unhandled webhook event type: %s event_id=%s", event_type, event_id)
 
@@ -134,7 +181,7 @@ def razorpay_transfer_to_freelancer_task(self, payment_id: int, amount: float):
             if contract.bid.project.status == Project.Status.IN_PROGRESS:
                 mark_project_completed(contract.bid.project)
 
-            from apps.payments.models_milestone import PaymentMilestone
+            from apps.payments.models.models_milestone import PaymentMilestone
             PaymentMilestone.objects.filter(payment_id=str(payment.id)).update(
                 status=PaymentMilestone.Status.PAID,
                 paid_at=timezone.now(),
