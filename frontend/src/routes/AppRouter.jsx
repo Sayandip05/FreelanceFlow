@@ -25,6 +25,7 @@ import ClientDeliverableReviewPage from '../pages/client/ClientDeliverableReview
 import ClientPaymentsPage from '../pages/client/ClientPaymentsPage'
 import ClientMessagesPage from '../pages/client/ClientMessagesPage'
 import ClientReviewPage from '../pages/client/ClientReviewPage'
+import ClientFreelancerProfilePage from '../pages/client/ClientFreelancerProfilePage'
 
 // Freelancer Pages
 import FreelancerOnboardingPage from '../pages/freelancer/FreelancerOnboardingPage'
@@ -66,6 +67,7 @@ const AppRouter = () => {
                 <Route path="payments" element={<ClientPaymentsPage />} />
                 <Route path="messages" element={<ClientMessagesPage />} />
                 <Route path="reviews" element={<ClientReviewPage />} />
+                <Route path="freelancers/:freelancerId" element={<ClientFreelancerProfilePage />} />
               </Route>
             </Route>
 

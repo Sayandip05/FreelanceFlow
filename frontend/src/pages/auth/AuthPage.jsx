@@ -65,7 +65,7 @@ const AuthPage = () => {
     email: searchParams.get('email') || '',
     password: '',
     confirmPassword: '',
-    role: (searchParams.get('role') || 'FREELANCER').toUpperCase(),
+    role: (searchParams.get('error') === 'please_signup_first' ? '' : (searchParams.get('role') || 'FREELANCER')).toUpperCase(),
   })
   const [regLoading, setRegLoading] = useState(false)
   const [showRegPwd, setShowRegPwd] = useState(false)
@@ -90,6 +90,10 @@ const AuthPage = () => {
 
   /* ── Handlers ─────────────────────────────────────────────────────────── */
   const handleGoogleSignIn = async () => {
+    if (tab === 'register' && !regForm.role) {
+      setError('Please select your role (Find Work or Hire Talent) before signing up with Google.')
+      return
+    }
     setGoogleLoading(true)
     setError('')
     try {
@@ -126,6 +130,10 @@ const AuthPage = () => {
   const handleRegister = async (e) => {
     e.preventDefault()
     setError('')
+    if (!regForm.role) {
+      setError('Please choose whether you want to Find Work (Freelancer) or Hire Talent (Client).')
+      return
+    }
     if (regForm.password !== regForm.confirmPassword) {
       setError('Passwords do not match.')
       return
@@ -227,7 +235,9 @@ const AuthPage = () => {
               ? 'Redirecting…'
               : tab === 'login'
                 ? 'Sign in with Google'
-                : `Sign up with Google (${regForm.role === 'CLIENT' ? 'Client' : 'Freelancer'})`
+                : regForm.role
+                  ? `Sign up with Google (${regForm.role === 'CLIENT' ? 'Client' : 'Freelancer'})`
+                  : 'Sign up with Google (Select Role first)'
             }
           </button>
 
