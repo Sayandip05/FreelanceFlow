@@ -12,7 +12,7 @@ const FreelancerEarningsPage = () => {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const res = await paymentsAPI.getPaymentHistory()
+        const res = await paymentsAPI.getPayments()
         setPayments(res.data?.results || res.data || [])
       } catch (e) {
         console.error(e)

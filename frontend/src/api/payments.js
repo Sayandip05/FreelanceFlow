@@ -43,6 +43,9 @@ export const paymentsAPI = {
   releaseMilestone: (milestoneId) =>
     api.post(`/payments/milestones/${milestoneId}/release/`),
 
+  rejectMilestone: (milestoneId, feedback = '') =>
+    api.post(`/payments/milestones/${milestoneId}/reject/`, { feedback }),
+
   getMilestoneProgress: (contractId) =>
     api.get(`/payments/milestones/${contractId}/milestone-progress/`),
 
