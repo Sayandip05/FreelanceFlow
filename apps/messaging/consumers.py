@@ -123,6 +123,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if frame_type == "read_receipt":
             await self._handle_read_receipt()
+        elif frame_type == "typing":
+            await self._handle_typing(data)
         else:
             await self._handle_chat_message(data)
 
@@ -196,6 +198,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
           - taps a 'Mark all read' button
         """
         await self._flush_unread_and_broadcast()
+
+    async def _handle_typing(self, data: dict):
+        """
+        Broadcast typing state to all other sockets in this room.
+        Payload sent by frontend: {"type": "typing", "is_typing": true|false}
+        Broadcast to group:       {"type": "typing_indicator", "user_id": ..., "full_name": ..., "is_typing": ...}
+        The typing_indicator() channel-layer handler filters out the echo to the sender.
+        """
+        is_typing = bool(data.get("is_typing", True))
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "typing_indicator",
+                "user_id": self.user.id,
+                "full_name": self.user.get_full_name() or self.user.email,
+                "is_typing": is_typing,
+            },
+        )
 
     async def _flush_unread_and_broadcast(self):
         """
@@ -284,6 +304,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message_ids": [<int>, ...]
         }
         """
+        await self.send(text_data=json.dumps(event))
+
+    async def typing_indicator(self, event: dict):
+        """
+        Deliver a typing indicator to this socket — but SKIP if the event
+        originated from this same user (don't echo back to the typer).
+
+        Payload delivered to the browser:
+        {
+            "type": "typing_indicator",
+            "user_id": <int>,
+            "full_name": <str>,
+            "is_typing": <bool>
+        }
+        """
+        # Don't send back to the user who is typing
+        if event.get("user_id") == getattr(self.user, "id", None):
+            return
         await self.send(text_data=json.dumps(event))
 
     # ------------------------------------------------------------------ #
