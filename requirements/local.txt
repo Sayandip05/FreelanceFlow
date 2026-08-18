@@ -1,5 +1,0 @@
-﻿-r base.txt
-django-debug-toolbar
-pytest
-pytest-django
-factory-boy
