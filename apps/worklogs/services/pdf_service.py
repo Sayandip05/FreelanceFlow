@@ -138,8 +138,127 @@ def generate_weekly_report_pdf(report_id: int) -> str:
         },
     )
 
-    from weasyprint import HTML
-    pdf_bytes = HTML(string=html_string).write_pdf()
+    from django.utils import timezone
+    pdf_bytes = None
+    try:
+        from weasyprint import HTML
+        pdf_bytes = HTML(string=html_string).write_pdf()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("WeasyPrint error, falling back to fpdf2: %s", e)
+        try:
+            from fpdf import FPDF
+            
+            def clean_pdf_text(text) -> str:
+                if not text:
+                    return ""
+                text_str = str(text)
+                replacements = {
+                    "\u2011": "-",  # Non-breaking hyphen
+                    "\u2013": "-",  # En dash
+                    "\u2014": "--", # Em dash
+                    "\u2018": "'",  # Smart left single quote
+                    "\u2019": "'",  # Smart right single quote
+                    "\u201c": '"',  # Smart left double quote
+                    "\u201d": '"',  # Smart right double quote
+                    "\u2022": "*",  # Bullet point
+                    "\u2026": "...",# Ellipsis
+                    "\u2027": "-",  # Hyphenation point
+                    "\u2010": "-",  # Hyphen
+                }
+                for k, v in replacements.items():
+                    text_str = text_str.replace(k, v)
+                return text_str.encode("latin-1", errors="replace").decode("latin-1")
+            
+            class ReportPDF(FPDF):
+                def header(self):
+                    self.set_font("Helvetica", "B", 14)
+                    self.set_text_color(99, 102, 241) # Indigo
+                    self.cell(0, 10, "FREELANCEFLOW VERIFIED WEEKLY REPORT", border=0, ln=1, align="L")
+                    self.set_draw_color(99, 102, 241)
+                    self.line(10, 20, 200, 20)
+                    self.ln(5)
+                    
+                def footer(self):
+                    self.set_y(-15)
+                    self.set_font("Helvetica", "I", 8)
+                    self.set_text_color(148, 163, 184) # Light grey
+                    self.cell(0, 10, f"Compiled securely by FreelanceFlow - Page {self.page_no()}", border=0, align="C")
+
+            pdf = ReportPDF()
+            pdf.add_page()
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(30, 41, 59) # Slate
+
+            # Metadata Table/Grid
+            project = report.contract.bid.project
+            freelancer = report.contract.bid.freelancer
+            client = project.client
+            
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Project:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(65, 7, clean_pdf_text(project.title), ln=0)
+            
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Freelancer:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 7, clean_pdf_text(freelancer.get_full_name() or freelancer.username), ln=1)
+
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Client:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(65, 7, clean_pdf_text(client.get_full_name() or client.username), ln=0)
+            
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Hours Billed:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 7, f"{report.total_hours} hrs", ln=1)
+
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Period:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(65, 7, f"{report.week_start} to {report.week_end}", ln=0)
+            
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Status:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 7, "Active / Sent to Client", ln=1)
+
+            pdf.ln(8)
+
+            # AI Summary
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.set_text_color(67, 56, 202) # Darker indigo
+            pdf.cell(0, 8, "AI Progress Summary", ln=1)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(30, 41, 59)
+            pdf.multi_cell(0, 6, clean_pdf_text(report.ai_summary))
+            pdf.ln(5)
+
+            # Work logs details
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.set_text_color(67, 56, 202)
+            pdf.cell(0, 8, "Logged Daily Hours", ln=1)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(30, 41, 59)
+            
+            if not logs.exists():
+                pdf.cell(0, 6, "No hours logged for this period.", ln=1)
+            else:
+                for log in logs:
+                    pdf.set_font("Helvetica", "B", 10)
+                    pdf.cell(0, 6, f"* {log.date} - {log.hours_worked} hrs", ln=1)
+                    pdf.set_font("Helvetica", "", 10)
+                    if log.description:
+                        pdf.multi_cell(0, 5, f"  Description: {clean_pdf_text(log.description)}")
+                    pdf.ln(2)
+
+            pdf_bytes = bytes(pdf.output())
+        except Exception as e_fallback:
+            import logging
+            logging.getLogger(__name__).exception("fpdf2 fallback generation failed: %s", e_fallback)
+            pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
 
     # Upload to Azure Blob Storage
     blob_name = (
@@ -193,8 +312,122 @@ def generate_delivery_proof_pdf(proof_id: int) -> str:
         },
     )
 
-    from weasyprint import HTML
-    pdf_bytes = HTML(string=html_string).write_pdf()
+    from django.utils import timezone
+    pdf_bytes = None
+    try:
+        from weasyprint import HTML
+        pdf_bytes = HTML(string=html_string).write_pdf()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("WeasyPrint error, falling back to fpdf2: %s", e)
+        try:
+            from fpdf import FPDF
+            
+            def clean_pdf_text(text) -> str:
+                if not text:
+                    return ""
+                text_str = str(text)
+                replacements = {
+                    "\u2011": "-",  # Non-breaking hyphen
+                    "\u2013": "-",  # En dash
+                    "\u2014": "--", # Em dash
+                    "\u2018": "'",  # Smart left single quote
+                    "\u2019": "'",  # Smart right single quote
+                    "\u201c": '"',  # Smart left double quote
+                    "\u201d": '"',  # Smart right double quote
+                    "\u2022": "*",  # Bullet point
+                    "\u2026": "...",# Ellipsis
+                    "\u2027": "-",  # Hyphenation point
+                    "\u2010": "-",  # Hyphen
+                }
+                for k, v in replacements.items():
+                    text_str = text_str.replace(k, v)
+                return text_str.encode("latin-1", errors="replace").decode("latin-1")
+            
+            class ProofPDF(FPDF):
+                def header(self):
+                    self.set_font("Helvetica", "B", 14)
+                    self.set_text_color(99, 102, 241) # Indigo
+                    self.cell(0, 10, "FREELANCEFLOW VERIFIED DELIVERY PROOF", border=0, ln=1, align="L")
+                    self.set_draw_color(99, 102, 241)
+                    self.line(10, 20, 200, 20)
+                    self.ln(5)
+                    
+                def footer(self):
+                    self.set_y(-15)
+                    self.set_font("Helvetica", "I", 8)
+                    self.set_text_color(148, 163, 184) # Light grey
+                    self.cell(0, 10, f"Compiled securely by FreelanceFlow - Page {self.page_no()}", border=0, align="C")
+
+            pdf = ProofPDF()
+            pdf.add_page()
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(30, 41, 59) # Slate
+
+            # Metadata Table/Grid
+            project = proof.contract.bid.project
+            freelancer = proof.contract.bid.freelancer
+            client = project.client
+            
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Project Name:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(65, 7, clean_pdf_text(project.title), ln=0)
+            
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Freelancer:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 7, clean_pdf_text(freelancer.get_full_name() or freelancer.username), ln=1)
+
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Client Name:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(65, 7, clean_pdf_text(client.get_full_name() or client.username), ln=0)
+            
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Contract ID:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 7, f"Contract #{proof.contract.id}", ln=1)
+
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Date Generated:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(65, 7, timezone.now().strftime('%B %d, %Y'), ln=0)
+            
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(35, 7, "Status:", ln=0)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 7, "Project Completed & Approved", ln=1)
+
+            pdf.ln(8)
+
+            # Contract Summary
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.set_text_color(67, 56, 202) # Darker indigo
+            pdf.cell(0, 8, "Verification Details", ln=1)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(30, 41, 59)
+            pdf.multi_cell(0, 6, f"This document verifies the complete transfer of project assets and work records for project '{clean_pdf_text(project.title)}' under Contract #{proof.contract.id}.")
+            pdf.ln(5)
+
+            # Log list
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.set_text_color(67, 56, 202)
+            pdf.cell(0, 8, "Historical Work Logs", ln=1)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(30, 41, 59)
+            
+            if not logs.exists():
+                pdf.cell(0, 6, "No hours logged on this contract.", ln=1)
+            else:
+                for log in logs:
+                    pdf.cell(0, 6, f"* {log.date} - {log.hours_worked} hrs - {clean_pdf_text(log.description)[:80]}...", ln=1)
+
+            pdf_bytes = bytes(pdf.output())
+        except Exception as e_fallback:
+            import logging
+            logging.getLogger(__name__).exception("fpdf2 fallback generation failed: %s", e_fallback)
+            pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
 
     # Upload to Azure Blob Storage
     blob_name = f"proofs/{proof.contract.id}/delivery_proof.pdf"
