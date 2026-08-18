@@ -689,7 +689,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
 
         # Also mirror to WeeklyReport for backward compatibility
         week_start = date.today() - timedelta(days=date.today().weekday())
-        WeeklyReport.objects.update_or_create(
+        weekly_report, created = WeeklyReport.objects.update_or_create(
             contract=contract,
             week_start=week_start,
             defaults={
@@ -698,6 +698,12 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 "pdf_url": sas_url,
                 "sent_to_client_at": timezone.now(),
             }
+        )
+
+        from django.db import transaction
+        from apps.worklogs.tasks import notify_client_new_report
+        transaction.on_commit(
+            lambda: notify_client_new_report.delay(weekly_report.id)
         )
 
         return sas_url, None

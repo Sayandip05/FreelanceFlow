@@ -9,6 +9,14 @@ from apps.worklogs.services.pdf_service import (
     generate_delivery_proof_pdf,
 )
 
+try:
+    from weasyprint import HTML
+    # Test if WeasyPrint system libraries are actually loadable and callable
+    HTML(string="<p></p>").write_pdf()
+    WEASYPRINT_AVAILABLE = True
+except Exception:
+    WEASYPRINT_AVAILABLE = False
+
 
 class PDFServiceTests(TestCase):
     def setUp(self):
@@ -25,11 +33,7 @@ class PDFServiceTests(TestCase):
         self.assertIn("report_test.pdf", url)
 
     @patch("apps.worklogs.services.pdf_service.upload_to_azure_blob")
-    @patch("weasyprint.HTML")
-    def test_generate_weekly_report_pdf(self, mock_html_cls, mock_upload):
-        mock_html_instance = MagicMock()
-        mock_html_instance.write_pdf.return_value = b"%PDF-1.4 mock pdf content"
-        mock_html_cls.return_value = mock_html_instance
+    def test_generate_weekly_report_pdf(self, mock_upload):
         mock_upload.return_value = "https://azure.blob.core.windows.net/media/reports/1/report.pdf?sas=123"
 
         report = WeeklyReport.objects.create(
@@ -39,18 +43,28 @@ class PDFServiceTests(TestCase):
             ai_summary="Summary of work completed.",
         )
 
-        pdf_url = generate_weekly_report_pdf(report)
+        if WEASYPRINT_AVAILABLE:
+            with patch("weasyprint.HTML") as mock_html_cls:
+                mock_html_instance = MagicMock()
+                mock_html_instance.write_pdf.return_value = b"%PDF-1.4 mock pdf content"
+                mock_html_cls.return_value = mock_html_instance
+
+                pdf_url = generate_weekly_report_pdf(report.id)
+        else:
+            with patch("fpdf.FPDF") as mock_fpdf_cls:
+                mock_fpdf_instance = MagicMock()
+                mock_fpdf_instance.output.return_value = b"%PDF-1.4 mock pdf content"
+                mock_fpdf_cls.return_value = mock_fpdf_instance
+
+                pdf_url = generate_weekly_report_pdf(report.id)
+
         self.assertIsNotNone(pdf_url)
         self.assertIn("https://", pdf_url)
         report.refresh_from_db()
         self.assertEqual(report.pdf_url, pdf_url)
 
     @patch("apps.worklogs.services.pdf_service.upload_to_azure_blob")
-    @patch("weasyprint.HTML")
-    def test_generate_delivery_proof_pdf(self, mock_html_cls, mock_upload):
-        mock_html_instance = MagicMock()
-        mock_html_instance.write_pdf.return_value = b"%PDF-1.4 mock proof content"
-        mock_html_cls.return_value = mock_html_instance
+    def test_generate_delivery_proof_pdf(self, mock_upload):
         mock_upload.return_value = "https://azure.blob.core.windows.net/media/proofs/1/proof.pdf?sas=123"
 
         proof = DeliveryProof.objects.create(
@@ -62,9 +76,22 @@ class PDFServiceTests(TestCase):
             report_id="RPT-TEST-12345",
         )
 
-        pdf_url = generate_delivery_proof_pdf(proof)
+        if WEASYPRINT_AVAILABLE:
+            with patch("weasyprint.HTML") as mock_html_cls:
+                mock_html_instance = MagicMock()
+                mock_html_instance.write_pdf.return_value = b"%PDF-1.4 mock proof content"
+                mock_html_cls.return_value = mock_html_instance
+
+                pdf_url = generate_delivery_proof_pdf(proof.id)
+        else:
+            with patch("fpdf.FPDF") as mock_fpdf_cls:
+                mock_fpdf_instance = MagicMock()
+                mock_fpdf_instance.output.return_value = b"%PDF-1.4 mock proof content"
+                mock_fpdf_cls.return_value = mock_fpdf_instance
+
+                pdf_url = generate_delivery_proof_pdf(proof.id)
+
         self.assertIsNotNone(pdf_url)
         self.assertIn("https://", pdf_url)
         proof.refresh_from_db()
         self.assertEqual(proof.pdf_url, pdf_url)
-
