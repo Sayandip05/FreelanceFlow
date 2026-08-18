@@ -220,6 +220,16 @@ def confirm_escrow_payment(razorpay_order_id: str, razorpay_payment_id: str) -> 
             milestone.status = PaymentMilestone.Status.IN_PROGRESS
             milestone.save()
 
+        from apps.notifications.services import notify_escrow_created
+        contract = payment.contract
+        transaction.on_commit(
+            lambda: notify_escrow_created(
+                freelancer=contract.bid.freelancer,
+                project_title=contract.bid.project.title,
+                amount=float(payment.total_amount),
+            )
+        )
+
     logger.info(
         "Escrow confirmed: payment_id=%s razorpay_payment_id=%s amount=%s",
         payment.id, razorpay_payment_id, payment.total_amount,
