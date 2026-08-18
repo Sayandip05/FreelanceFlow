@@ -73,7 +73,7 @@ def get_llm():
     if LANGCHAIN_AVAILABLE and getattr(settings, "GROQ_API_KEY", None):
         try:
             return ChatGroq(
-                model="llama-3.3-70b-versatile",
+                model=getattr(settings, "GROQ_MODEL", "openai/gpt-oss-120b"),
                 api_key=settings.GROQ_API_KEY,
                 temperature=0.6,
                 max_tokens=2048,
@@ -526,7 +526,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 <div class="meta-col" style="text-align: right;">
                     <strong>Freelancer:</strong> {freelancer.get_full_name() or freelancer.username}<br>
                     <strong>Hours Billed/Logged:</strong> {draft.hours_worked} hrs<br>
-                    <strong>Status:</strong> Approved & Verified
+                    <strong>Status:</strong> Pending Client Approval
                 </div>
             </div>
 
@@ -552,8 +552,131 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
             from weasyprint import HTML
             pdf_bytes = HTML(string=html_content).write_pdf()
         except Exception as e:
-            logger.warning("WeasyPrint error, falling back to minimal PDF bytes: %s", e)
-            pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
+            logger.warning("WeasyPrint error, falling back to fpdf2: %s", e)
+            try:
+                from fpdf import FPDF
+                
+                def clean_pdf_text(text) -> str:
+                    if not text:
+                        return ""
+                    text_str = str(text)
+                    replacements = {
+                        "\u2011": "-",  # Non-breaking hyphen
+                        "\u2013": "-",  # En dash
+                        "\u2014": "--", # Em dash
+                        "\u2018": "'",  # Smart left single quote
+                        "\u2019": "'",  # Smart right single quote
+                        "\u201c": '"',  # Smart left double quote
+                        "\u201d": '"',  # Smart right double quote
+                        "\u2022": "*",  # Bullet point
+                        "\u2026": "...",# Ellipsis
+                        "\u2027": "-",  # Hyphenation point
+                        "\u2010": "-",  # Hyphen
+                    }
+                    for k, v in replacements.items():
+                        text_str = text_str.replace(k, v)
+                    return text_str.encode("latin-1", errors="replace").decode("latin-1")
+                
+                class ReportPDF(FPDF):
+                    def header(self):
+                        # Header title
+                        self.set_font("Helvetica", "B", 14)
+                        self.set_text_color(99, 102, 241) # Indigo
+                        self.cell(0, 10, "FREELANCEFLOW VERIFIED PROGRESS REPORT", border=0, ln=1, align="L")
+                        self.set_draw_color(99, 102, 241)
+                        self.line(10, 20, 200, 20)
+                        self.ln(5)
+                        
+                    def footer(self):
+                        self.set_y(-15)
+                        self.set_font("Helvetica", "I", 8)
+                        self.set_text_color(148, 163, 184) # Light grey
+                        self.cell(0, 10, f"Compiled securely by FreelanceFlow AI Agent - Page {self.page_no()}", border=0, align="C")
+
+                pdf = ReportPDF()
+                pdf.add_page()
+                pdf.set_font("Helvetica", "", 10)
+                pdf.set_text_color(30, 41, 59) # Slate
+
+                # Metadata Table/Grid
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.cell(35, 7, "Project:", ln=0)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.cell(65, 7, clean_pdf_text(project.title), ln=0)
+                
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.cell(35, 7, "Freelancer:", ln=0)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.cell(0, 7, clean_pdf_text(freelancer.get_full_name() or freelancer.username), ln=1)
+
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.cell(35, 7, "Client:", ln=0)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.cell(65, 7, clean_pdf_text(client.get_full_name() or client.username), ln=0)
+                
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.cell(35, 7, "Hours Billed:", ln=0)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.cell(0, 7, f"{draft.hours_worked} hrs", ln=1)
+
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.cell(35, 7, "Date Generated:", ln=0)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.cell(65, 7, timezone.now().strftime('%B %d, %Y'), ln=0)
+                
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.cell(35, 7, "Status:", ln=0)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.cell(0, 7, "Pending Client Approval", ln=1)
+
+                pdf.ln(8)
+
+                # Section 1: Executive Summary
+                pdf.set_font("Helvetica", "B", 12)
+                pdf.set_text_color(67, 56, 202) # Darker indigo
+                pdf.cell(0, 8, "1. Executive Summary", ln=1)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.set_text_color(30, 41, 59)
+                pdf.multi_cell(0, 6, clean_pdf_text(draft.section_summary))
+                pdf.ln(5)
+
+                # Section 2: Deliverables Completed
+                pdf.set_font("Helvetica", "B", 12)
+                pdf.set_text_color(67, 56, 202)
+                pdf.cell(0, 8, "2. Deliverables & Milestones Completed", ln=1)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.set_text_color(30, 41, 59)
+                
+                if not draft.section_deliverables:
+                    pdf.cell(0, 6, "No discrete deliverables listed for this period.", ln=1)
+                else:
+                    for d in draft.section_deliverables:
+                        if isinstance(d, dict):
+                            d_title = d.get('title', 'Deliverable')
+                            d_status = d.get('status', 'COMPLETED')
+                            d_desc = d.get('description', '')
+                            
+                            pdf.set_font("Helvetica", "B", 10)
+                            pdf.cell(0, 6, f"* {clean_pdf_text(d_title)} [{clean_pdf_text(d_status)}]", ln=1)
+                            pdf.set_font("Helvetica", "", 10)
+                            if d_desc:
+                                pdf.multi_cell(0, 5, f"  Description: {clean_pdf_text(d_desc)}")
+                            pdf.ln(2)
+
+                pdf.ln(3)
+
+                # Section 3: Next Steps & Priorities
+                pdf.set_font("Helvetica", "B", 12)
+                pdf.set_text_color(67, 56, 202)
+                pdf.cell(0, 8, "3. Next Steps & Upcoming Priorities", ln=1)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.set_text_color(30, 41, 59)
+                pdf.multi_cell(0, 6, clean_pdf_text(draft.section_next_steps))
+
+                pdf_bytes = bytes(pdf.output())
+            except Exception as e_fallback:
+                logger.error("fpdf2 fallback generation failed: %s", e_fallback)
+                pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
 
         blob_name = f"reports/{contract.id}/report_{draft.id}_{timezone.now().strftime('%Y%m%d')}.pdf"
         sas_url = upload_to_azure_blob(pdf_bytes, blob_name)

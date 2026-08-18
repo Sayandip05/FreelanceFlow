@@ -283,11 +283,12 @@ def submit_deliverable_for_review(deliverable: Deliverable, freelancer) -> Deliv
     
     # Notify client
     from apps.notifications.services import create_notification
+    from apps.notifications.models import Notification
     create_notification(
         recipient=deliverable.contract.bid.project.client,
         title="New Deliverable Submitted",
         body=f"{freelancer.get_full_name()} submitted '{deliverable.title}' for review.",
-        type="DELIVERABLE_SUBMITTED",
+        notification_type=Notification.Type.LOG_SUBMITTED,
         data={"deliverable_id": deliverable.id, "contract_id": deliverable.contract.id}
     )
     

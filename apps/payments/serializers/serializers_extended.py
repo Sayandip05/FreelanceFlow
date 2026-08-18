@@ -20,9 +20,15 @@ class PaymentMilestoneSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'contract_id', 'project_title', 'freelancer_email',
             'title', 'description', 'amount', 'due_date',
-            'status', 'created_at', 'submitted_at', 'paid_at', 'payment_id'
+            'status', 'created_at', 'submitted_at', 'paid_at', 'payment_id',
+            'deliverable_description', 'deliverable_files', 'percentage', 'order',
+            'client_feedback'
         ]
-        read_only_fields = ['id', 'contract_id', 'project_title', 'freelancer_email', 'status', 'created_at', 'submitted_at', 'paid_at', 'payment_id']
+        read_only_fields = [
+            'id', 'contract_id', 'project_title', 'freelancer_email', 'status',
+            'created_at', 'submitted_at', 'paid_at', 'payment_id', 'deliverable_description',
+            'deliverable_files', 'percentage', 'order', 'client_feedback'
+        ]
 
 
 class CreateMilestoneSerializer(serializers.Serializer):

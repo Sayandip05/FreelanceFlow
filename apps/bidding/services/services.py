@@ -77,6 +77,15 @@ def submit_bid(
             status=Bid.Status.PENDING,
         )
 
+        from apps.notifications.services import notify_bid_submitted
+        transaction.on_commit(
+            lambda: notify_bid_submitted(
+                project_owner=project.client,
+                project_title=project.title,
+                freelancer_name=freelancer.get_full_name(),
+            )
+        )
+
     logger.info(
         "Bid submitted: bid_id=%s project_id=%s freelancer_id=%s amount=%s",
         bid.id, project.id, freelancer.id, amount,

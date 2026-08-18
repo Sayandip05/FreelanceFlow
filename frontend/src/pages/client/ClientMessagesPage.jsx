@@ -49,11 +49,14 @@ const ClientMessagesPage = () => {
   const [search, setSearch] = useState('')
   const [wsConnected, setWsConnected] = useState(false)
   const [showScrollBottom, setShowScrollBottom] = useState(false)
+  const [typingUser, setTypingUser] = useState(null) // { full_name: string } | null
 
   const chatContainerRef = useRef(null)
   const messagesEndRef = useRef(null)
   const wsRef = useRef(null)
   const isInitialScrollDone = useRef(false)
+  const typingTimerRef = useRef(null)
+  const typingSentRef = useRef(false)
 
   // Load all client conversations
   useEffect(() => {
@@ -109,6 +112,18 @@ const ClientMessagesPage = () => {
           setMessages((prev) =>
             prev.map((m) => (readIds.size === 0 || readIds.has(m.id) ? { ...m, is_read: true } : m))
           )
+          return
+        }
+
+        if (data.type === 'typing_indicator') {
+          if (data.is_typing) {
+            setTypingUser({ full_name: data.full_name })
+            clearTimeout(typingTimerRef.current)
+            typingTimerRef.current = setTimeout(() => setTypingUser(null), 3000)
+          } else {
+            setTypingUser(null)
+            clearTimeout(typingTimerRef.current)
+          }
           return
         }
 
@@ -260,6 +275,34 @@ const ClientMessagesPage = () => {
         behavior,
       })
     }
+  }
+
+  // Send typing indicator with debounce
+  const sendTyping = (isTyping) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      try {
+        wsRef.current.send(JSON.stringify({ type: 'typing', is_typing: isTyping }))
+      } catch {}
+    }
+  }
+
+  const handleInputChange = (e) => {
+    setNewMsg(e.target.value)
+    if (!typingSentRef.current) {
+      typingSentRef.current = true
+      sendTyping(true)
+    }
+    clearTimeout(typingTimerRef.current)
+    typingTimerRef.current = setTimeout(() => {
+      typingSentRef.current = false
+      sendTyping(false)
+    }, 2000)
+  }
+
+  const handleInputBlur = () => {
+    clearTimeout(typingTimerRef.current)
+    typingSentRef.current = false
+    sendTyping(false)
   }
 
   const handleSend = async (e) => {
@@ -573,10 +616,22 @@ const ClientMessagesPage = () => {
 
             {/* Fixed Bottom Input Form (Never overflows or causes outer scroll) */}
             <form onSubmit={handleSend} className="px-5 py-3 border-t border-gray-100 bg-white flex-shrink-0 z-10">
+              {/* Typing indicator banner */}
+              {typingUser && (
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <div className="flex gap-0.5 items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span className="text-xs text-gray-500 font-medium">{typingUser.full_name} is typing...</span>
+                </div>
+              )}
               <div className="flex gap-2.5 items-center">
                 <input
                   value={newMsg}
-                  onChange={(e) => setNewMsg(e.target.value)}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
                   placeholder="Type a message..."
                   className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm bg-gray-50/50 hover:bg-white focus:bg-white transition-colors"
                 />

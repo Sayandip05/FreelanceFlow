@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, Clock, AlertTriangle,
@@ -23,6 +23,7 @@ export default function ClientContractDetailPage() {
   const [deliverables, setDeliverables] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [revisionFeedback, setRevisionFeedback] = useState('')
 
   // Modals & Drawers
   const [showMilestoneModal, setShowMilestoneModal] = useState(false)
@@ -52,8 +53,45 @@ export default function ClientContractDetailPage() {
   // Termination explanation
   const [terminateExplanation, setTerminateExplanation] = useState('')
 
+  const wsRef = useRef(null)
+
   useEffect(() => {
     loadContractData()
+  }, [contractId])
+
+  // ── Contract WebSocket — real-time milestone status updates ───────────────
+  useEffect(() => {
+    if (!contractId) return
+    const token =
+      localStorage.getItem('access_token') ||
+      sessionStorage.getItem('access_token') ||
+      ''
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host =
+      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
+    const wsUrl = `${protocol}//${host}/ws/contract/${contractId}/?token=${token}`
+
+    const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const milestoneEvents = [
+          'milestone_funded', 'milestone_submitted',
+          'milestone_approved', 'milestone_rejected',
+        ]
+        if (milestoneEvents.includes(data.type)) {
+          loadContractData()
+        }
+      } catch {}
+    }
+
+    ws.onerror = () => ws.close()
+
+    return () => {
+      ws.close()
+    }
   }, [contractId])
 
   const loadContractData = async () => {
@@ -233,6 +271,28 @@ export default function ClientContractDetailPage() {
       alert(e.response?.data?.error || 'Funds released successfully to freelancer.')
       setShowReviewModal(false)
       loadContractData()
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  /* ── Reject & Request Revision for Milestone ────────────────────────────────── */
+  const handleRejectMilestone = async (milestoneId) => {
+    if (!revisionFeedback.trim()) {
+      alert('Please specify the changes you require in the feedback box first.')
+      return
+    }
+    if (!window.confirm('Are you sure you want to request changes for this milestone? This will notify the freelancer to re-submit.')) return
+    setActionLoading(true)
+    try {
+      await paymentsAPI.rejectMilestone(milestoneId, revisionFeedback)
+      alert('Revision request sent successfully to the freelancer!')
+      setRevisionFeedback('')
+      setShowReviewModal(false)
+      loadContractData()
+    } catch (e) {
+      console.error('Revision request error:', e)
+      alert(e.response?.data?.error || 'Failed to send revision request. Please try again.')
     } finally {
       setActionLoading(false)
     }
@@ -843,12 +903,43 @@ support@freelanceflow.com
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
               <p className="text-xs font-bold text-gray-700">Milestone Amount: {formatCurrency(selectedMilestone.amount)}</p>
               <p className="text-xs text-gray-600">{selectedMilestone.description}</p>
-              {selectedMilestone.deliverable_description && (
-                <div className="pt-2">
-                  <p className="text-xs font-bold text-gray-800">Freelancer Notes:</p>
-                  <p className="text-xs text-gray-600 mt-0.5 bg-white p-3 rounded-xl border border-gray-200">{selectedMilestone.deliverable_description}</p>
-                </div>
-              )}
+              {selectedMilestone.deliverable_description && (() => {
+                const parts = selectedMilestone.deliverable_description.split(' | Link: ');
+                const description = parts[0];
+                const link = parts[1];
+                return (
+                  <div className="pt-2 space-y-2">
+                    <div>
+                      <p className="text-xs font-bold text-gray-800">Freelancer Notes:</p>
+                      <p className="text-xs text-gray-600 mt-0.5 bg-white p-3 rounded-xl border border-gray-200">{description}</p>
+                    </div>
+                    {link && (
+                      <div className="pt-1">
+                        <p className="text-xs font-bold text-gray-700 mb-1">Attached File / Link:</p>
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-750 bg-indigo-50/80 hover:bg-indigo-100 px-3.5 py-2 rounded-xl border border-indigo-100 transition-all shadow-sm"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> View Deliverable File / Link
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Feedback / Revision Requirements</label>
+              <textarea
+                rows={3}
+                value={revisionFeedback}
+                onChange={(e) => setRevisionFeedback(e.target.value)}
+                placeholder="Explain what needs to be changed or fixed in this deliverable..."
+                className="w-full p-3 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
             </div>
 
             <div className="flex items-center gap-3">
@@ -861,11 +952,9 @@ support@freelanceflow.com
               </button>
 
               <button
-                onClick={() => {
-                  alert('Revision request sent to freelancer.')
-                  setShowReviewModal(false)
-                }}
-                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all"
+                onClick={() => handleRejectMilestone(selectedMilestone.id)}
+                disabled={actionLoading}
+                className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
               >
                 Request Changes
               </button>

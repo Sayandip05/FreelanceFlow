@@ -18,9 +18,9 @@ CSRF_COOKIE_SECURE = False
 # apps/search/signals.py also catch connection errors defensively.
 # When ES IS running, rebuild the index manually:
 #   python manage.py search_index --rebuild
-ELASTICSEARCH_DSL_AUTOSYNC = False
-# Use the no-op base processor so no ES connections are attempted on signals.
-ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "django_elasticsearch_dsl.signals.BaseSignalProcessor"
+ELASTICSEARCH_DSL_AUTOSYNC = True
+# Use the real-time signal processor to automatically sync models to ES on save.
+ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "django_elasticsearch_dsl.signals.RealTimeSignalProcessor"
 
 # Debug toolbar (optional)
 # INSTALLED_APPS += ["debug_toolbar"]
@@ -51,4 +51,16 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
 }
 AXES_ENABLED = False
 
-
+# ── Local Cache Configuration ──────────────────────────────────────────────────
+# Use LocMemCache instead of Redis for caching in local development to avoid
+# extra dependencies and comply with the strict project rules.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "freelanceflow-local",
+    },
+    "axes": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "axes",
+    },
+}

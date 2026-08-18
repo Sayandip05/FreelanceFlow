@@ -12,7 +12,8 @@ from apps.payments.serializers.serializers_extended import (
 )
 from apps.payments.services.services_milestone import (
     create_milestone, complete_milestone, release_milestone_payment,
-    get_contract_milestones, get_milestone_progress, get_upcoming_milestones
+    get_contract_milestones, get_milestone_progress, get_upcoming_milestones,
+    reject_milestone
 )
 
 
@@ -128,6 +129,22 @@ class PaymentMilestoneViewSet(viewsets.ViewSet):
             return Response({
                 'message': 'Milestone payment release initiated',
                 'payment': PaymentSerializer(payment).data
+            }, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject milestone deliverable submission and request changes (by client)"""
+        feedback = request.data.get("feedback", "")
+        try:
+            milestone = reject_milestone(pk, request.user, feedback=feedback)
+            return Response({
+                'message': 'Changes requested successfully',
+                'milestone': PaymentMilestoneSerializer(milestone).data
             }, status=status.HTTP_200_OK)
         except ValidationError as e:
             return Response(

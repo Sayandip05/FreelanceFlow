@@ -3,6 +3,7 @@ djangorestframework
 djangorestframework-simplejwt
 django-cors-headers
 django-environ
+python-dotenv
 django-filter
 django-extensions
 psycopg2-binary
@@ -23,11 +24,20 @@ django-axes
 drf-spectacular
 Pillow
 python-magic
+# LangChain / AI
 langsmith
 langchain
 langchain-core
 langchain-groq
+langchain-community
+langchain-google-genai
 langgraph
+# Vector DB
 qdrant-client
+# Google OAuth & AI
+google-auth
+google-auth-oauthlib
+google-generativeai
+# Misc
 requests
 certifi

@@ -18,6 +18,8 @@ const GoogleCallbackPage = () => {
     const params = new URLSearchParams(window.location.search)
     const access  = params.get('access')  || params.get('access_token')
     const refresh = params.get('refresh') || params.get('refresh_token')
+    const error   = params.get('error')
+    const role    = params.get('role')
     if (error === 'please_signup_first') {
       const email = params.get('email') || ''
       const userRole = params.get('role') || 'FREELANCER'

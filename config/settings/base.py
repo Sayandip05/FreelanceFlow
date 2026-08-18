@@ -32,11 +32,16 @@ env = environ.Env(
     QDRANT_URL=(str, ""),
     QDRANT_API_KEY=(str, ""),
     GROQ_API_KEY=(str, ""),
+    GROQ_MODEL=(str, "openai/gpt-oss-120b"),
     GEMINI_API_KEY=(str, ""),
     GEMINI_EMBEDDING_MODEL=(str, "gemini-embedding-001"),
     LANGSMITH_API_KEY=(str, ""),
     LANGSMITH_PROJECT=(str, "freelanceflow"),
     LANGSMITH_TRACING=(bool, False),
+    LANGCHAIN_API_KEY=(str, ""),
+    LANGCHAIN_PROJECT=(str, ""),
+    LANGCHAIN_TRACING_V2=(str, "false"),
+    LANGCHAIN_ENDPOINT=(str, ""),
     ELASTICSEARCH_URL=(str, "http://localhost:9200"),
     EMAIL_HOST=(str, "localhost"),
     EMAIL_PORT=(int, 587),
@@ -247,15 +252,21 @@ CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
 import ssl
 import certifi
 
-CELERY_BROKER_USE_SSL = {
-    "ssl_cert_reqs": ssl.CERT_REQUIRED,
-    "ssl_ca_certs": certifi.where(),
-}
+if CELERY_BROKER_URL.startswith("rediss://"):
+    CELERY_BROKER_USE_SSL = {
+        "ssl_cert_reqs": ssl.CERT_REQUIRED,
+        "ssl_ca_certs": certifi.where(),
+    }
+else:
+    CELERY_BROKER_USE_SSL = None
 
-CELERY_REDIS_BACKEND_USE_SSL = {
-    "ssl_cert_reqs": ssl.CERT_REQUIRED,
-    "ssl_ca_certs": certifi.where(),
-}
+if CELERY_RESULT_BACKEND.startswith("rediss://"):
+    CELERY_REDIS_BACKEND_USE_SSL = {
+        "ssl_cert_reqs": ssl.CERT_REQUIRED,
+        "ssl_ca_certs": certifi.where(),
+    }
+else:
+    CELERY_REDIS_BACKEND_USE_SSL = None
 
 
 
@@ -315,6 +326,7 @@ AZURE_CONTAINER_NAME = env("AZURE_CONTAINER_NAME", default="media")
 
 # Groq (Primary LLM for AI chat and reports)
 GROQ_API_KEY = env("GROQ_API_KEY")
+GROQ_MODEL = env("GROQ_MODEL")
 
 # Google Gemini (Fallback LLM & Vector Embeddings for Qdrant)
 GEMINI_API_KEY = env("GEMINI_API_KEY")
@@ -325,13 +337,16 @@ QDRANT_URL = env("QDRANT_URL")
 QDRANT_API_KEY = env("QDRANT_API_KEY")
 
 # LangSmith (for AI tracing and monitoring)
-LANGSMITH_API_KEY = env("LANGSMITH_API_KEY")
-LANGSMITH_PROJECT = env("LANGSMITH_PROJECT")
-LANGSMITH_TRACING = env("LANGSMITH_TRACING")
-LANGSMITH_ENDPOINT = env("LANGSMITH_ENDPOINT", default="https://api.smith.langchain.com")
+# Fallback to LANGCHAIN_* keys if they are present in .env
+LANGSMITH_API_KEY = env("LANGSMITH_API_KEY", default=env("LANGCHAIN_API_KEY", default=""))
+LANGSMITH_PROJECT = env("LANGSMITH_PROJECT", default=env("LANGCHAIN_PROJECT", default="freelanceflow"))
+LANGSMITH_TRACING = env("LANGSMITH_TRACING", default=env("LANGCHAIN_TRACING_V2", default="false"))
+LANGSMITH_ENDPOINT = env("LANGSMITH_ENDPOINT", default=env("LANGCHAIN_ENDPOINT", default="https://api.smith.langchain.com"))
 
 # Set LangSmith environment variables for tracing
-if LANGSMITH_TRACING and LANGSMITH_API_KEY:
+is_tracing_enabled = str(LANGSMITH_TRACING).lower() in ["true", "1", "yes"]
+
+if is_tracing_enabled and LANGSMITH_API_KEY:
     import os
 
     os.environ["LANGCHAIN_TRACING_V2"] = "true"

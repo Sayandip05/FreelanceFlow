@@ -12,15 +12,22 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 # Import routing after Django setup
 django_asgi_app = get_asgi_application()
 
-# Import routing configuration
-from apps.messaging import routing
+# Import all WebSocket routing modules
+from apps.messaging import routing as chat_routing
+from apps.notifications import routing as notif_routing
+from apps.payments import routing as contract_routing
+
+# Combine all WS URL patterns — single Daphne process handles everything
+all_websocket_urlpatterns = (
+    chat_routing.websocket_urlpatterns
+    + notif_routing.websocket_urlpatterns
+    + contract_routing.websocket_urlpatterns
+)
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(
-        URLRouter(
-            routing.websocket_urlpatterns
-        )
+        URLRouter(all_websocket_urlpatterns)
     ),
 })
 

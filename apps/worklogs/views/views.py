@@ -563,16 +563,59 @@ class FileUploadViewSet(viewsets.ViewSet):
             )
         
         # Save file and generate URL
-        from django.core.files.storage import default_storage
-        from django.core.files.base import ContentFile
+        import uuid
         import os
         from django.utils.text import get_valid_filename
+        from django.conf import settings
         
         # Sanitize filename to prevent path traversal
-        safe_filename = get_valid_filename(os.path.basename(file_obj.name))
-        file_path = f"worklogs/uploads/{request.user.id}/{safe_filename}"
-        saved_path = default_storage.save(file_path, ContentFile(file_obj.read()))
-        file_url = default_storage.url(saved_path)
+        ext = os.path.splitext(file_obj.name)[1].lower() or '.jpg'
+        safe_filename = f"{uuid.uuid4().hex}{ext}"
+        relative_path = f"worklogs/uploads/{request.user.id}/{safe_filename}"
+        
+        connection_string = getattr(settings, 'AZURE_STORAGE_CONNECTION_STRING', '')
+        container_name = getattr(settings, 'AZURE_CONTAINER_NAME', 'media')
+        
+        uploaded_to_azure = False
+        file_url = None
+
+        if connection_string:
+            try:
+                from azure.storage.blob import BlobServiceClient, ContentSettings
+                blob_service = BlobServiceClient.from_connection_string(
+                    connection_string,
+                    connection_timeout=3,
+                    read_timeout=3
+                )
+                container_client = blob_service.get_container_client(container_name)
+                content_settings = ContentSettings(content_type=file_obj.content_type)
+                
+                container_client.upload_blob(
+                    name=relative_path,
+                    data=file_obj.read(),
+                    overwrite=True,
+                    content_settings=content_settings,
+                )
+                account_name = blob_service.account_name
+                file_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{relative_path}"
+                uploaded_to_azure = True
+            except Exception as exc:
+                import logging
+                logger = logging.getLogger("apps.worklogs")
+                logger.warning("Azure deliverable file upload failed (falling back to local): %s", exc)
+
+        if not uploaded_to_azure:
+            # Local fallback: save to MEDIA_ROOT
+            from django.core.files.storage import default_storage
+            from django.core.files.base import ContentFile
+            file_obj.seek(0)
+            saved_path = default_storage.save(relative_path, ContentFile(file_obj.read()))
+            file_url = default_storage.url(saved_path)
+            
+            # Make sure local fallback has absolute URL with host if it's relative
+            if file_url.startswith('/'):
+                backend_url = getattr(settings, 'BACKEND_URL', 'http://localhost:8000').rstrip('/')
+                file_url = f"{backend_url}{file_url}"
         
         return Response({
             "url": file_url,

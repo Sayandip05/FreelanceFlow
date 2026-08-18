@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, Clock, AlertTriangle,
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { contractsAPI } from '../../api/bids'
 import { paymentsAPI } from '../../api/payments'
-import { deliverableAPI } from '../../api/worklogs'
+import { deliverableAPI, uploadAPI } from '../../api/worklogs'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatDate } from '../../utils/formatDate'
 
@@ -34,6 +34,35 @@ export default function FreelancerContractDetailPage() {
     deliverable_description: '',
     files_link: '',
   })
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    setUploadingFile(true)
+    setUploadProgress(0)
+    try {
+      const res = await uploadAPI.uploadFile(file, '', (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+        setUploadProgress(percentCompleted)
+      })
+      if (res.data?.url) {
+        setSubmitForm((prev) => ({
+          ...prev,
+          files_link: res.data.url
+        }))
+        alert(`File "${file.name}" uploaded successfully!`)
+      }
+    } catch (err) {
+      console.error('File upload error:', err)
+      alert(err.response?.data?.error || 'Failed to upload file.')
+    } finally {
+      setUploadingFile(false)
+      setUploadProgress(0)
+    }
+  }
 
   // Dispute form state
   const [disputeForm, setDisputeForm] = useState({
@@ -41,8 +70,45 @@ export default function FreelancerContractDetailPage() {
     description: '',
   })
 
+  const wsRef = useRef(null)
+
   useEffect(() => {
     loadContractData()
+  }, [contractId])
+
+  // ── Contract WebSocket — real-time milestone status updates ───────────────
+  useEffect(() => {
+    if (!contractId) return
+    const token =
+      localStorage.getItem('access_token') ||
+      sessionStorage.getItem('access_token') ||
+      ''
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host =
+      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
+    const wsUrl = `${protocol}//${host}/ws/contract/${contractId}/?token=${token}`
+
+    const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const milestoneEvents = [
+          'milestone_funded', 'milestone_submitted',
+          'milestone_approved', 'milestone_rejected',
+        ]
+        if (milestoneEvents.includes(data.type)) {
+          loadContractData()
+        }
+      } catch {}
+    }
+
+    ws.onerror = () => ws.close()
+
+    return () => {
+      ws.close()
+    }
   }, [contractId])
 
   const loadContractData = async () => {
@@ -438,6 +504,12 @@ export default function FreelancerContractDetailPage() {
                             <span className="font-bold">Your Deliverable Notes: </span>{m.deliverable_description}
                           </div>
                         )}
+                        {m.client_feedback && (
+                          <div className="mt-2 p-2.5 bg-amber-50 rounded-xl text-xs text-amber-900 border border-amber-200">
+                            <span className="font-bold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Revision Requested:</span>
+                            <p className="mt-1 text-[11px] text-amber-800 bg-white/50 p-2 rounded-lg border border-amber-100">{m.client_feedback}</p>
+                          </div>
+                        )}
                       </td>
 
                       <td className="py-4 px-4 font-black text-gray-900 whitespace-nowrap">
@@ -537,15 +609,68 @@ export default function FreelancerContractDetailPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">GitHub / Google Drive / Figma Link (Optional)</label>
-                <input
-                  type="url"
-                  value={submitForm.files_link}
-                  onChange={(e) => setSubmitForm({ ...submitForm, files_link: e.target.value })}
-                  placeholder="https://github.com/... or https://figma.com/..."
-                  className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">GitHub / Google Drive / Figma Link (Optional)</label>
+                  <input
+                    type="url"
+                    value={submitForm.files_link}
+                    onChange={(e) => setSubmitForm({ ...submitForm, files_link: e.target.value })}
+                    placeholder="https://github.com/... or https://figma.com/..."
+                    className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-gray-200"></div>
+                  <span className="flex-shrink mx-4 text-gray-400 text-[10px] font-bold uppercase tracking-wider">OR Upload File</span>
+                  <div className="flex-grow border-t border-gray-200"></div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Upload Screenshot / PDF Proof</label>
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-2xl hover:border-primary-500 transition-colors bg-gray-50/50">
+                    <div className="space-y-1 text-center">
+                      <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                      {uploadingFile ? (
+                        <div className="w-48 mx-auto mt-2">
+                          <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                            <span>Uploading proof...</span>
+                            <span className="font-bold text-primary-650">{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-primary-605 h-full rounded-full transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex text-xs text-gray-600 justify-center">
+                            <label className="relative cursor-pointer bg-white rounded-md font-bold text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
+                              <span>Choose a file</span>
+                              <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                disabled={uploadingFile}
+                                onChange={handleFileUpload}
+                                className="sr-only"
+                              />
+                            </label>
+                            <p className="pl-1">or drag and drop</p>
+                          </div>
+                          <p className="text-[10px] text-gray-400">PNG, JPG, GIF, PDF up to 10MB</p>
+                        </>
+                      )}
+                      {submitForm.files_link && (submitForm.files_link.includes('worklogs/uploads/') || submitForm.files_link.includes('placeholder-azure-blob-url')) && (
+                        <p className="text-[10px] text-emerald-600 font-semibold mt-2 break-all">
+                          Selected File: {submitForm.files_link.split('/').pop()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="p-3 bg-indigo-50 rounded-xl text-[11px] text-indigo-800 border border-indigo-100">

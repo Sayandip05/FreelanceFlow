@@ -1,6 +1,8 @@
 from django.db import transaction
 from apps.notifications.models import Notification
 from apps.notifications.tasks import send_notification_email
+
+
 def create_notification(
     recipient,
     title: str,
@@ -8,19 +10,40 @@ def create_notification(
     notification_type: str | None = None,
     **kwargs
 ) -> Notification:
-    """Create a new in-app notification."""
+    """Create a new in-app notification and push it to any open browser tabs."""
     notification_type = notification_type or kwargs.get("type")
-    
+
     if not notification_type:
         raise ValueError("notification_type is required.")
-    
+
     with transaction.atomic():
         notification = Notification.objects.create(
             recipient=recipient,
             title=title,
             body=body,
-            type=notification_type
+            type=notification_type,
         )
+
+    # Push to any open WebSocket connection for this user (best-effort, non-blocking)
+    try:
+        from apps.notifications.consumers import push_notification_to_user
+        push_notification_to_user(
+            recipient.id,
+            {
+                "id": notification.id,
+                "title": notification.title,
+                "body": notification.body,
+                "type": notification.type,
+                "is_read": notification.is_read,
+                "created_at": notification.created_at.isoformat(),
+            },
+        )
+    except Exception:
+        import logging
+        logging.getLogger(__name__).debug(
+            "WS push skipped for notification_id=%s (channel layer may be unavailable)", notification.id
+        )
+
     return notification
 
 

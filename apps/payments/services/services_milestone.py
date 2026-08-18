@@ -101,7 +101,31 @@ def complete_milestone(milestone_id, user, deliverable_description="", deliverab
     milestone.status = PaymentMilestone.Status.SUBMITTED
     milestone.submitted_at = timezone.now()
     milestone.save()
+
+    # Push real-time event to both contract participants
+    try:
+        from apps.payments.consumers import push_contract_event
+        push_contract_event(
+            milestone.contract_id,
+            "milestone_submitted",
+            {"milestone_id": milestone.id, "new_status": PaymentMilestone.Status.SUBMITTED},
+        )
+    except Exception:
+        pass
+
+    # Create notification for client
+    from apps.notifications.services import create_notification
+    from apps.notifications.models import Notification
     
+    transaction.on_commit(
+        lambda: create_notification(
+            recipient=milestone.contract.bid.project.client,
+            title="Milestone Deliverables Submitted",
+            body=f"Freelancer has submitted deliverables for milestone '{milestone.title}' on '{milestone.contract.bid.project.title}' for your review.",
+            notification_type=Notification.Type.LOG_SUBMITTED,
+        )
+    )
+
     return milestone
 
 
@@ -151,10 +175,21 @@ def release_milestone_payment(milestone_id, client):
     milestone.approved_by = client
     milestone.approved_at = timezone.now()
     milestone.save()
-    
+
     # Release the milestone escrow through the normal payout path.
     payment = release_payment(milestone.contract, client, payment_id=payment.id)
-    
+
+    # Push real-time approval event to both contract participants
+    try:
+        from apps.payments.consumers import push_contract_event
+        push_contract_event(
+            milestone.contract_id,
+            "milestone_approved",
+            {"milestone_id": milestone.id, "new_status": PaymentMilestone.Status.APPROVED},
+        )
+    except Exception:
+        pass
+
     return payment
 
 
@@ -215,3 +250,41 @@ def get_upcoming_milestones(user, days=30, limit=10):
         'contract__bid__project',
         'contract__bid__freelancer'
     ).order_by('due_date')[:limit]
+
+
+@transaction.atomic
+def reject_milestone(milestone_id, client, feedback=""):
+    """
+    Reject milestone deliverable submission and request changes (by client)
+    """
+    try:
+        milestone = PaymentMilestone.objects.select_related(
+            'contract', 'contract__bid', 'contract__bid__project'
+        ).get(id=milestone_id)
+    except PaymentMilestone.DoesNotExist:
+        raise ValidationError("Milestone not found")
+        
+    # Verify client is the contract project client
+    if milestone.contract.bid.project.client != client:
+        raise ValidationError("Only project owner can request changes")
+        
+    # Verify status is SUBMITTED
+    if milestone.status != PaymentMilestone.Status.SUBMITTED:
+        raise ValidationError("Milestone must be submitted for review before requesting changes")
+        
+    milestone.status = PaymentMilestone.Status.IN_PROGRESS
+    milestone.client_feedback = feedback
+    milestone.save()
+
+    # Push real-time rejection event to both contract participants
+    try:
+        from apps.payments.consumers import push_contract_event
+        push_contract_event(
+            milestone.contract_id,
+            "milestone_rejected",
+            {"milestone_id": milestone.id, "new_status": PaymentMilestone.Status.IN_PROGRESS, "feedback": feedback},
+        )
+    except Exception:
+        pass
+
+    return milestone
