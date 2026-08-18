@@ -142,7 +142,8 @@ const FreelancerMessagesPage = () => {
 
           // If incoming message is from the other user, emit read receipt back
           const otherId = selected.other_user?.id || selected.contract?.client?.id
-          if (incomingMsg.sender === otherId && ws.readyState === WebSocket.OPEN) {
+          const incomingSenderId = typeof incomingMsg.sender === 'object' && incomingMsg.sender !== null ? incomingMsg.sender.id : incomingMsg.sender
+          if (incomingSenderId === otherId && ws.readyState === WebSocket.OPEN) {
             try {
               ws.send(JSON.stringify({ type: 'read_receipt' }))
             } catch {}
@@ -563,7 +564,8 @@ const FreelancerMessagesPage = () => {
               ) : (
                 messages.map((msg, idx) => {
                   const otherId = selected.other_user?.id || selected.contract?.client?.id
-                  const isMe = msg.sender !== otherId
+                  const senderId = typeof msg.sender === 'object' && msg.sender !== null ? msg.sender.id : msg.sender
+                  const isMe = senderId !== otherId
 
                   return (
                     <div key={msg.id || idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
