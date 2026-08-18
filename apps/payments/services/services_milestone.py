@@ -113,6 +113,19 @@ def complete_milestone(milestone_id, user, deliverable_description="", deliverab
     except Exception:
         pass
 
+    # Create notification for client
+    from apps.notifications.services import create_notification
+    from apps.notifications.models import Notification
+    
+    transaction.on_commit(
+        lambda: create_notification(
+            recipient=milestone.contract.bid.project.client,
+            title="Milestone Deliverables Submitted",
+            body=f"Freelancer has submitted deliverables for milestone '{milestone.title}' on '{milestone.contract.bid.project.title}' for your review.",
+            notification_type=Notification.Type.LOG_SUBMITTED,
+        )
+    )
+
     return milestone
 
 
