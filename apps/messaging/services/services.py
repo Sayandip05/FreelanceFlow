@@ -57,6 +57,22 @@ def send_message(sender, conversation_id: int, content: str) -> Message:
             content=content.strip(),
         )
         conversation.save()  # bumps updated_at for conversation list ordering
+
+        # Determine the recipient
+        recipient = (
+            contract.bid.project.client
+            if sender == contract.bid.freelancer
+            else contract.bid.freelancer
+        )
+
+        from apps.notifications.services import notify_message_received
+        transaction.on_commit(
+            lambda: notify_message_received(
+                recipient=recipient,
+                sender_name=sender.full_name,
+            )
+        )
+
         return message
 
 

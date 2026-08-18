@@ -112,7 +112,22 @@ def generate_pdf_task(self, object_id: int, object_type: str):
 @shared_task(queue="freelanceflow_low_priority")
 def generate_proof_pdf_task(proof_id: int):
     """Generate PDF for delivery proof and upload to Azure Blob Storage."""
-    return generate_delivery_proof_pdf(proof_id)
+    pdf_url = generate_delivery_proof_pdf(proof_id)
+
+    # Notify client that proof is ready
+    from apps.notifications.services import notify_proof_ready
+    from apps.worklogs.models import DeliveryProof
+    try:
+        proof = DeliveryProof.objects.select_related("contract__bid__project__client").get(id=proof_id)
+        notify_proof_ready(
+            client=proof.contract.bid.project.client,
+            project_title=proof.contract.bid.project.title,
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Failed to notify client for proof_id=%s: %s", proof_id, e)
+
+    return pdf_url
 
 
 # ─────────────────────────────────────────────────────────────────────────────

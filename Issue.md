@@ -14,16 +14,12 @@ suppose client decide the milestone/ month then also the money will be distribut
 6. Stuck in frelancer profile image uploading section -- 
 7. When user sign it with out create accout he redirect as frelancer 
 8.  if a user go back with out giving her email it stuck in redirecting in the login page
-9. after accept the bid the frelancer should get a notification
-10. when user get message he should get a notification and the first message he got it look like he send the message the message show on send side.
 
 11. Read Receipt : Verify if messages are marked as read.
 
-12. when frelancer click on worklog  -> open ai assistant it simply logout the frelancer
-
-13. payment system not working while client click on fund escrow it show a pop up but not redirect any page for payment 
-
 14. in the payment page we have to saw the commition we deduct 
+
+
 
 
 
@@ -54,19 +50,32 @@ Test the core delivery and time-tracking features.
 - [ ] **Weekly Reports**: Verify that weekly AI-generated progress reports (PDFs) are generated for the contract and stored via Azure Blob Storage URLs.
 - [ ] **Delivery Proof**: Upon project completion, verify the final tamper-evident PDF is generated.
 
----
-
-## 6. Payments & Escrow (Razorpay)
-Test the financial workflow.
-
-### Client Side
-- [ ] **Fund Escrow**: Make a payment through Razorpay for a project milestone or upfront contract amount.
-- [ ] **Payment Status**: Verify the payment status turns to ESCROWED.
-
-### Client/Freelancer Side
-- [ ] **Release Payment**: Client approves work and releases payment from escrow.
-- [ ] **Freelancer Payout**: Verify the payment is marked for payout to the freelancer's RazorpayX Fund Account.
-- [ ] **Platform Cut**: Check that the platform fee (earning percentage) is deducted correctly.
-
 
 **Client Recommendation Dashboard**: Verify that relevant freelancers are recommended to the client based on the project's required skills.
+
+
+
+
+***Notification system ***
+💼 Client Notifications- 
+BID_SUBMITTED	A freelancer applies to one of the client's open projects.	Alerts the client to review the proposal and bid details.
+
+LOG_SUBMITTED	The freelancer logs/submits a milestone for review.	Prompts the client to approve the work and release the funded milestone escrow.
+
+PROOF_READY	The freelancer uploads final delivery proof/deliverables.	Signals the project is ready for final approval.
+
+MESSAGE_RECEIVED	The freelancer sends a direct chat message to the client.	Live notify the client of incoming messages.
+
+
+🛠️ Freelancer Notifications-
+BID_ACCEPTED	The client accepts the freelancer's bid and creates a contract proposal.	Prompts the freelancer to review and accept the contract proposal to start.
+
+ESCROW_CREATED	The client deposits funds into the milestone's escrow wallet.	Notifies the freelancer that funds are secured and they are safe to begin work.
+
+PAYMENT_RELEASED	The client approves a milestone, releasing escrow funds.	Confirms money has been sent to the freelancer's earnings page.
+
+REPORT_UPCOMING	Scheduled weekly report is 3 days away.	Reminds the freelancer to log all recent hours so they get captured in the PDF report.
+
+REPORT_READY	The weekly report PDF generation is completed.	Notifies the freelancer that their copy of the progress report is ready.
+
+MESSAGE_RECEIVED	The client sends a direct chat message to the freelancer.	Live notify the freelancer of incoming messages.
