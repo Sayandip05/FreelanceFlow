@@ -1,4 +1,4 @@
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Q
 from django.shortcuts import get_object_or_404
 from .models import Project, ProjectSkill
 
@@ -45,8 +45,8 @@ def get_open_projects(
     
     if search:
         queryset = queryset.filter(
-            models.Q(title__icontains=search) |
-            models.Q(description__icontains=search)
+            Q(title__icontains=search) |
+            Q(description__icontains=search)
         )
     
     return queryset

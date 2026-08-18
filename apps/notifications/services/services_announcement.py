@@ -1,7 +1,7 @@
 """
 System Announcement Services
 """
-from django.db import transaction
+from django.db import transaction, models
 from apps.notifications.models.models_extended import SystemAnnouncement
 
 @transaction.atomic

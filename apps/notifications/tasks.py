@@ -38,7 +38,7 @@ def notify_freelancer_bid_accepted(self, contract_id: int):
     Called asynchronously by the bidding service after bid acceptance.
     """
     from apps.bidding.models import Contract
-    from apps.notifications.models import Notification
+    from apps.notifications.services import create_notification
     try:
         contract = Contract.objects.select_related(
             'bid__freelancer', 'bid__project'
@@ -46,7 +46,7 @@ def notify_freelancer_bid_accepted(self, contract_id: int):
         freelancer = contract.bid.freelancer
         project = contract.bid.project
 
-        Notification.objects.create(
+        create_notification(
             recipient=freelancer,
             title="Contract Proposal Received!",
             body=(
