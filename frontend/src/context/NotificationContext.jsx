@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import api from '../api/axiosConfig'
+import { useAuth } from './AuthContext'
 
 const NotificationContext = createContext(null)
 
@@ -15,9 +16,15 @@ export function NotificationProvider({ children }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const wsRef = useRef(null)
   const reconnectTimer = useRef(null)
+  const { user } = useAuth()
 
   // ── REST fetch (used on mount and as WS fallback) ─────────────────────────
   const fetchNotifications = useCallback(async () => {
+    if (!user) {
+      setNotifications([])
+      setUnreadCount(0)
+      return
+    }
     try {
       const [countRes, listRes] = await Promise.allSettled([
         api.get('/notifications/notifications/unread_count/'),
@@ -33,10 +40,11 @@ export function NotificationProvider({ children }) {
     } catch {
       // Silently ignore — WS will keep us current
     }
-  }, [])
+  }, [user])
 
   // ── WebSocket connection ───────────────────────────────────────────────────
   const connectWS = useCallback(() => {
+    if (!user) return
     const token =
       localStorage.getItem('access_token') ||
       sessionStorage.getItem('access_token') ||
@@ -100,7 +108,7 @@ export function NotificationProvider({ children }) {
     ws.onerror = () => {
       ws.close()
     }
-  }, [])
+  }, [user])
 
   // ── Mark single notification read (optimistic) ────────────────────────────
   const markRead = useCallback(async (notifId) => {
@@ -133,6 +141,12 @@ export function NotificationProvider({ children }) {
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!user) {
+      setNotifications([])
+      setUnreadCount(0)
+      return
+    }
+
     fetchNotifications()
     connectWS()
 
@@ -148,7 +162,7 @@ export function NotificationProvider({ children }) {
         wsRef.current.close()
       }
     }
-  }, [fetchNotifications, connectWS])
+  }, [user, fetchNotifications, connectWS])
 
   return (
     <NotificationContext.Provider

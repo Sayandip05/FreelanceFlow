@@ -9,7 +9,7 @@ import { useNotifications } from '../../context/NotificationContext'
 const NotificationBell = () => {
   const navigate = useNavigate()
   // Pull live state from context (fed by WebSocket + REST)
-  const { notifications, unreadCount, markRead, markAllRead } = useNotifications() || {}
+  const { notifications, unreadCount, markRead, markAllRead, fetchNotifications } = useNotifications() || {}
   const safeNotifications = notifications || []
   const safeUnreadCount = unreadCount || 0
 
@@ -25,7 +25,9 @@ const NotificationBell = () => {
       closeTimerRef.current = null
     }
     setOpen(true)
-    fetchNotifications()
+    if (fetchNotifications) {
+      fetchNotifications()
+    }
   }
 
   const handleMouseLeave = () => {
@@ -70,6 +72,9 @@ const NotificationBell = () => {
       navigate('/contracts')
     } else if (notif.type?.includes('PAYMENT') || notif.notification_type?.includes('PAYMENT')) {
       navigate('/earnings')
+    } else if (notif.type?.includes('BID') || notif.notification_type?.includes('BID')) {
+      const isClient = notif.type?.includes('SUBMITTED') || notif.notification_type?.includes('SUBMITTED')
+      navigate(isClient ? '/client/projects' : '/freelancer/bids')
     }
   }
 
