@@ -234,3 +234,38 @@ Best regards,
 FreelanceFlow Team
         """.strip()
     )
+
+
+def send_client_weekly_report_email(
+    recipient_email: str,
+    client_name: str,
+    freelancer_name: str,
+    project_title: str,
+    week_start: str,
+    week_end: str,
+    total_hours: str,
+    pdf_url: str,
+    dashboard_url: str,
+) -> bool:
+    """
+    Send automated email notification with Azure Blob SAS download link
+    to the client when a weekly progress report PDF is ready.
+    """
+    subject = f"📄 Progress Report Ready: {project_title} ({week_start} to {week_end})"
+    context = {
+        "client_name": client_name,
+        "freelancer_name": freelancer_name,
+        "project_title": project_title,
+        "week_start": week_start,
+        "week_end": week_end,
+        "total_hours": total_hours,
+        "pdf_url": pdf_url,
+        "dashboard_url": dashboard_url,
+    }
+    return send_notification_email(
+        recipient_email=recipient_email,
+        subject=subject,
+        template_name="client_weekly_report",
+        context=context,
+    )
+

@@ -351,10 +351,22 @@ class UploadImageView(generics.GenericAPIView):
                     content_settings=content_settings,
                 )
                 account_name = blob_service.account_name
-                image_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{relative_path}"
+                from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+                from datetime import datetime, timedelta, timezone
+
+                sas_token = generate_blob_sas(
+                    account_name=account_name,
+                    container_name=container_name,
+                    blob_name=relative_path,
+                    account_key=blob_service.credential.account_key,
+                    permission=BlobSasPermissions(read=True),
+                    expiry=datetime.now(timezone.utc) + timedelta(days=365),
+                )
+                image_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{relative_path}?{sas_token}"
                 uploaded_to_azure = True
             except Exception as exc:
                 logger.warning("Azure image upload failed (falling back to local): %s", exc)
+
 
         if not uploaded_to_azure:
             # ── Local fallback: save to MEDIA_ROOT ───────────────────────

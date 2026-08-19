@@ -41,3 +41,5 @@ google-generativeai
 # Misc
 requests
 certifi
+fpdf2
+
