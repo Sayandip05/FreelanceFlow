@@ -25,6 +25,9 @@ logs/
 *.log
 media/
 
+# Performance Benchmarks
+benchmarks/
 
 .DS_Store
 *.DS_Store
+
