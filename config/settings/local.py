@@ -55,3 +55,15 @@ CACHES = {
         "LOCATION": "axes",
     },
 }
+
+# ── Throttle override for local dev & load testing ────────────────────────────
+# In production, AuthRateThrottle = 5/minute. Locally we raise all limits so
+# Locust virtual users (all sharing 127.0.0.1) are never blocked by rate limits.
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+    "anon": "10000/hour",
+    "user": "100000/hour",
+    "auth": "1000/minute",   # was 5/minute — allows Locust concurrent logins
+}
+
+# Disable django-axes lockout during local development and load testing
+AXES_ENABLED = False

@@ -47,3 +47,5 @@ django-debug-toolbar
 pytest
 pytest-django
 factory-boy
+locust
+fpdf2
