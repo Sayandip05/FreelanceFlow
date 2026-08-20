@@ -66,7 +66,10 @@ CACHES = {
         "LOCATION": env("REDIS_URL"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {"max_connections": 50},
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 50,
+                "ssl_cert_reqs": None,
+            },
         },
         "KEY_PREFIX": "freelanceflow",
         "TIMEOUT": 300,
