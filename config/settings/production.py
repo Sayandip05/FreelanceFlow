@@ -73,18 +73,28 @@ CACHES = {
 }
 
 # Database connection pool
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DATABASE_NAME", default="freelanceflow"),
-        "USER": env("DATABASE_USER", default="postgres"),
-        "PASSWORD": env("DATABASE_PASSWORD", default="postgres"),
-        "HOST": env("DATABASE_HOST", default="localhost"),
-        "PORT": env("DATABASE_PORT", default="5432"),
-        "CONN_MAX_AGE": 60,
-        "CONN_HEALTH_CHECKS": True,
-        "OPTIONS": {
-            "connect_timeout": 10,
-        },
+if env("DATABASE_URL", default=""):
+    DATABASES = {
+        "default": env.db_url("DATABASE_URL")
     }
-}
+    DATABASES["default"]["CONN_MAX_AGE"] = 60
+    DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+    DATABASES["default"]["OPTIONS"] = {
+        "connect_timeout": 10,
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": env("DATABASE_NAME", default="freelanceflow"),
+            "USER": env("DATABASE_USER", default="postgres"),
+            "PASSWORD": env("DATABASE_PASSWORD", default="postgres"),
+            "HOST": env("DATABASE_HOST", default="localhost"),
+            "PORT": env("DATABASE_PORT", default="5432"),
+            "CONN_MAX_AGE": 60,
+            "CONN_HEALTH_CHECKS": True,
+            "OPTIONS": {
+                "connect_timeout": 10,
+            },
+        }
+    }
