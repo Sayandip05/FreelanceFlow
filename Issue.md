@@ -15,6 +15,8 @@ suppose client decide the milestone/ month then also the money will be distribut
 7. When user sign it with out create accout he redirect as frelancer 
 8.  if a user go back with out giving her email it stuck in redirecting in the login page
 
+9. Currently the worklog generated successfully but the frlancer have to send it manually make it automatically that the ai generate and send it to client 
+
 11. Read Receipt : Verify if messages are marked as read.
 
 14. in the payment page we have to saw the commition we deduct 
@@ -56,26 +58,3 @@ Test the core delivery and time-tracking features.
 
 
 
-***Notification system ***
-💼 Client Notifications- 
-BID_SUBMITTED	A freelancer applies to one of the client's open projects.	Alerts the client to review the proposal and bid details.
-
-LOG_SUBMITTED	The freelancer logs/submits a milestone for review.	Prompts the client to approve the work and release the funded milestone escrow.
-
-PROOF_READY	The freelancer uploads final delivery proof/deliverables.	Signals the project is ready for final approval.
-
-MESSAGE_RECEIVED	The freelancer sends a direct chat message to the client.	Live notify the client of incoming messages.
-
-
-🛠️ Freelancer Notifications-
-BID_ACCEPTED	The client accepts the freelancer's bid and creates a contract proposal.	Prompts the freelancer to review and accept the contract proposal to start.
-
-ESCROW_CREATED	The client deposits funds into the milestone's escrow wallet.	Notifies the freelancer that funds are secured and they are safe to begin work.
-
-PAYMENT_RELEASED	The client approves a milestone, releasing escrow funds.	Confirms money has been sent to the freelancer's earnings page.
-
-REPORT_UPCOMING	Scheduled weekly report is 3 days away.	Reminds the freelancer to log all recent hours so they get captured in the PDF report.
-
-REPORT_READY	The weekly report PDF generation is completed.	Notifies the freelancer that their copy of the progress report is ready.
-
-MESSAGE_RECEIVED	The client sends a direct chat message to the freelancer.	Live notify the freelancer of incoming messages.
