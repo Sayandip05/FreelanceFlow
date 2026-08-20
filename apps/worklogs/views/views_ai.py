@@ -26,12 +26,13 @@ class AIContextView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        contract_id = request.query_params.get("contract")
+        contract_id = request.query_params.get("contract") or request.query_params.get("contract_id")
         if not contract_id:
             return Response(
                 {"error": "contract query parameter is required", "code": "validation_error"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
 
         try:
             contract_id = int(contract_id)

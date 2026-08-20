@@ -278,17 +278,51 @@ npm run dev
 
 ---
 
+---
+
+## ⚡ Performance Benchmarking (Locust Suite)
+
+FreelanceFlow includes an automated, modular **Locust Performance Benchmark Suite** that measures API throughput, p50/p95/p99 latencies, real-time WebSocket round-trips, Celery task dispatch times, Upstash Redis cache latency, and server-side SQL overhead (with automated N+1 detection).
+
+### 🚀 Terminal Shortcut (One-Command Headless Benchmark)
+To run the automated performance benchmark suite directly in your terminal:
+
+```bash
+# Shortcut 1: Run complete headless benchmark suite with default parameters
+./benchmarks/run_benchmarks.sh
+
+# Shortcut 2: Using Makefile target
+make benchmark-headless
+
+# Custom load profile: ./benchmarks/run_benchmarks.sh <users> <spawn_rate> <duration> <host>
+./benchmarks/run_benchmarks.sh 15 3 20s http://127.0.0.1:8000
+```
+
+### 🌐 Interactive Web UI Mode
+To launch the interactive Locust dashboard with real-time graphs at `http://localhost:8089`:
+```bash
+make benchmark-web
+# Or directly via Locust CLI:
+locust -f benchmarks/locustfile.py --host=http://127.0.0.1:8000
+```
+
+> 📄 **Benchmark Report**: The benchmark automatically generates an executive scorecard and saves it to [BENCHMARK_REPORT.md](./BENCHMARK_REPORT.md).
+
+---
+
 ## 📚 Comprehensive Documentation
 
 | Document | Description |
 |---|---|
 | **[docs/HLD.md](./docs/HLD.md)** | High-Level Architecture, Domain Boundaries, and System Topology |
 | **[docs/FLOW.md](./docs/FLOW.md)** | Full Execution Flows, API Call Graphs, WebSocket & Signal Traces |
-| **[docs/DECISIONS.md](./docs/DECISIONS.md)** | 19 Architectural Decision Records (ADRs) explaining technical choices & tradeoffs |
+| **[docs/DECISIONS.md](./docs/DECISIONS.md)** | 20 Architectural Decision Records (ADRs) explaining technical choices & tradeoffs |
 | **[docs/API.md](./docs/API.md)** | Complete REST API Reference with schema payloads and status codes |
+| **[BENCHMARK_REPORT.md](./BENCHMARK_REPORT.md)** | Executive Performance Scorecard, Latency Breakdown, and SQL Query Telemetry |
 | **[docs/folderstructure.md](./docs/folderstructure.md)** | Codebase file hierarchy and component index |
 
 ---
+
 
 ## 📄 License
 

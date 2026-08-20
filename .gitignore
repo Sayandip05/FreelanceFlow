@@ -25,6 +25,8 @@ logs/
 *.log
 media/
 
+# Performance Benchmarks
+benchmarks/
 
 .DS_Store
 *.DS_Store
@@ -33,3 +35,4 @@ media/
 benchmarks/load_test_credentials.json
 benchmarks/report.html
 benchmarks/results*.csv
+

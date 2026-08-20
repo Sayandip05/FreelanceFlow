@@ -41,7 +41,6 @@ google-generativeai
 # Misc
 requests
 certifi
-
 # Local Development & Testing
 django-debug-toolbar
 pytest
@@ -49,3 +48,4 @@ pytest-django
 factory-boy
 locust
 fpdf2
+

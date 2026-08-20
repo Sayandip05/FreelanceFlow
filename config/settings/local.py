@@ -42,6 +42,15 @@ CHANNEL_LAYERS = {
     }
 }
 
+# ── Throttling & Axes (local & benchmark) ───────────────────────────────────────
+REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+    "anon": "100000/hour",
+    "user": "500000/hour",
+    "auth": "100000/minute",
+}
+AXES_ENABLED = False
+
 # ── Local Cache Configuration ──────────────────────────────────────────────────
 # Use LocMemCache instead of Redis for caching in local development to avoid
 # extra dependencies and comply with the strict project rules.

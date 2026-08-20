@@ -57,10 +57,17 @@ frontend-dev:                  ## Run Vite dev server on :3000
 	cd $(FRONTEND) && npm run dev
 
 frontend-build:                ## Build frontend for production
-	cd $(FRONTEND) && npm run build
+# ── Performance Benchmarks ───────────────────────────────────────────────────
+
+benchmark:                     ## Start interactive Locust web UI on :8089
+	$(VENV)/bin/locust -f benchmarks/locustfile.py --host http://localhost:8000
+
+benchmark-headless:            ## Run automated headless Locust benchmark suite (30s)
+	./benchmarks/run_benchmarks.sh 20 4 30s http://localhost:8000
 
 # ── Utility ──────────────────────────────────────────────────────────────────
 
 clean:                         ## Remove .pyc files and __pycache__
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -delete
+

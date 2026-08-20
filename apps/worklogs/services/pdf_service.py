@@ -173,85 +173,138 @@ def generate_weekly_report_pdf(report_id: int) -> str:
             class ReportPDF(FPDF):
                 def header(self):
                     self.set_font("Helvetica", "B", 14)
-                    self.set_text_color(99, 102, 241) # Indigo
-                    self.cell(0, 10, "FREELANCEFLOW VERIFIED WEEKLY REPORT", border=0, ln=1, align="L")
-                    self.set_draw_color(99, 102, 241)
-                    self.line(10, 20, 200, 20)
-                    self.ln(5)
-                    
+                    self.set_text_color(79, 70, 229)  # Indigo
+                    self.cell(0, 8, "FREELANCEFLOW PROGRESS REPORT", border=0, ln=1, align="L")
+                    self.set_font("Helvetica", "I", 9)
+                    self.set_text_color(100, 116, 139)  # Slate
+                    self.cell(0, 5, "Verified Contract Progress & Delivery Summary", border=0, ln=1, align="L")
+                    self.set_draw_color(226, 232, 240)
+                    self.set_line_width(0.5)
+                    self.line(15, 26, 195, 26)
+                    self.ln(6)
+
                 def footer(self):
                     self.set_y(-15)
                     self.set_font("Helvetica", "I", 8)
-                    self.set_text_color(148, 163, 184) # Light grey
-                    self.cell(0, 10, f"Compiled securely by FreelanceFlow - Page {self.page_no()}", border=0, align="C")
+                    self.set_text_color(148, 163, 184)  # Light grey
+                    self.cell(0, 10, f"Compiled securely by FreelanceFlow AI - Page {self.page_no()}", border=0, align="C")
+
 
             pdf = ReportPDF()
+            pdf.set_auto_page_break(auto=True, margin=20)
+            pdf.set_margins(15, 15, 15)
             pdf.add_page()
-            pdf.set_font("Helvetica", "", 10)
-            pdf.set_text_color(30, 41, 59) # Slate
-
-            # Metadata Table/Grid
+            
             project = report.contract.bid.project
             freelancer = report.contract.bid.freelancer
             client = project.client
-            
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Project:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(65, 7, clean_pdf_text(project.title), ln=0)
-            
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Freelancer:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(0, 7, clean_pdf_text(freelancer.get_full_name() or freelancer.username), ln=1)
 
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Client:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(65, 7, clean_pdf_text(client.get_full_name() or client.username), ln=0)
+            # Metadata Info Card
+            pdf.set_fill_color(248, 250, 252)
+            pdf.set_draw_color(226, 232, 240)
+            pdf.set_line_width(0.3)
             
+            # Card Top Row: Project Title
             pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Hours Billed:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(0, 7, f"{report.total_hours} hrs", ln=1)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 7, "Project Title:", border="LT", ln=0, fill=True)
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(148, 7, clean_pdf_text(project.title), border="TR", ln=1, fill=True)
 
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Period:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(65, 7, f"{report.week_start} to {report.week_end}", ln=0)
+            # Card Middle Row: Client & Freelancer
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Client:", border="L", ln=0, fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(58, 6, clean_pdf_text(client.get_full_name() or client.email), border=0, ln=0, fill=True)
             
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Status:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(0, 7, "Active / Sent to Client", ln=1)
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Freelancer:", border=0, ln=0, fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(58, 6, clean_pdf_text(freelancer.get_full_name() or freelancer.email), border="R", ln=1, fill=True)
 
-            pdf.ln(8)
+            # Card Bottom Row: Period & Total Hours
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Billing Period:", border="LB", ln=0, fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(58, 6, f"{report.week_start} to {report.week_end}", border="B", ln=0, fill=True)
+            
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Hours Billed:", border="B", ln=0, fill=True)
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(79, 70, 229)
+            pdf.cell(58, 6, f"{report.total_hours} hrs", border="RB", ln=1, fill=True)
 
-            # AI Summary
-            pdf.set_font("Helvetica", "B", 12)
-            pdf.set_text_color(67, 56, 202) # Darker indigo
-            pdf.cell(0, 8, "AI Progress Summary", ln=1)
-            pdf.set_font("Helvetica", "", 10)
+            pdf.ln(6)
+
+            # Section 1: Executive / AI Progress Summary
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.set_text_color(67, 56, 202)  # Darker indigo
+            pdf.cell(0, 7, "1. Executive Progress Summary", ln=1)
+            pdf.set_draw_color(226, 232, 240)
+            pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+            pdf.ln(3)
+
+            pdf.set_font("Helvetica", "", 9.5)
             pdf.set_text_color(30, 41, 59)
-            pdf.multi_cell(0, 6, clean_pdf_text(report.ai_summary))
+            
+            # Clean up markdown headers/bullets in summary
+            summary_raw = report.ai_summary or ""
+            for line in summary_raw.splitlines():
+                line = line.strip()
+                if not line:
+                    pdf.ln(2)
+                    continue
+                if line.startswith("## ") or line.startswith("### "):
+                    pdf.ln(2)
+                    pdf.set_font("Helvetica", "B", 10)
+                    pdf.set_text_color(79, 70, 229)
+                    pdf.cell(0, 6, clean_pdf_text(line.lstrip("#").strip()), ln=1)
+                    pdf.set_font("Helvetica", "", 9.5)
+                    pdf.set_text_color(30, 41, 59)
+                elif line.startswith("- ") or line.startswith("* "):
+                    pdf.cell(5, 5, "-", ln=0, align="R")
+                    pdf.multi_cell(175, 5, clean_pdf_text(line[2:].strip()))
+                    pdf.ln(1)
+
+                else:
+                    pdf.multi_cell(180, 5.5, clean_pdf_text(line))
+                    pdf.ln(1)
+
             pdf.ln(5)
 
-            # Work logs details
-            pdf.set_font("Helvetica", "B", 12)
+            # Section 2: Logged Daily Work Details
+            pdf.set_font("Helvetica", "B", 11)
             pdf.set_text_color(67, 56, 202)
-            pdf.cell(0, 8, "Logged Daily Hours", ln=1)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.set_text_color(30, 41, 59)
-            
+            pdf.cell(0, 7, "2. Logged Daily Work & Milestone Contributions", ln=1)
+            pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+            pdf.ln(3)
+
             if not logs.exists():
-                pdf.cell(0, 6, "No hours logged for this period.", ln=1)
+                pdf.set_font("Helvetica", "I", 9.5)
+                pdf.set_text_color(100, 116, 139)
+                pdf.cell(0, 6, "No individual daily logs recorded for this period.", ln=1)
             else:
                 for log in logs:
-                    pdf.set_font("Helvetica", "B", 10)
-                    pdf.cell(0, 6, f"* {log.date} - {log.hours_worked} hrs", ln=1)
-                    pdf.set_font("Helvetica", "", 10)
-                    if log.description:
-                        pdf.multi_cell(0, 5, f"  Description: {clean_pdf_text(log.description)}")
+                    pdf.set_font("Helvetica", "B", 9.5)
+                    pdf.set_text_color(15, 23, 42)
+                    pdf.cell(30, 6, f"{log.date}:", ln=0)
+                    pdf.set_font("Helvetica", "B", 9.5)
+                    pdf.set_text_color(79, 70, 229)
+                    pdf.cell(25, 6, f"[{log.hours_worked} hrs]", ln=0)
+                    pdf.set_font("Helvetica", "", 9.5)
+                    pdf.set_text_color(51, 65, 85)
+                    
+                    desc = clean_pdf_text(log.description or "General development and milestone tasks.")
+                    # Wrap description cleanly across the remaining width
+                    pdf.multi_cell(125, 5.5, desc)
                     pdf.ln(2)
 
             pdf_bytes = bytes(pdf.output())
@@ -259,6 +312,7 @@ def generate_weekly_report_pdf(report_id: int) -> str:
             import logging
             logging.getLogger(__name__).exception("fpdf2 fallback generation failed: %s", e_fallback)
             pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
+
 
     # Upload to Azure Blob Storage
     blob_name = (
@@ -347,87 +401,122 @@ def generate_delivery_proof_pdf(proof_id: int) -> str:
             class ProofPDF(FPDF):
                 def header(self):
                     self.set_font("Helvetica", "B", 14)
-                    self.set_text_color(99, 102, 241) # Indigo
-                    self.cell(0, 10, "FREELANCEFLOW VERIFIED DELIVERY PROOF", border=0, ln=1, align="L")
-                    self.set_draw_color(99, 102, 241)
-                    self.line(10, 20, 200, 20)
-                    self.ln(5)
-                    
+                    self.set_text_color(79, 70, 229)  # Indigo
+                    self.cell(0, 8, "FREELANCEFLOW VERIFIED DELIVERY PROOF", border=0, ln=1, align="L")
+                    self.set_font("Helvetica", "I", 9)
+                    self.set_text_color(100, 116, 139)  # Slate
+                    self.cell(0, 5, "Official Project Completion & Final Asset Transfer Document", border=0, ln=1, align="L")
+                    self.set_draw_color(226, 232, 240)
+                    self.set_line_width(0.5)
+                    self.line(15, 26, 195, 26)
+                    self.ln(6)
+
                 def footer(self):
                     self.set_y(-15)
                     self.set_font("Helvetica", "I", 8)
-                    self.set_text_color(148, 163, 184) # Light grey
+                    self.set_text_color(148, 163, 184)  # Light grey
                     self.cell(0, 10, f"Compiled securely by FreelanceFlow - Page {self.page_no()}", border=0, align="C")
 
-            pdf = ProofPDF()
-            pdf.add_page()
-            pdf.set_font("Helvetica", "", 10)
-            pdf.set_text_color(30, 41, 59) # Slate
 
-            # Metadata Table/Grid
+            pdf = ProofPDF()
+            pdf.set_auto_page_break(auto=True, margin=20)
+            pdf.set_margins(15, 15, 15)
+            pdf.add_page()
+
             project = proof.contract.bid.project
             freelancer = proof.contract.bid.freelancer
             client = project.client
-            
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Project Name:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(65, 7, clean_pdf_text(project.title), ln=0)
-            
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Freelancer:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(0, 7, clean_pdf_text(freelancer.get_full_name() or freelancer.username), ln=1)
 
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Client Name:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(65, 7, clean_pdf_text(client.get_full_name() or client.username), ln=0)
-            
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Contract ID:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(0, 7, f"Contract #{proof.contract.id}", ln=1)
+            # Metadata Info Card
+            pdf.set_fill_color(248, 250, 252)
+            pdf.set_draw_color(226, 232, 240)
+            pdf.set_line_width(0.3)
 
+            # Card Top Row: Project Title
             pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Date Generated:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(65, 7, timezone.now().strftime('%B %d, %Y'), ln=0)
-            
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 7, "Project Title:", border="LT", ln=0, fill=True)
             pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(35, 7, "Status:", ln=0)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(0, 7, "Project Completed & Approved", ln=1)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(148, 7, clean_pdf_text(project.title), border="TR", ln=1, fill=True)
 
-            pdf.ln(8)
+            # Card Middle Row: Client & Freelancer
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Client:", border="L", ln=0, fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(58, 6, clean_pdf_text(client.get_full_name() or client.email), border=0, ln=0, fill=True)
 
-            # Contract Summary
-            pdf.set_font("Helvetica", "B", 12)
-            pdf.set_text_color(67, 56, 202) # Darker indigo
-            pdf.cell(0, 8, "Verification Details", ln=1)
-            pdf.set_font("Helvetica", "", 10)
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Freelancer:", border=0, ln=0, fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(58, 6, clean_pdf_text(freelancer.get_full_name() or freelancer.email), border="R", ln=1, fill=True)
+
+            # Card Bottom Row: Contract ID & Status
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Contract ID:", border="LB", ln=0, fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(58, 6, f"Contract #{proof.contract.id}", border="B", ln=0, fill=True)
+
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Status:", border="B", ln=0, fill=True)
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(16, 185, 129)  # Emerald green
+            pdf.cell(58, 6, "Completed & Approved", border="RB", ln=1, fill=True)
+
+            pdf.ln(6)
+
+            # Section 1: Verification Details
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.set_text_color(67, 56, 202)
+            pdf.cell(0, 7, "1. Final Delivery & Verification Details", ln=1)
+            pdf.set_draw_color(226, 232, 240)
+            pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+            pdf.ln(3)
+
+            pdf.set_font("Helvetica", "", 9.5)
             pdf.set_text_color(30, 41, 59)
-            pdf.multi_cell(0, 6, f"This document verifies the complete transfer of project assets and work records for project '{clean_pdf_text(project.title)}' under Contract #{proof.contract.id}.")
+            pdf.multi_cell(180, 5.5, f"This document certifies that all milestones and agreed project deliverables for '{clean_pdf_text(project.title)}' under Contract #{proof.contract.id} have been completed, reviewed, and approved for final asset handover.")
             pdf.ln(5)
 
-            # Log list
-            pdf.set_font("Helvetica", "B", 12)
+            # Section 2: Historical Work Logs
+            pdf.set_font("Helvetica", "B", 11)
             pdf.set_text_color(67, 56, 202)
-            pdf.cell(0, 8, "Historical Work Logs", ln=1)
-            pdf.set_font("Helvetica", "", 10)
-            pdf.set_text_color(30, 41, 59)
-            
+            pdf.cell(0, 7, "2. Summary of Logged Contract Hours", ln=1)
+            pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+            pdf.ln(3)
+
             if not logs.exists():
-                pdf.cell(0, 6, "No hours logged on this contract.", ln=1)
+                pdf.set_font("Helvetica", "I", 9.5)
+                pdf.set_text_color(100, 116, 139)
+                pdf.cell(0, 6, "No individual daily logs recorded for this contract.", ln=1)
             else:
                 for log in logs:
-                    pdf.cell(0, 6, f"* {log.date} - {log.hours_worked} hrs - {clean_pdf_text(log.description)[:80]}...", ln=1)
+                    pdf.set_font("Helvetica", "B", 9.5)
+                    pdf.set_text_color(15, 23, 42)
+                    pdf.cell(30, 6, f"{log.date}:", ln=0)
+                    pdf.set_font("Helvetica", "B", 9.5)
+                    pdf.set_text_color(79, 70, 229)
+                    pdf.cell(25, 6, f"[{log.hours_worked} hrs]", ln=0)
+                    pdf.set_font("Helvetica", "", 9.5)
+                    pdf.set_text_color(51, 65, 85)
+                    
+                    desc = clean_pdf_text(log.description or "General development milestone.")
+                    pdf.multi_cell(125, 5.5, desc)
+                    pdf.ln(2)
 
             pdf_bytes = bytes(pdf.output())
         except Exception as e_fallback:
             import logging
             logging.getLogger(__name__).exception("fpdf2 fallback generation failed: %s", e_fallback)
             pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
+
 
     # Upload to Azure Blob Storage
     blob_name = f"proofs/{proof.contract.id}/delivery_proof.pdf"

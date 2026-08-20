@@ -11,6 +11,8 @@ from .services import (
     notify_payment_released,
     notify_proof_ready,
     notify_message_received,
+    notify_report_upcoming,
+    notify_client_report_available,
 )
 from .email_service import (
     send_notification_email,
@@ -23,6 +25,7 @@ from .email_service import (
     send_review_received_email,
     send_contract_termination_request_email,
     send_dispute_initiated_email,
+    send_client_weekly_report_email,
 )
 from .services_announcement import (
     create_announcement,

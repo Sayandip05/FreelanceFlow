@@ -154,3 +154,13 @@ A log of architectural and technical decisions made in FreelanceFlow explaining 
 - **Alternatives considered**: Periodic HTTP polling for read status (high database read overhead), marking messages read only on manual user scroll triggers.
 - **Tradeoff accepted**: Extra lightweight WebSocket event frames broadcasted to conversation rooms when unread messages are viewed.
 
+---
+
+## 20. Automated Locust Performance Benchmark Suite & Infrastructure Hardening
+- **What**: Built a reusable, modular Locust performance benchmarking suite (`benchmarks/`) coupled with server-side SQL profiling middleware (`PerformanceProfilingMiddleware`), strict TLS validation with `certifi` on Upstash Redis broker connections, containerized Elasticsearch 8.14, and public unauthenticated read access for catalog search.
+- **Why**: Allows continuous validation of API throughput, p50/p95/p99 latency percentiles, Daphne ASGI WebSocket round-trips, Celery task dispatch times, and prevents N+1 query regressions across marketplace endpoints.
+- **Alternatives considered**: Manual Postman load runner (unreproducible in CI/CD), synthetic mock benchmarks (fails to test actual DB/Redis/ASGI connection models).
+- **Tradeoff accepted**: Server responses during benchmark runs include custom `X-DB-*` telemetry headers when `X-Benchmark-Profile` or `DEBUG` is active.
+
+
+

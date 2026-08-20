@@ -34,8 +34,7 @@ from celery import shared_task
 from datetime import date, timedelta
 
 from apps.worklogs.models import WorkLog, WeeklyReport, DeliveryProof, ReportSchedule
-from apps.worklogs.services.ai_service import generate_weekly_report
-from apps.worklogs.services.pdf_service import generate_weekly_report_pdf, generate_delivery_proof_pdf
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -65,16 +64,16 @@ def generate_ai_report_task(self, contract_id: int, week_start_str: str, interva
         week_start = date.fromisoformat(week_start_str)
 
         # Generate AI report (LangGraph → Groq Llama 3.3 70B → WeeklyReport saved)
+        from apps.worklogs.services.ai_service import generate_weekly_report
         report = generate_weekly_report(contract_id, week_start)
 
         # Record the interval that triggered this report
         report.interval_days = interval_days
         report.save(update_fields=["interval_days"])
 
-        # Chain: PDF generation → notifications (all async)
+        # Chain: PDF generation → notifications (PDF upload to Azure automatically triggers client email dispatch)
         generate_pdf_task.delay(report.id, "weekly_report")
         notify_freelancer_report_ready.delay(report.id)
-        notify_client_new_report.delay(report.id)
 
     except Exception as exc:
         # Retry up to 3 times with exponential back-off
@@ -98,15 +97,24 @@ def generate_pdf_task(self, object_id: int, object_type: str):
     Returns:
         Azure Blob SAS URL of the generated PDF
     """
+    from apps.worklogs.services.pdf_service import (
+        generate_weekly_report_pdf,
+        generate_delivery_proof_pdf,
+    )
     try:
         if object_type == "weekly_report":
-            return generate_weekly_report_pdf(object_id)
+            pdf_url = generate_weekly_report_pdf(object_id)
+            # Chain: Once PDF is successfully uploaded to Azure Blob Storage, automatically dispatch email & notifications to client
+            notify_client_new_report.delay(object_id)
+            return pdf_url
         elif object_type == "delivery_proof":
             return generate_delivery_proof_pdf(object_id)
         else:
             raise ValueError(f"Unknown object_type: {object_type!r}")
     except Exception as exc:
         raise self.retry(exc=exc)
+
+
 
 
 @shared_task(queue="freelanceflow_low_priority")
@@ -236,31 +244,63 @@ def notify_freelancer_report_ready(report_id: int):
         pass
 
 
-@shared_task
+@shared_task(queue="freelanceflow_high_priority")
 def notify_client_new_report(report_id: int):
     """
     Notify client that a new progress report PDF is available to view.
-    Called after PDF has been uploaded to Azure Blob Storage.
+    Dispatches in-app notification AND sends automated email with Azure Blob SAS download URL.
+    Called after PDF has been successfully uploaded to Azure Blob Storage.
     """
-    from apps.notifications.services import notify_client_report_available
+    from apps.notifications.services import (
+        notify_client_report_available,
+        send_client_weekly_report_email,
+    )
+    from django.conf import settings
     try:
         report = WeeklyReport.objects.select_related(
             "contract__bid__project__client",
+            "contract__bid__freelancer",
         ).get(id=report_id)
 
+        client = report.contract.bid.project.client
+        freelancer = report.contract.bid.freelancer
+        project = report.contract.bid.project
+
+        # 1. Dispatch In-App Notification
         notify_client_report_available(
-            client=report.contract.bid.project.client,
-            project_title=report.contract.bid.project.title,
+            client=client,
+            project_title=project.title,
             report_id=report.id,
         )
 
-        # Mark as sent to client
+        # 2. Dispatch Automated Email to Client with Azure Blob SAS link
+        if client.email and report.pdf_url:
+            frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
+            dashboard_url = f"{frontend_url}/client/contracts/{report.contract.id}"
+
+            send_client_weekly_report_email(
+                recipient_email=client.email,
+                client_name=client.get_full_name() or client.username,
+                freelancer_name=freelancer.get_full_name() or freelancer.username,
+                project_title=project.title,
+                week_start=str(report.week_start),
+                week_end=str(report.week_end),
+                total_hours=str(report.total_hours),
+                pdf_url=report.pdf_url,
+                dashboard_url=dashboard_url,
+            )
+
+        # 3. Mark as sent to client
         from django.utils import timezone
         report.sent_to_client_at = timezone.now()
         report.save(update_fields=["sent_to_client_at"])
 
     except WeeklyReport.DoesNotExist:
         pass
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).exception("Failed to dispatch client report notification for report_id=%s: %s", report_id, exc)
+
 
 
 @shared_task
