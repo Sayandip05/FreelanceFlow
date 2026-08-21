@@ -114,6 +114,9 @@ class AIApproveDraftView(views.APIView):
     POST /api/worklogs/ai/approve/
     Triggers the pdf_builder node:
     Compiles WeasyPrint HTML->PDF, uploads to Azure Blob Storage, returns SAS URL.
+
+    Security: draft_id is validated to belong to the caller's contract before
+    the async agent is invoked (prevents cross-contract draft IDOR).
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -137,6 +140,25 @@ class AIApproveDraftView(views.APIView):
                 {"error": "Permission denied", "code": "forbidden"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        # Security: if a specific draft_id is supplied, verify it belongs to THIS
+        # contract AND this freelancer before dispatching the async agent.
+        # Without this check a freelancer could compile another contract's draft (IDOR).
+        if draft_id:
+            from apps.worklogs.models import AIReportDraft
+            draft_owned = AIReportDraft.objects.filter(
+                id=draft_id,
+                contract_id=contract_id,
+                freelancer=request.user,
+            ).exists()
+            if not draft_owned:
+                return Response(
+                    {
+                        "error": "Draft not found or does not belong to this contract.",
+                        "code": "forbidden",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         # Run async agent with action="approve"
         agent_result = async_to_sync(run_ai_worklog_agent)(
