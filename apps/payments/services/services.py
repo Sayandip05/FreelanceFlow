@@ -239,122 +239,12 @@ def confirm_escrow_payment(razorpay_order_id: str, razorpay_payment_id: str) -> 
 
 def release_payment(contract: Contract, client, payment_id: int = None) -> Payment:
     """
-    Release payment to freelancer (minus platform cut).
+    Release payment to freelancer's platform wallet (minus platform cut).
     """
-    from apps.payments.tasks import razorpay_transfer_to_freelancer_task
+    from apps.payments.models import Wallet
+    
     if contract.client != client:
         raise PermissionDeniedError("Only the client can release payment.")
-
-    fund_account_id = getattr(
-        getattr(contract.bid.freelancer, "freelancer_profile", None),
-        "razorpay_fund_account_id",
-        "",
-    )
-
-    is_placeholder_keys = (
-        not getattr(settings, "RAZORPAY_KEY_ID", "") or 
-        settings.RAZORPAY_KEY_ID.startswith("rzp_test_placeholder") or
-        settings.RAZORPAY_KEY_ID == "your_razorpay_key_id"
-    )
-    
-    use_simulation = is_placeholder_keys or not fund_account_id or not getattr(settings, "RAZORPAY_ACCOUNT_NUMBER", "")
-
-    if use_simulation:
-        with transaction.atomic():
-            try:
-                if payment_id:
-                    payment = Payment.objects.select_for_update().get(id=payment_id, contract=contract)
-                else:
-                    payment = Payment.objects.select_for_update().get(contract=contract)
-            except Payment.DoesNotExist:
-                raise NotFoundError("Payment not found.")
-
-            if payment.status != Payment.Status.ESCROWED:
-                raise ValidationError("Payment is not in escrow.")
-
-            cut_info = calculate_platform_cut(
-                payment.total_amount,
-                settings.PLATFORM_CUT_PERCENTAGE
-            )
-
-            # Update Payment status
-            payment.status = Payment.Status.RELEASED
-            payment.razorpay_payout_id = "payout_mock_simulated"
-            payment.save()
-
-            # Record Platform Earning
-            PlatformEarning.objects.get_or_create(
-                payment=payment,
-                defaults={
-                    "cut_percentage": cut_info["cut_percentage"],
-                    "cut_amount": cut_info["cut_amount"],
-                },
-            )
-
-            # Update Escrow
-            if hasattr(payment, 'escrow'):
-                escrow = payment.escrow
-                escrow.released_at = timezone.now()
-                escrow.save()
-
-            # If milestone payment, update milestone status to PAID
-            if payment.milestone:
-                milestone = payment.milestone
-                milestone.status = milestone.Status.PAID
-                milestone.paid_at = timezone.now()
-                milestone.save()
-
-            # Check if all contract milestones are paid to close contract
-            from apps.payments.models.models_milestone import PaymentMilestone
-            all_milestones = PaymentMilestone.objects.filter(contract=contract)
-            if all_milestones.exists() and all(m.status == PaymentMilestone.Status.PAID for m in all_milestones):
-                contract.is_active = False
-                contract.end_date = timezone.now()
-                contract.save()
-                from apps.projects.models import Project
-                from apps.projects.services import mark_project_completed
-                if contract.bid.project.status == Project.Status.IN_PROGRESS:
-                    mark_project_completed(contract.bid.project)
-            elif not all_milestones.exists():
-                contract.is_active = False
-                contract.end_date = timezone.now()
-                contract.save()
-                from apps.projects.models import Project
-                from apps.projects.services import mark_project_completed
-                if contract.bid.project.status == Project.Status.IN_PROGRESS:
-                    mark_project_completed(contract.bid.project)
-
-        # Trigger notification & delivery proof generation
-        try:
-            from apps.notifications.services import create_notification
-            from apps.notifications.models import Notification
-            create_notification(
-                recipient=contract.bid.freelancer,
-                title="Payment Released",
-                body=f"Payment for {contract.bid.project.title} has been released.",
-                notification_type=Notification.Type.PAYMENT_RELEASED,
-            )
-        except Exception as e:
-            logger.warning("Failed to create notification: %s", str(e))
-
-        try:
-            from apps.worklogs.services import generate_delivery_proof
-            generate_delivery_proof(contract.id)
-        except Exception as e:
-            logger.warning("Failed to generate delivery proof: %s", str(e))
-
-        logger.info(
-            "Mock payout simulated successfully: payment_id=%s contract_id=%s amount=%s",
-            payment.id, contract.id, payment.total_amount
-        )
-        return payment
-
-    # Real path when keys and accounts are configured
-    if not settings.RAZORPAY_ACCOUNT_NUMBER:
-        raise ValidationError("Razorpay account number is not configured for payouts.")
-
-    if not fund_account_id:
-        raise ValidationError("Freelancer payout account is not configured.")
 
     with transaction.atomic():
         try:
@@ -373,28 +263,82 @@ def release_payment(contract: Contract, client, payment_id: int = None) -> Payme
             settings.PLATFORM_CUT_PERCENTAGE
         )
 
-        payment.status = Payment.Status.PAYOUT_PENDING
-        payment.payout_error = ""
+        # Update Payment status to RELEASED
+        payment.status = Payment.Status.RELEASED
+        payment.razorpay_payout_id = "payout_wallet_credited"
         payment.save()
 
-        logger.info(
-            "Payment release initiated: payment_id=%s contract_id=%s "
-            "freelancer_id=%s amount=%s platform_cut=%s",
-            payment.id, contract.id,
-            contract.bid.freelancer.id,
-            cut_info['freelancer_amount'],
-            cut_info['cut_amount'],
+        # Credit the freelancer's wallet balance
+        wallet, _ = Wallet.objects.select_for_update().get_or_create(user=contract.bid.freelancer)
+        wallet.balance += cut_info['freelancer_amount']
+        wallet.save()
+
+        # Record Platform Earning
+        PlatformEarning.objects.get_or_create(
+            payment=payment,
+            defaults={
+                "cut_percentage": cut_info["cut_percentage"],
+                "cut_amount": cut_info["cut_amount"],
+            },
         )
 
-        def after_commit():
-            razorpay_transfer_to_freelancer_task.delay(
-                payment.id,
-                float(cut_info['freelancer_amount'])
-            )
+        # Update Escrow
+        if hasattr(payment, 'escrow'):
+            escrow = payment.escrow
+            escrow.released_at = timezone.now()
+            escrow.save()
 
-        transaction.on_commit(after_commit)
+        # If milestone payment, update milestone status to PAID
+        if payment.milestone:
+            milestone = payment.milestone
+            milestone.status = milestone.Status.PAID
+            milestone.paid_at = timezone.now()
+            milestone.save()
 
-        return payment
+        # Check if all contract milestones are paid to close contract
+        from apps.payments.models.models_milestone import PaymentMilestone
+        all_milestones = PaymentMilestone.objects.filter(contract=contract)
+        if all_milestones.exists() and all(m.status == PaymentMilestone.Status.PAID for m in all_milestones):
+            contract.is_active = False
+            contract.end_date = timezone.now()
+            contract.save()
+            from apps.projects.models import Project
+            from apps.projects.services import mark_project_completed
+            if contract.bid.project.status == Project.Status.IN_PROGRESS:
+                mark_project_completed(contract.bid.project)
+        elif not all_milestones.exists():
+            contract.is_active = False
+            contract.end_date = timezone.now()
+            contract.save()
+            from apps.projects.models import Project
+            from apps.projects.services import mark_project_completed
+            if contract.bid.project.status == Project.Status.IN_PROGRESS:
+                mark_project_completed(contract.bid.project)
+
+    # Trigger notification & delivery proof generation
+    try:
+        from apps.notifications.services import create_notification
+        from apps.notifications.models import Notification
+        create_notification(
+            recipient=contract.bid.freelancer,
+            title="Wallet Balance Credited",
+            body=f"Payment for {contract.bid.project.title} has been released to your wallet.",
+            notification_type=Notification.Type.PAYMENT_RELEASED,
+        )
+    except Exception as e:
+        logger.warning("Failed to create notification: %s", str(e))
+
+    try:
+        from apps.worklogs.services import generate_delivery_proof
+        generate_delivery_proof(contract.id)
+    except Exception as e:
+        logger.warning("Failed to generate delivery proof: %s", str(e))
+
+    logger.info(
+        "Escrow released to wallet successfully: payment_id=%s contract_id=%s amount=%s freelancer_amount=%s",
+        payment.id, contract.id, payment.total_amount, cut_info['freelancer_amount']
+    )
+    return payment
 
 
 def verify_razorpay_signature(order_id: str, payment_id: str, signature: str) -> bool:
@@ -680,3 +624,66 @@ def initiate_payment_dispute(
             'status': dispute.status,
             'created_at': dispute.created_at,
         }
+
+
+def withdraw_funds(user, amount) -> "WithdrawalRequest":
+    """
+    Request manual fund withdrawal from the user's platform wallet.
+    """
+    from decimal import Decimal
+    from apps.payments.models import Wallet, WithdrawalRequest
+    from apps.payments.tasks import razorpay_payout_withdrawal_task
+    from django.db import transaction
+
+    if user.role != "FREELANCER":
+        raise ValidationError("Only freelancers can withdraw funds.")
+
+    amount_dec = Decimal(str(amount))
+    if amount_dec <= 0:
+        raise ValidationError("Withdrawal amount must be greater than zero.")
+
+    # Check if they have linked bank details (razorpay_fund_account_id)
+    fund_account_id = getattr(
+        getattr(user, "freelancer_profile", None),
+        "razorpay_fund_account_id",
+        "",
+    )
+    is_placeholder_keys = (
+        not getattr(settings, "RAZORPAY_KEY_ID", "") or 
+        settings.RAZORPAY_KEY_ID.startswith("rzp_test_placeholder") or
+        settings.RAZORPAY_KEY_ID == "your_razorpay_key_id"
+    )
+    use_simulation = is_placeholder_keys or not fund_account_id or not getattr(settings, "RAZORPAY_ACCOUNT_NUMBER", "")
+
+    if not use_simulation and not fund_account_id:
+        raise ValidationError("Please link your bank account/UPI ID in your onboarding or profile settings before withdrawing.")
+
+    with transaction.atomic():
+        wallet, _ = Wallet.objects.select_for_update().get_or_create(user=user)
+        if wallet.balance < amount_dec:
+            raise ValidationError(f"Insufficient funds. Maximum available balance is INR {wallet.balance}.")
+
+        # Deduct from wallet
+        wallet.balance -= amount_dec
+        wallet.withdrawn_amount += amount_dec
+        wallet.save()
+
+        # Create request
+        withdrawal = WithdrawalRequest.objects.create(
+            freelancer=user,
+            amount=amount_dec,
+            status=WithdrawalRequest.Status.PENDING
+        )
+
+    # Queue payout task after transaction commits
+    def after_commit():
+        razorpay_payout_withdrawal_task.delay(withdrawal.id)
+
+    transaction.on_commit(after_commit)
+
+    logger.info(
+        "Withdrawal request initiated: user_id=%s amount=%s withdrawal_id=%s",
+        user.id, amount_dec, withdrawal.id
+    )
+    return withdrawal
+

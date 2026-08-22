@@ -217,17 +217,23 @@ export default function ClientContractDetailPage() {
 
   /* ── Fund Milestone Escrow ─────────────────────────────────────────────────── */
   const handleFundMilestone = async (milestone) => {
+    console.log('handleFundMilestone clicked!', milestone)
     setActionLoading(true)
     try {
+      console.log('Sending API call to fund milestone...')
       const res = await paymentsAPI.fundMilestone(milestone.id)
+      console.log('API response received:', res)
 
       // Open Razorpay Checkout or fallback simulation
-      if (window.Razorpay && res.data?.razorpay_order_id) {
+      const paymentData = res.data?.payment;
+      console.log('window.Razorpay check:', window.Razorpay);
+      console.log('paymentData check:', paymentData);
+      if (window.Razorpay && paymentData?.razorpay_order_id) {
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
           amount: milestone.amount * 100,
-          currency: 'USD',
-          order_id: res.data.razorpay_order_id,
+          currency: 'INR',
+          order_id: paymentData.razorpay_order_id,
           name: 'FreelanceFlow Escrow',
           description: `Escrow funding for: ${milestone.title}`,
           handler: async (response) => {
