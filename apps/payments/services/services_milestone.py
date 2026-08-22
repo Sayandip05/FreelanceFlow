@@ -13,7 +13,7 @@ from apps.bidding.models import Contract
 
 
 @transaction.atomic
-def create_milestone(contract_id, title, description, amount, due_date=None):
+def create_milestone(contract_id, title, description, amount, user, due_date=None):
     """
     Create a payment milestone for a contract
     
@@ -22,15 +22,19 @@ def create_milestone(contract_id, title, description, amount, due_date=None):
         title: Milestone title
         description: Milestone description
         amount: Payment amount for this milestone
+        user: Requesting User instance
         due_date: Optional due date
     
     Returns:
         PaymentMilestone instance
     """
     try:
-        contract = Contract.objects.get(id=contract_id)
+        contract = Contract.objects.select_related('bid__project').get(id=contract_id)
     except Contract.DoesNotExist:
         raise ValidationError("Contract not found")
+        
+    if contract.bid.project.client != user:
+        raise ValidationError("Only the project client can create milestones.")
     
     amount = Decimal(str(amount))
     
@@ -39,9 +43,10 @@ def create_milestone(contract_id, title, description, amount, due_date=None):
         raise ValidationError("Amount must be positive")
     
     # Check total milestones don't exceed contract amount
-    total_milestones = PaymentMilestone.objects.filter(
+    existing_milestones = PaymentMilestone.objects.select_for_update().filter(
         contract=contract
-    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    )
+    total_milestones = existing_milestones.aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
     if total_milestones + amount > contract.agreed_amount:
         raise ValidationError(

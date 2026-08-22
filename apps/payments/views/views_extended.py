@@ -42,6 +42,8 @@ class PaymentMilestoneViewSet(viewsets.ViewSet):
         from apps.bidding.models import Contract
         try:
             contract = Contract.objects.get(id=pk)
+            if contract.bid.project.client != request.user:
+                return Response({'error': 'You do not have permission to modify this contract.'}, status=status.HTTP_403_FORBIDDEN)
             has_activity = contract.milestones.exclude(status='PENDING').exists()
             if contract.status not in [Contract.Status.PENDING_ACCEPTANCE, Contract.Status.ACTIVE] or has_activity:
                 return Response({'error': 'Cannot modify milestones once funding has started or contract is closed.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -68,6 +70,7 @@ class PaymentMilestoneViewSet(viewsets.ViewSet):
                     serializer.validated_data['title'],
                     serializer.validated_data.get('description', ''),
                     serializer.validated_data['amount'],
+                    request.user,
                     serializer.validated_data.get('due_date')
                 )
                 return Response({
