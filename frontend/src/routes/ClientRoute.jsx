@@ -14,7 +14,8 @@ export default function ClientRoute() {
   }
 
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'CLIENT') return <Navigate to="/freelancer/browse" replace />
+  if (user.role === 'FREELANCER') return <Navigate to="/freelancer/browse" replace />
+  if (user.role !== 'CLIENT') return <Navigate to="/" replace />
 
   const profile = user.client_profile
   const isOnboarded = profile?.is_onboarded || false

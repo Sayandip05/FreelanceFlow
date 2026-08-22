@@ -462,10 +462,17 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
     def _compile_and_upload():
         draft = None
         if draft_id:
+            # Security: always scope draft lookup to the contract passed in state.
+            # A bare filter(id=draft_id) would allow cross-contract IDOR.
             draft = AIReportDraft.objects.select_related(
                 "contract__bid__project__client",
                 "contract__bid__freelancer"
-            ).filter(id=draft_id).first()
+            ).filter(id=draft_id, contract_id=contract_id).first()
+
+            # If draft_id was explicitly provided but not found for this contract,
+            # abort rather than silently falling through to a different draft.
+            if not draft:
+                return None, "Draft not found or does not belong to this contract"
 
         if not draft:
             draft = AIReportDraft.objects.select_related(

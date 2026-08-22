@@ -14,7 +14,8 @@ export default function FreelancerRoute() {
   }
 
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'FREELANCER') return <Navigate to="/client/dashboard" replace />
+  if (user.role === 'CLIENT') return <Navigate to="/client/dashboard" replace />
+  if (user.role !== 'FREELANCER') return <Navigate to="/" replace />
 
   const profile = user.freelancer_profile
   const isOnboarded = profile?.is_onboarded || (Boolean(profile?.city) && (profile?.skills?.length || 0) > 0)

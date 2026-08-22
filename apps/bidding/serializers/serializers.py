@@ -72,13 +72,13 @@ class BidCreateSerializer(serializers.ModelSerializer):
 
 
 class ContractSerializer(serializers.ModelSerializer):
-    """Serializer for contracts."""
+    """Serializer for contracts. All financial and status fields are read-only."""
     project = ProjectListSerializer(read_only=True)
     freelancer = UserSerializer(read_only=True)
     client = UserSerializer(read_only=True)
     bid = BidDetailSerializer(read_only=True)
     milestones = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Contract
         fields = [
@@ -94,6 +94,11 @@ class ContractSerializer(serializers.ModelSerializer):
             'status',
             'milestones',
         ]
+        # All fields are read-only: contracts are mutated only via service
+        # layer actions (accept_bid, accept_proposal, etc.), never via direct API write.
+        read_only_fields = [
+            'id', 'bid', 'agreed_amount', 'start_date', 'end_date', 'is_active', 'status',
+        ]
 
     def get_milestones(self, obj):
         from apps.payments.serializers import PaymentMilestoneSerializer
@@ -101,14 +106,14 @@ class ContractSerializer(serializers.ModelSerializer):
 
 
 class ContractListSerializer(serializers.ModelSerializer):
-    """Serializer for contract list view."""
+    """Serializer for contract list view. All financial and status fields are read-only."""
     project = ProjectListSerializer(read_only=True)
     freelancer = UserSerializer(read_only=True)
     client = UserSerializer(read_only=True)
     project_title = serializers.CharField(source='bid.project.title', read_only=True)
     freelancer_name = serializers.CharField(source='bid.freelancer.full_name', read_only=True)
     client_name = serializers.CharField(source='bid.project.client.full_name', read_only=True)
-    
+
     class Meta:
         model = Contract
         fields = [
@@ -123,4 +128,7 @@ class ContractListSerializer(serializers.ModelSerializer):
             'start_date',
             'is_active',
             'status',
+        ]
+        read_only_fields = [
+            'id', 'agreed_amount', 'start_date', 'is_active', 'status',
         ]

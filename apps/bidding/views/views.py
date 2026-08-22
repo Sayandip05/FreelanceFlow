@@ -185,17 +185,25 @@ class BidViewSet(viewsets.ModelViewSet):
 class ContractViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Contract operations.
-    
+
+    Allowed methods: GET only (list / retrieve).
+    Contracts are created exclusively via the accept_bid service and may only
+    transition state through the dedicated @action endpoints below.
+    Direct PATCH / PUT / DELETE are disabled to prevent financial tampering (IDOR).
+
     Endpoints:
-    - GET /api/contracts/ - List user's contracts
-    - GET /api/contracts/{id}/ - Get contract detail
-    - POST /api/contracts/{id}/accept_proposal/ - Accept contract proposal (freelancer only)
-    - POST /api/contracts/{id}/decline_proposal/ - Decline contract proposal (freelancer only)
+    - GET  /api/contracts/              - List caller's contracts
+    - GET  /api/contracts/{id}/         - Get contract detail
+    - POST /api/contracts/{id}/accept_proposal/  - Accept proposal (freelancer only)
+    - POST /api/contracts/{id}/decline_proposal/ - Decline proposal (freelancer only)
     """
-    
+
+    # ── Security: disable all mutating HTTP verbs at dispatch level ──────────
+    http_method_names = ['get', 'head', 'options']
+
     def get_queryset(self):
         user = self.request.user
-        
+
         if user.role == 'FREELANCER':
             return Contract.objects.filter(
                 bid__freelancer=user
@@ -204,13 +212,32 @@ class ContractViewSet(viewsets.ModelViewSet):
             return Contract.objects.filter(
                 bid__project__client=user
             ).select_related('bid__project', 'bid__freelancer')
-    
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ContractListSerializer
         return ContractSerializer
-    
+
     permission_classes = [permissions.IsAuthenticated, IsContractParticipant]
+
+    # ── Belt-and-suspenders: explicit 405 even if method list is widened ─────
+    def update(self, request, *args, **kwargs):
+        return Response(
+            {"error": "Contracts cannot be modified directly.", "code": "method_not_allowed"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        return Response(
+            {"error": "Contracts cannot be modified directly.", "code": "method_not_allowed"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {"error": "Contracts cannot be deleted directly.", "code": "method_not_allowed"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
     @action(detail=True, methods=['post'])
     def accept_proposal(self, request, pk=None):
