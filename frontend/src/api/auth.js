@@ -36,18 +36,59 @@ export const authAPI = {
   updateAvatar: (avatarUrl) =>
     api.post('/users/avatar/', { avatar_url: avatarUrl }),
 
-  uploadImage: (imageFile, imageType = 'avatar', onUploadProgress = null) => {
-    const formData = new FormData()
-    formData.append('image', imageFile)
-    formData.append('image_type', imageType)
-    return api.post('/users/upload-image/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress,
+  uploadImage: async (imageFile, imageType = 'avatar', onUploadProgress = null) => {
+    // 1. Get SAS token (or local fallback url)
+    const tokenRes = await api.post('/users/sas-token/', {
+      image_type: imageType,
+      filename: imageFile.name,
     })
+    
+    const { is_local, upload_url, public_url } = tokenRes.data
+    
+    if (is_local) {
+      // Fallback: standard local upload
+      const formData = new FormData()
+      formData.append('image', imageFile)
+      formData.append('image_type', imageType)
+      return api.post(upload_url, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress,
+      })
+    } else {
+      // Direct Cloud Upload
+      // Using axios/fetch to PUT directly to Azure Blob Storage
+      const axios = (await import('axios')).default
+      await axios.put(upload_url, imageFile, {
+        headers: {
+          'Content-Type': imageFile.type,
+          'x-ms-blob-type': 'BlockBlob',
+        },
+        onUploadProgress,
+      })
+      
+      // Update local profile with the public URL
+      let userRes;
+      if (imageType === 'avatar') {
+        userRes = await api.post('/users/avatar/', { avatar_url: public_url })
+      } else {
+        userRes = await api.post('/users/banner/', { banner_url: public_url })
+      }
+      
+      return {
+        data: {
+          url: public_url,
+          user: userRes.data.user
+        }
+      }
+    }
   },
 
   // Get user by ID
   getUser: (id) => api.get(`/users/${id}/`),
+
+  // Link payout account for freelancer bank details
+  linkPayoutAccount: (data) =>
+    api.post('/users/freelancer/payout-account/', data),
 
   // Logout (client-side only, clear tokens)
   logout: () => {

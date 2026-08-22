@@ -3,7 +3,8 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   Briefcase, Search, FileText, Clock, DollarSign,
   MessageSquare, LogOut, ChevronRight, User, HelpCircle,
-  X, Mail, BookOpen, ShieldCheck, Home, PanelLeftClose, PanelLeftOpen
+  X, Mail, BookOpen, ShieldCheck, Home, PanelLeftClose, PanelLeftOpen,
+  Wallet
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import PrivacyPolicyModal from '../ui/PrivacyPolicyModal'
@@ -14,6 +15,7 @@ const NAV_LINKS = [
   { icon: FileText,     label: 'My Bids',         path: '/freelancer/bids' },
   { icon: Briefcase,    label: 'Contracts',        path: '/freelancer/contracts' },
   { icon: Clock,        label: 'Work Logs',        path: '/freelancer/worklogs' },
+  { icon: Wallet,       label: 'Wallet',           path: '/freelancer/wallet' },
   { icon: MessageSquare,label: 'Messages',         path: '/freelancer/messages' },
 ]
 

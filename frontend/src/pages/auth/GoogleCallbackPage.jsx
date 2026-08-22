@@ -40,15 +40,19 @@ const GoogleCallbackPage = () => {
     authAPI.getProfile()
       .then(res => {
         setUser(res.data)
-        const destination = (res.data?.role || role) === 'CLIENT'
+        const userRole = res.data?.role || role
+        if (!userRole) {
+          navigate('/login?error=no_token', { replace: true })
+          return
+        }
+        const destination = userRole === 'CLIENT'
           ? '/client/dashboard'
           : '/freelancer/dashboard'
         navigate(destination, { replace: true })
       })
       .catch(() => {
-        // Profile fetch failed — still navigate based on role param
-        const destination = role === 'CLIENT' ? '/client/dashboard' : '/freelancer/dashboard'
-        navigate(destination, { replace: true })
+        // Profile fetch failed — redirect to login with error
+        navigate('/login?error=oauth_failed', { replace: true })
       })
   }, [navigate, setUser])
 

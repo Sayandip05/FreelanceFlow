@@ -11,24 +11,29 @@ from apps.users.views import (
     EmailVerificationView,
     ResendVerificationEmailView,
     UpdateAvatarView,
+    UpdateBannerView,
     UploadImageView,
     ToggleAvailabilityView,
     DeactivateAccountView,
     ReactivateAccountView,
+    FreelancerPayoutAccountView,
 )
-
+from apps.users.views.views_sas import GenerateUploadSASTokenView
 
 urlpatterns = [
     # Authentication
     path("register/", RegisterView.as_view(), name="register"),
     path("login/", LoginView.as_view(), name="login"),
+    path("freelancer/payout-account/", FreelancerPayoutAccountView.as_view(), name="freelancer-payout-account"),
     path("token/", TokenObtainPairView.as_view(), name="token-obtain-pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     # Profile
     path("me/", ProfileView.as_view(), name="profile"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
     path("avatar/", UpdateAvatarView.as_view(), name="update-avatar"),
+    path("banner/", UpdateBannerView.as_view(), name="update-banner"),
     path("upload-image/", UploadImageView.as_view(), name="upload-image"),
+    path("sas-token/", GenerateUploadSASTokenView.as_view(), name="sas-token"),
     path("availability/", ToggleAvailabilityView.as_view(), name="toggle-availability"),
     # Password Reset
     path("password-reset/", PasswordResetRequestView.as_view(), name="password-reset"),

@@ -100,6 +100,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
             serializer.is_valid(raise_exception=True)
         
         updated_user = update_profile(user, serializer.validated_data)
+        updated_user.refresh_from_db()
         
         return Response(
             UserSerializer(updated_user).data,
@@ -285,6 +286,34 @@ class UpdateAvatarView(generics.GenericAPIView):
         return Response(
             {
                 "message": "Avatar updated successfully.",
+                "user": UserSerializer(user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class UpdateBannerView(generics.GenericAPIView):
+    """
+    POST /api/users/banner/
+    Update user's banner cover photo.
+    """
+    serializer_class = BannerUploadSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        if user.role == 'FREELANCER':
+            profile = user.freelancer_profile
+            profile.banner_image = serializer.validated_data['banner_url']
+            profile.save(update_fields=['banner_image'])
+        else:
+            return Response({"error": "Only freelancers have banner images."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response(
+            {
+                "message": "Banner updated successfully.",
                 "user": UserSerializer(user).data,
             },
             status=status.HTTP_200_OK,
@@ -525,5 +554,41 @@ class ReactivateAccountView(generics.GenericAPIView):
                 {"error": e.message, "code": e.code},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class FreelancerPayoutAccountView(generics.GenericAPIView):
+    """
+    POST /api/users/freelancer/payout-account/
+    Register and link a freelancer's payout bank account with RazorpayX.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        from apps.users.services.payout_services import setup_freelancer_payout_account
+        
+        account_number = request.data.get("account_number")
+        ifsc = request.data.get("ifsc")
+        name = request.data.get("account_holder_name")
+        
+        if not account_number or not ifsc or not name:
+            return Response(
+                {"error": "Account number, IFSC code, and account holder name are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            res_data = setup_freelancer_payout_account(
+                user=request.user,
+                account_number=account_number,
+                ifsc=ifsc,
+                name=name
+            )
+            return Response(res_data, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response(
+                {"error": e.message, "code": e.code},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
  
  

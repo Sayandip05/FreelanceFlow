@@ -9,10 +9,12 @@ from .views import (
     EmailVerificationView,
     ResendVerificationEmailView,
     UpdateAvatarView,
+    UpdateBannerView,
     UploadImageView,
     ToggleAvailabilityView,
     DeactivateAccountView,
     ReactivateAccountView,
+    FreelancerPayoutAccountView,
 )
 from .views_extended import (
     ActivityLogViewSet,

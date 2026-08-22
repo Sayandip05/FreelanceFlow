@@ -474,7 +474,8 @@ def process_ai_chat_message(
         except Contract.DoesNotExist:
             freelancer_id = 0
 
-    state = run_ai_worklog_agent(
+    from asgiref.sync import async_to_sync
+    state = async_to_sync(run_ai_worklog_agent)(
         contract_id=contract_id,
         freelancer_id=freelancer_id,
         user_message=message,
@@ -503,7 +504,8 @@ def generate_deliverable_from_chat(
     if chat_transcript:
         last_msg = chat_transcript[-1].get("content", "")
     
-    state = run_ai_worklog_agent(
+    from asgiref.sync import async_to_sync
+    state = async_to_sync(run_ai_worklog_agent)(
         contract_id=contract_id,
         freelancer_id=freelancer.id,
         user_message=last_msg or "Generate deliverable report for current week",

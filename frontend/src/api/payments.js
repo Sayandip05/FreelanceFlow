@@ -56,6 +56,10 @@ export const paymentsAPI = {
   // Termination APIs
   terminateContract: (contractId, reason, explanation) =>
     api.post(`/bidding/contracts/${contractId}/terminate/`, { reason, explanation }),
+
+  // Wallet APIs
+  getWallet: () => api.get('/payments/wallet/'),
+  withdrawFunds: (amount) => api.post('/payments/wallet/withdraw/', { amount }),
 }
 
 export default paymentsAPI

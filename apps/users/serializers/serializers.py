@@ -71,9 +71,10 @@ class UserSerializer(serializers.ModelSerializer):
             'role',
             'freelancer_profile',
             'client_profile',
+            'is_email_verified',
             'date_joined',
         ]
-        read_only_fields = ['id', 'email', 'role', 'date_joined']
+        read_only_fields = ['id', 'email', 'role', 'is_email_verified', 'date_joined']
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
