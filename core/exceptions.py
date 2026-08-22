@@ -100,6 +100,6 @@ class NotFoundError(BusinessError):
 class ValidationError(BusinessError):
     """Raised when validation fails."""
     
-    def __init__(self, message, field=None):
+    def __init__(self, message, field=None, code="validation_error"):
         self.field = field
-        super().__init__(message, code="validation_error")
+        super().__init__(message, code=code)
