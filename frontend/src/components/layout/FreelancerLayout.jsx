@@ -82,9 +82,14 @@ const HelpModal = ({ onClose }) => {
 const Avatar = ({ user, size = 'sm' }) => {
   const initials = [user?.first_name?.[0], user?.last_name?.[0]].filter(Boolean).join('').toUpperCase() || '?'
   const dim = size === 'lg' ? 'w-9 h-9 text-xs' : 'w-7 h-7 text-xs'
+  const avatarUrl = user?.role === 'FREELANCER' ? user?.freelancer_profile?.avatar : user?.client_profile?.avatar
   return (
-    <div className={`${dim} rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold flex-shrink-0`}>
-      {initials}
+    <div className={`${dim} rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold flex-shrink-0 overflow-hidden`}>
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={initials} className="w-full h-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   )
 }
