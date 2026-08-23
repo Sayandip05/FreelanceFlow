@@ -23,6 +23,7 @@ export default function FreelancerContractDetailPage() {
   const [deliverables, setDeliverables] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [draftMilestones, setDraftMilestones] = useState([])
 
   // Modals
   const [showSubmitModal, setShowSubmitModal] = useState(false)
@@ -71,6 +72,47 @@ export default function FreelancerContractDetailPage() {
   })
 
   const wsRef = useRef(null)
+  const draftWsRef = useRef(null)
+
+  // Live draft preview over WebSocket
+  useEffect(() => {
+    if (!contractId || milestones.length > 0) {
+      if (draftWsRef.current) {
+        draftWsRef.current.close()
+        draftWsRef.current = null
+      }
+      return
+    }
+
+    const token =
+      localStorage.getItem('access_token') ||
+      sessionStorage.getItem('access_token') ||
+      ''
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host =
+      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
+    const wsUrl = `${protocol}//${host}/ws/contract-draft/${contractId}/?token=${token}`
+
+    const ws = new WebSocket(wsUrl)
+    draftWsRef.current = ws
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'draft_update') {
+          setDraftMilestones(data.payload || [])
+        }
+      } catch (err) {
+        console.error('Error parsing draft WS message:', err)
+      }
+    }
+
+    ws.onerror = () => ws.close()
+
+    return () => {
+      ws.close()
+    }
+  }, [contractId, milestones])
 
   useEffect(() => {
     loadContractData()
@@ -97,6 +139,7 @@ export default function FreelancerContractDetailPage() {
         const milestoneEvents = [
           'milestone_funded', 'milestone_submitted',
           'milestone_approved', 'milestone_rejected',
+          'worklog_update',
         ]
         if (milestoneEvents.includes(data.type)) {
           loadContractData()
@@ -291,7 +334,7 @@ export default function FreelancerContractDetailPage() {
       </div>
 
       {/* ── Proposal Acceptance Banner ──────────────────────────────────── */}
-      {contract.status === 'PENDING_ACCEPTANCE' && (
+      {contract.status === 'PENDING_ACCEPTANCE' && milestones.length > 0 && (
         <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border border-primary-100 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
           <div className="space-y-1">
             <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
@@ -361,8 +404,8 @@ export default function FreelancerContractDetailPage() {
           {/* Client Profile Card */}
           <div className="flex items-center gap-4 bg-gray-50/80 p-4 rounded-2xl border border-gray-100 flex-shrink-0">
             <div className="flex items-center gap-3">
-              {client.profile_photo ? (
-                <img src={client.profile_photo} alt={clientName} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+              {client.avatar || client.profile_photo ? (
+                <img src={client.avatar || client.profile_photo} alt={clientName} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-primary-600 text-white font-bold text-xs flex items-center justify-center">
                   {clientName.slice(0, 2).toUpperCase()}
@@ -460,13 +503,32 @@ export default function FreelancerContractDetailPage() {
 
         {milestones.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200 space-y-3">
-            <div className="w-12 h-12 bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600 mx-auto">
+            <div className="w-12 h-12 bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600 mx-auto animate-pulse">
               <Clock className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-gray-900">Milestones Pending Setup</h3>
-            <p className="text-xs text-gray-500 max-w-md mx-auto">
-              Your client will define the milestone schedule and fund each stage into escrow before work begins.
+            <h3 className="text-base font-bold text-gray-900">Milestone Setup Pending by Client</h3>
+            <p className="text-xs text-gray-500 max-w-md mx-auto font-semibold">
+              Please wait for the client to propose the milestone schedule. You will be notified to review and accept the contract once proposed.
             </p>
+
+            {draftMilestones.length > 0 && (
+              <div className="max-w-md mx-auto mt-6 text-left border border-gray-150 rounded-2xl bg-white p-4 space-y-3 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary-600 animate-pulse" /> Live Client Draft Preview
+                </p>
+                <div className="divide-y divide-gray-100 max-h-48 overflow-y-auto pr-1">
+                  {draftMilestones.map((m, idx) => (
+                    <div key={idx} className="py-2.5 first:pt-0 last:pb-0 text-xs">
+                      <div className="flex justify-between items-center font-bold text-gray-900">
+                        <span>{m.title || `Milestone ${idx + 1}`}</span>
+                        <span>{formatCurrency(m.amount)}</span>
+                      </div>
+                      {m.description && <p className="text-[10px] text-gray-500 font-semibold mt-0.5">{m.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -475,7 +537,7 @@ export default function FreelancerContractDetailPage() {
                 <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="py-3.5 px-4">#</th>
                   <th className="py-3.5 px-4">Milestone Title & Scope</th>
-                  <th className="py-3.5 px-4">Amount ($)</th>
+                  <th className="py-3.5 px-4">Amount (₹)</th>
                   <th className="py-3.5 px-4">Due Date</th>
                   <th className="py-3.5 px-4">Escrow Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>

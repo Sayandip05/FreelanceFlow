@@ -43,6 +43,31 @@ export const contractsAPI = {
 
   // Decline proposed contract (freelancer only)
   declineProposal: (contractId) => api.post(`/bidding/contracts/${contractId}/decline_proposal/`),
+
+  // Propose milestone schedule (client only)
+  proposeMilestones: (contractId, milestones) => 
+    api.post(`/bidding/contracts/${contractId}/propose_milestones/`, { milestones }),
+}
+
+// Review APIs
+export const reviewsAPI = {
+  // List reviews (given or received by current user)
+  getReviews: () => api.get('/bidding/reviews/'),
+
+  // Create a review for a completed contract
+  createReview: (data) => api.post('/bidding/reviews/', data),
+
+  // Get reviews received by current user
+  getReceived: () => api.get('/bidding/reviews/received/'),
+
+  // Get reviews given by current user
+  getGiven: () => api.get('/bidding/reviews/given/'),
+
+  // Get reviews for a specific user
+  getUserReviews: (userId) => api.get(`/bidding/reviews/user/${userId}/`),
+
+  // Get rating summary for a specific user
+  getUserRatingSummary: (userId) => api.get(`/bidding/reviews/user/${userId}/summary/`),
 }
 
 export default { bidsAPI, contractsAPI }

@@ -308,6 +308,12 @@ const ClientHomePage = () => {
             (f.freelancer_profile?.experience_level || '').toUpperCase() === expMap[selectedExp]
           )
         }
+        // Sort by average rating descending (highest-rated first)
+        results = [...results].sort((a, b) => {
+          const aRating = parseFloat(a.freelancer_profile?.average_rating || 0)
+          const bRating = parseFloat(b.freelancer_profile?.average_rating || 0)
+          return bRating - aRating
+        })
         setFreelancers(results)
       } catch (err) {
         console.error(err)

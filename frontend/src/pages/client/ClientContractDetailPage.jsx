@@ -40,6 +40,9 @@ export default function ClientContractDetailPage() {
   // Equal distribution generator state
   const [milestoneCount, setMilestoneCount] = useState(3)
   const [milestoneInterval, setMilestoneInterval] = useState('monthly') // 'monthly' | 'biweekly' | 'custom'
+  const [generatedMilestones, setGeneratedMilestones] = useState([])
+  const [customMilestonesList, setCustomMilestonesList] = useState([])
+  const [activeSetupTab, setActiveSetupTab] = useState('auto') // 'auto' | 'manual'
 
   // Custom milestone form state
   const [customMilestone, setCustomMilestone] = useState({
@@ -58,7 +61,58 @@ export default function ClientContractDetailPage() {
   // Termination explanation
   const [terminateExplanation, setTerminateExplanation] = useState('')
 
+
+
   const wsRef = useRef(null)
+  const draftWsRef = useRef(null)
+
+  // Establish draft websocket
+  useEffect(() => {
+    if (!showMilestoneModal || !contractId) {
+      if (draftWsRef.current) {
+        draftWsRef.current.close()
+        draftWsRef.current = null
+      }
+      return
+    }
+
+    const token =
+      localStorage.getItem('access_token') ||
+      sessionStorage.getItem('access_token') ||
+      ''
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host =
+      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
+    const wsUrl = `${protocol}//${host}/ws/contract-draft/${contractId}/?token=${token}`
+
+    const ws = new WebSocket(wsUrl)
+    draftWsRef.current = ws
+
+    return () => {
+      ws.close()
+    }
+  }, [showMilestoneModal, contractId])
+
+  const broadcastDraft = (list) => {
+    if (draftWsRef.current && draftWsRef.current.readyState === WebSocket.OPEN) {
+      draftWsRef.current.send(JSON.stringify({
+        type: 'draft_update',
+        milestones: list
+      }))
+    }
+  }
+
+  useEffect(() => {
+    if (activeSetupTab === 'auto') {
+      broadcastDraft(generatedMilestones)
+    }
+  }, [generatedMilestones, activeSetupTab])
+
+  useEffect(() => {
+    if (activeSetupTab === 'manual') {
+      broadcastDraft(customMilestonesList)
+    }
+  }, [customMilestonesList, activeSetupTab])
 
   useEffect(() => {
     loadContractData()
@@ -85,6 +139,7 @@ export default function ClientContractDetailPage() {
         const milestoneEvents = [
           'milestone_funded', 'milestone_submitted',
           'milestone_approved', 'milestone_rejected',
+          'worklog_update',
         ]
         if (milestoneEvents.includes(data.type)) {
           loadContractData()
@@ -147,77 +202,108 @@ export default function ClientContractDetailPage() {
 
   const progressPercent = totalBudget > 0 ? Math.min(100, Math.round((releasedAmount / totalBudget) * 100)) : 0
 
-  /* ── Milestone Generator (Equal Distribution) ────────────────────────────── */
-  const handleGenerateEqualMilestones = async () => {
+  // Populates equal distribution milestones locally when counts or settings change
+  useEffect(() => {
     if (!totalBudget || totalBudget <= 0) return
-    setActionLoading(true)
+    const count = parseInt(milestoneCount, 10) || 1
+    const baseAmount = Math.floor((totalBudget / count) * 100) / 100
+    const lastAmount = parseFloat((totalBudget - (baseAmount * (count - 1))).toFixed(2))
+    const now = new Date()
 
-    try {
-      // Clear any existing default placeholder or custom milestones first
-      await paymentsAPI.clearMilestones(contractId)
-
-      const count = parseInt(milestoneCount, 10) || 1
-      const perMilestoneAmount = (totalBudget / count).toFixed(2)
-      const now = new Date()
-
-      for (let i = 1; i <= count; i++) {
-        const dueDate = new Date(now)
-        if (milestoneInterval === 'monthly') {
-          dueDate.setMonth(dueDate.getMonth() + i)
-        } else if (milestoneInterval === 'biweekly') {
-          dueDate.setDate(dueDate.getDate() + i * 14)
-        } else {
-          dueDate.setDate(dueDate.getDate() + i * 30)
-        }
-
-        const dateStr = dueDate.toISOString().split('T')[0]
-
-        await paymentsAPI.createMilestone(contractId, {
-          title: `Milestone ${i}: Stage ${i} Deliverable`,
-          description: `Deliverable review & validation for Stage ${i} of the project. Equal share of total contract budget.`,
-          amount: parseFloat(perMilestoneAmount),
-          due_date: dateStr,
-        })
+    const list = Array.from({ length: count }, (_, i) => {
+      const dueDate = new Date(now)
+      if (milestoneInterval === 'monthly') {
+        dueDate.setMonth(dueDate.getMonth() + (i + 1))
+      } else if (milestoneInterval === 'biweekly') {
+        dueDate.setDate(dueDate.getDate() + (i + 1) * 14)
+      } else {
+        dueDate.setDate(dueDate.getDate() + (i + 1) * 30)
       }
+      return {
+        title: `Milestone ${i + 1}`,
+        description: '',
+        amount: i === count - 1 ? lastAmount : baseAmount,
+        due_date: dueDate.toISOString().split('T')[0]
+      }
+    })
+    setGeneratedMilestones(list)
+  }, [milestoneCount, milestoneInterval, totalBudget, showMilestoneModal])
 
+  /* ── Milestone Proposal Submitter ─────────────────────────────────────────── */
+  const handleProposeSchedule = async (milestonesList) => {
+    if (milestonesList.length === 0) {
+      alert('Please add at least one milestone.')
+      return
+    }
+
+    const totalSum = milestonesList.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
+    if (Math.abs(totalSum - totalBudget) > 0.01) {
+      alert(`The total milestone amount (${formatCurrency(totalSum)}) must sum exactly to the contract budget (${formatCurrency(totalBudget)}).`)
+      return
+    }
+
+    for (let i = 0; i < milestonesList.length; i++) {
+      if (!milestonesList[i].title?.trim()) {
+        alert(`Milestone ${i + 1} is missing a title.`)
+        return
+      }
+      if (!milestonesList[i].description?.trim()) {
+        alert(`Milestone ${i + 1} is missing a description.`)
+        return
+      }
+    }
+
+    setActionLoading(true)
+    try {
+      await contractsAPI.proposeMilestones(contractId, milestonesList)
       await loadContractData()
       setShowMilestoneModal(false)
+      setCustomMilestonesList([])
     } catch (e) {
-      console.error('Failed to generate milestones:', e)
-      alert(e.response?.data?.error || 'Could not generate milestones. Please try again.')
+      console.error(e)
+      alert(e.response?.data?.error || 'Failed to propose milestones.')
     } finally {
       setActionLoading(false)
     }
   }
 
-  /* ── Add Custom Single Milestone ─────────────────────────────────────────── */
-  const handleAddCustomMilestone = async (e) => {
+  /* ── Add Custom Single Milestone (Local) ─────────────────────────────────── */
+  const handleAddLocalCustomMilestone = (e) => {
     e.preventDefault()
-    if (!customMilestone.title || !customMilestone.amount) return
-    setActionLoading(true)
-
-    try {
-      // If we only have 1 milestone and it's equal to the total contract amount, it's the default one. Clear it!
-      if (milestones.length === 1 && parseFloat(milestones[0].amount) === totalBudget) {
-        await paymentsAPI.clearMilestones(contractId)
-      }
-
-      await paymentsAPI.createMilestone(contractId, {
-        title: customMilestone.title,
-        description: customMilestone.description,
-        amount: parseFloat(customMilestone.amount),
-        due_date: customMilestone.due_date || null,
-      })
-
-      setCustomMilestone({ title: '', description: '', amount: '', due_date: '' })
-      await loadContractData()
-      setShowMilestoneModal(false)
-    } catch (e) {
-      console.error('Failed to create milestone:', e)
-      alert(e.response?.data?.error || 'Failed to create milestone. Total cannot exceed contract budget.')
-    } finally {
-      setActionLoading(false)
+    if (!customMilestone.title?.trim()) {
+      alert('Please enter a milestone title.')
+      return
     }
+    if (!customMilestone.description?.trim()) {
+      alert('Please enter a milestone description.')
+      return
+    }
+    if (!customMilestone.amount || parseFloat(customMilestone.amount) <= 0) {
+      alert('Please enter a valid amount.')
+      return
+    }
+
+    const currentTotal = customMilestonesList.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
+    const newAmount = parseFloat(customMilestone.amount)
+    if (currentTotal + newAmount > totalBudget + 0.01) {
+      alert(`Cannot add milestone. Total allocated (${formatCurrency(currentTotal + newAmount)}) exceeds contract budget (${formatCurrency(totalBudget)}).`)
+      return
+    }
+
+    setCustomMilestonesList([
+      ...customMilestonesList,
+      {
+        title: customMilestone.title.trim(),
+        description: customMilestone.description.trim(),
+        amount: newAmount,
+        due_date: customMilestone.due_date || null
+      }
+    ])
+    setCustomMilestone({ title: '', description: '', amount: '', due_date: '' })
+  }
+
+  const handleRemoveLocalCustomMilestone = (idx) => {
+    setCustomMilestonesList(customMilestonesList.filter((_, i) => i !== idx))
   }
 
   /* ── Fund Milestone Escrow (With Wallet Options) ───────────────────────────── */
@@ -691,16 +777,16 @@ support@freelanceflow.com
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-gray-900">No milestones configured yet</h3>
-              <p className="text-xs text-gray-500 max-w-md mx-auto mt-1">
-                You can split your budget equally across monthly milestones or create custom milestone stages.
+              <h3 className="text-base font-bold text-gray-900">Milestone Setup Pending</h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto mt-1 font-semibold">
+                Please configure the milestone schedule to send the proposal to the freelancer.
               </p>
             </div>
             <button
               onClick={() => setShowMilestoneModal(true)}
               className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm inline-flex items-center gap-2"
             >
-              <Sparkles className="w-4 h-4" /> Distribute Budget Equally
+              <Plus className="w-4 h-4" /> Setup Milestone Schedule
             </button>
           </div>
         ) : (
@@ -710,7 +796,7 @@ support@freelanceflow.com
                 <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="py-3.5 px-4">#</th>
                   <th className="py-3.5 px-4">Milestone Title & Scope</th>
-                  <th className="py-3.5 px-4">Amount ($)</th>
+                  <th className="py-3.5 px-4">Amount (₹)</th>
                   <th className="py-3.5 px-4">Due Date</th>
                   <th className="py-3.5 px-4">Escrow Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
@@ -854,8 +940,8 @@ support@freelanceflow.com
 
       {/* ── Milestone Setup Modal (Equal Distribution / Custom) ───────────── */}
       {showMilestoneModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150 my-8 max-h-[85vh] overflow-y-auto">
             <button
               onClick={() => setShowMilestoneModal(false)}
               className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-1 rounded-lg"
@@ -870,109 +956,250 @@ support@freelanceflow.com
               </p>
             </div>
 
-            {/* Mode 1: Equal Distribution */}
-            <div className="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100 space-y-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-600" />
-                <h4 className="text-sm font-bold text-indigo-900">Equal Distribution Generator</h4>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">Number of Milestones</label>
-                  <select
-                    value={milestoneCount}
-                    onChange={(e) => setMilestoneCount(e.target.value)}
-                    className="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
-                  >
-                    <option value="2">2 Milestones (50% each)</option>
-                    <option value="3">3 Milestones (33.3% each)</option>
-                    <option value="4">4 Milestones (25% each)</option>
-                    <option value="6">6 Milestones (16.6% each)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">Frequency Interval</label>
-                  <select
-                    value={milestoneInterval}
-                    onChange={(e) => setMilestoneInterval(e.target.value)}
-                    className="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
-                  >
-                    <option value="monthly">Monthly Milestones</option>
-                    <option value="biweekly">Bi-weekly (14 days)</option>
-                    <option value="custom">Custom Spacing</option>
-                  </select>
-                </div>
-              </div>
-
-              <p className="text-xs text-indigo-800">
-                Each milestone will be allocated exactly{' '}
-                <span className="font-bold">{formatCurrency(totalBudget / (parseInt(milestoneCount, 10) || 1))}</span>.
-              </p>
-
+            {/* Tabs */}
+            <div className="flex bg-gray-50 border border-gray-150 p-1 rounded-xl">
               <button
-                onClick={handleGenerateEqualMilestones}
-                disabled={actionLoading}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                type="button"
+                onClick={() => setActiveSetupTab('auto')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  activeSetupTab === 'auto' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                {actionLoading ? 'Generating...' : 'Auto-Generate Equal Milestones'}
+                Equal Auto-Generator
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSetupTab('manual')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  activeSetupTab === 'manual' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Manual Custom Setup
               </button>
             </div>
 
-            <div className="relative flex py-1 items-center">
-              <div className="flex-grow border-t border-gray-200" />
-              <span className="flex-shrink mx-4 text-xs text-gray-400 font-semibold uppercase">Or Add Single Custom</span>
-              <div className="flex-grow border-t border-gray-200" />
-            </div>
+            {/* Mode 1: Equal Distribution */}
+            {activeSetupTab === 'auto' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                    <h4 className="text-sm font-bold text-indigo-900">Equal Distribution Generator</h4>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 mb-1">Number of Milestones</label>
+                      <select
+                        value={milestoneCount}
+                        onChange={(e) => setMilestoneCount(e.target.value)}
+                        className="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                      >
+                        <option value="2">2 Milestones (50% each)</option>
+                        <option value="3">3 Milestones (33.3% each)</option>
+                        <option value="4">4 Milestones (25% each)</option>
+                        <option value="6">6 Milestones (16.6% each)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 mb-1">Frequency Interval</label>
+                      <select
+                        value={milestoneInterval}
+                        onChange={(e) => setMilestoneInterval(e.target.value)}
+                        className="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                      >
+                        <option value="monthly">Monthly Milestones</option>
+                        <option value="biweekly">Bi-weekly (14 days)</option>
+                        <option value="custom">Custom Spacing</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Milestone Detail Form Blocks */}
+                <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                  {generatedMilestones.map((m, idx) => (
+                    <div key={idx} className="p-3 bg-gray-50 border border-gray-150 rounded-2xl space-y-3">
+                      <div className="flex justify-between items-center text-xs font-bold text-gray-900">
+                        <span>Milestone #{idx + 1}</span>
+                        <span className="text-indigo-600">{formatCurrency(m.amount)}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 mb-1">Title</label>
+                          <input
+                            type="text"
+                            required
+                            value={m.title}
+                            onChange={(e) => {
+                              const newList = [...generatedMilestones]
+                              newList[idx].title = e.target.value
+                              setGeneratedMilestones(newList)
+                            }}
+                            className="w-full p-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-gray-900"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 mb-1">Due Date</label>
+                          <input
+                            type="date"
+                            value={m.due_date}
+                            onChange={(e) => {
+                              const newList = [...generatedMilestones]
+                              newList[idx].due_date = e.target.value
+                              setGeneratedMilestones(newList)
+                            }}
+                            className="w-full p-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-gray-900"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Description</label>
+                        <textarea
+                          rows={2}
+                          required
+                          value={m.description}
+                          onChange={(e) => {
+                            const newList = [...generatedMilestones]
+                            newList[idx].description = e.target.value
+                            setGeneratedMilestones(newList)
+                          }}
+                          placeholder="Provide details about the deliverables of this stage..."
+                          className="w-full p-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-gray-800"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleProposeSchedule(generatedMilestones)}
+                  disabled={actionLoading}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                >
+                  {actionLoading ? 'Proposing Milestones...' : 'Propose Milestone Schedule'}
+                </button>
+              </div>
+            )}
 
             {/* Mode 2: Custom Milestone Form */}
-            <form onSubmit={handleAddCustomMilestone} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Milestone Title</label>
-                <input
-                  type="text"
-                  required
-                  value={customMilestone.title}
-                  onChange={(e) => setCustomMilestone({ ...customMilestone, title: e.target.value })}
-                  placeholder="e.g. Design Wireframes & Architecture"
-                  className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+            {activeSetupTab === 'manual' && (
+              <div className="space-y-4">
+                <form onSubmit={handleAddLocalCustomMilestone} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Milestone Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={customMilestone.title}
+                      onChange={(e) => setCustomMilestone({ ...customMilestone, title: e.target.value })}
+                      placeholder="e.g. Design Wireframes & Architecture"
+                      className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Milestone Description</label>
+                    <textarea
+                      rows={2}
+                      required
+                      value={customMilestone.description}
+                      onChange={(e) => setCustomMilestone({ ...customMilestone, description: e.target.value })}
+                      placeholder="Provide details about the deliverables of this stage..."
+                      className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Amount (₹)</label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        value={customMilestone.amount}
+                        onChange={(e) => setCustomMilestone({ ...customMilestone, amount: e.target.value })}
+                        placeholder="e.g. 500"
+                        className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Due Date</label>
+                      <input
+                        type="date"
+                        value={customMilestone.due_date}
+                        onChange={(e) => setCustomMilestone({ ...customMilestone, due_date: e.target.value })}
+                        className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all"
+                  >
+                    Add Custom Milestone
+                  </button>
+                </form>
+
+                {/* Added custom milestones list */}
+                {customMilestonesList.length > 0 && (
+                  <div className="space-y-3.5 pt-2">
+                    <div className="flex justify-between items-center text-xs font-bold text-gray-900 border-b border-gray-100 pb-2">
+                      <span>Proposed Milestone List</span>
+                      <span>
+                        Allocated:{' '}
+                        <span className="text-indigo-600">
+                          {formatCurrency(customMilestonesList.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0))}
+                        </span>{' '}
+                        / {formatCurrency(totalBudget)}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {customMilestonesList.map((m, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 border border-gray-150 rounded-xl text-xs">
+                          <div>
+                            <p className="font-bold text-gray-900">{m.title}</p>
+                            <p className="text-[10px] text-gray-500 font-medium mt-0.5 truncate max-w-[240px]">{m.description}</p>
+                          </div>
+                          <div className="flex items-center gap-3 text-right flex-shrink-0">
+                            <div>
+                              <p className="font-bold text-gray-900">{formatCurrency(m.amount)}</p>
+                              <p className="text-[9px] text-gray-400 mt-0.5">{m.due_date || 'No due date'}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLocalCustomMilestone(idx)}
+                              className="p-1 text-red-500 hover:bg-red-50 rounded"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleProposeSchedule(customMilestonesList)}
+                      disabled={
+                        actionLoading ||
+                        Math.abs(
+                          customMilestonesList.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0) - totalBudget
+                        ) > 0.01
+                      }
+                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                    >
+                      {actionLoading ? 'Proposing Milestones...' : 'Propose Milestone Schedule'}
+                    </button>
+                  </div>
+                )}
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Amount ($)</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={customMilestone.amount}
-                    onChange={(e) => setCustomMilestone({ ...customMilestone, amount: e.target.value })}
-                    placeholder="e.g. 500"
-                    className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Due Date</label>
-                  <input
-                    type="date"
-                    value={customMilestone.due_date}
-                    onChange={(e) => setCustomMilestone({ ...customMilestone, due_date: e.target.value })}
-                    className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={actionLoading}
-                className="w-full py-2.5 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all"
-              >
-                {actionLoading ? 'Adding...' : 'Add Custom Milestone'}
-              </button>
-            </form>
+            )}
           </div>
         </div>
       )}

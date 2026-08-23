@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Briefcase, Clock, User, DollarSign, CheckCircle, XCircle, MessageSquare
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 import { bidsAPI } from '../../api/bids'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 const ClientProjectDetailPage = () => {
   const { projectId } = useParams()
@@ -13,9 +14,48 @@ const ClientProjectDetailPage = () => {
   const [bids, setBids] = useState([])
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState(null)
+  const wsRef = useRef(null)
 
   useEffect(() => {
     fetchData()
+  }, [projectId])
+
+  // Real-time Bid sync over WebSocket
+  useEffect(() => {
+    if (!projectId) return
+    const token =
+      localStorage.getItem('access_token') ||
+      sessionStorage.getItem('access_token') ||
+      ''
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host =
+      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
+    const wsUrl = `${protocol}//${host}/ws/project/${projectId}/?token=${token}`
+
+    const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'bid_submitted') {
+          const newBid = data.payload
+          setBids((prev) => {
+            // Avoid duplicates
+            if (prev.some((b) => b.id === newBid.id)) return prev
+            return [newBid, ...prev]
+          })
+        }
+      } catch (err) {
+        console.error('Error parsing project WS message:', err)
+      }
+    }
+
+    ws.onerror = () => ws.close()
+
+    return () => {
+      ws.close()
+    }
   }, [projectId])
 
   const fetchData = async () => {
@@ -37,8 +77,13 @@ const ClientProjectDetailPage = () => {
   const handleAcceptBid = async (bidId) => {
     setAccepting(bidId)
     try {
-      await bidsAPI.acceptBid(bidId)
-      await fetchData()
+      const res = await bidsAPI.acceptBid(bidId)
+      const contractId = res.data.contract?.id
+      if (contractId) {
+        navigate(`/client/contracts/${contractId}`)
+      } else {
+        await fetchData()
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -123,7 +168,7 @@ const ClientProjectDetailPage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900">{acceptedBid.freelancer?.first_name} {acceptedBid.freelancer?.last_name}</p>
-                    <p className="text-sm text-gray-600">${acceptedBid.amount} · {acceptedBid.delivery_days} days</p>
+                    <p className="text-sm text-gray-600">{formatCurrency(acceptedBid.amount)} · {acceptedBid.delivery_days} days</p>
                   </div>
                   <button
                     onClick={() => navigate(`/client/contracts/${acceptedBid.contract_id}`)}
@@ -147,19 +192,31 @@ const ClientProjectDetailPage = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {bids.map(bid => (
+                  {bids.map(bid => {
+                    const freelancerName = `${bid.freelancer?.first_name || ''} ${bid.freelancer?.last_name || ''}`.trim()
+                    const freelancerAvatar = bid.freelancer?.avatar
+                    return (
                     <div key={bid.id} className={`border rounded-xl p-4 ${
                       bid.status === 'ACCEPTED' ? 'border-green-200 bg-green-50' :
                       bid.status === 'REJECTED' ? 'border-gray-200 opacity-60' :
                       'border-gray-200'
                     }`}>
                       <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-medium text-gray-900">{bid.freelancer?.first_name} {bid.freelancer?.last_name}</p>
-                          <p className="text-sm text-gray-500">{bid.freelancer?.email}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {freelancerAvatar ? (
+                              <img src={freelancerAvatar} alt={freelancerName} className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="w-5 h-5 text-white" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{freelancerName}</p>
+                            <p className="text-sm text-gray-500">{bid.freelancer?.email}</p>
+                          </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-900">${bid.amount}</p>
+                          <p className="font-bold text-gray-900">{formatCurrency(bid.amount)}</p>
                           {bid.delivery_days && <p className="text-xs text-gray-500">{bid.delivery_days} days</p>}
                         </div>
                       </div>
@@ -196,7 +253,8 @@ const ClientProjectDetailPage = () => {
                         }`}>{bid.status}</span>
                       )}
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -208,7 +266,7 @@ const ClientProjectDetailPage = () => {
               <h3 className="font-semibold text-gray-900 mb-4">Project Details</h3>
               <div className="space-y-3">
                 {[
-                  { icon: DollarSign, label: 'Budget', value: `$${project.budget?.toLocaleString()}` },
+                  { icon: DollarSign, label: 'Budget', value: formatCurrency(project.budget) },
                   { icon: Clock, label: 'Posted', value: new Date(project.created_at).toLocaleDateString() },
                   { icon: User, label: 'Total Bids', value: bids.length },
                   { icon: CheckCircle, label: 'Pending Bids', value: pendingBids.length },
