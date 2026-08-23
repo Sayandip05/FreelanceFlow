@@ -687,3 +687,70 @@ def withdraw_funds(user, amount) -> "WithdrawalRequest":
     )
     return withdrawal
 
+
+def fund_milestone_from_wallet_service(milestone, client) -> Payment:
+    """
+    Fund escrow for a specific milestone using the Client's platform wallet balance.
+    """
+    from apps.payments.models import Payment, Escrow, ClientWallet
+    from apps.payments.models.models_milestone import PaymentMilestone
+    from apps.notifications.services import notify_escrow_created
+    import uuid
+
+    if milestone.contract.client != client:
+        raise PermissionDeniedError("Only the client can fund a milestone.")
+
+    if hasattr(milestone, 'payment_record'):
+        if milestone.payment_record.status != Payment.Status.PENDING:
+            raise ValidationError("Payment already exists or is in progress for this milestone.")
+
+    with transaction.atomic():
+        wallet, _ = ClientWallet.objects.select_for_update().get_or_create(client=client)
+        if wallet.balance < milestone.amount:
+            raise ValidationError(f"Insufficient wallet balance. Milestone costs ${milestone.amount} but your wallet has ${wallet.balance}.")
+
+        # Deduct from wallet
+        wallet.balance -= milestone.amount
+        wallet.save()
+
+        # Create/Update Payment record in ESCROWED state
+        payment_id = f"pay_wallet_{uuid.uuid4().hex[:12]}"
+        mock_order_id = f"order_wallet_{uuid.uuid4().hex[:12]}"
+        
+        if hasattr(milestone, 'payment_record'):
+            payment = milestone.payment_record
+            payment.status = Payment.Status.ESCROWED
+            payment.razorpay_order_id = mock_order_id
+            payment.razorpay_payment_id = payment_id
+            payment.save()
+        else:
+            payment = Payment.objects.create(
+                contract=milestone.contract,
+                milestone=milestone,
+                total_amount=milestone.amount,
+                status=Payment.Status.ESCROWED,
+                razorpay_order_id=mock_order_id,
+                razorpay_payment_id=payment_id,
+            )
+
+        Escrow.objects.create(
+            payment=payment,
+            held_amount=payment.total_amount,
+        )
+
+        milestone.status = PaymentMilestone.Status.IN_PROGRESS
+        milestone.save()
+
+        contract = payment.contract
+        transaction.on_commit(
+            lambda: notify_escrow_created(
+                freelancer=contract.bid.freelancer,
+                project_title=contract.bid.project.title,
+                amount=float(payment.total_amount),
+            )
+        )
+
+    logger.info("Milestone funded from Client Wallet: milestone_id=%s payment_id=%s", milestone.id, payment.id)
+    return payment
+
+
