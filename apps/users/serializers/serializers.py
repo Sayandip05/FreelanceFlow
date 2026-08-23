@@ -48,10 +48,11 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             'total_spent',
             'average_rating',
             'total_reviews',
+            'avatar',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['total_spent', 'average_rating', 'total_reviews', 'created_at', 'updated_at']
+        read_only_fields = ['total_spent', 'average_rating', 'total_reviews', 'avatar', 'created_at', 'updated_at']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -59,6 +60,7 @@ class UserSerializer(serializers.ModelSerializer):
     freelancer_profile = FreelancerProfileSerializer(read_only=True)
     client_profile = ClientProfileSerializer(read_only=True)
     full_name = serializers.CharField(source='get_full_name', read_only=True)
+    avatar = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -71,10 +73,18 @@ class UserSerializer(serializers.ModelSerializer):
             'role',
             'freelancer_profile',
             'client_profile',
+            'avatar',
             'is_email_verified',
             'date_joined',
         ]
         read_only_fields = ['id', 'email', 'role', 'is_email_verified', 'date_joined']
+
+    def get_avatar(self, obj):
+        if obj.role == 'FREELANCER' and hasattr(obj, 'freelancer_profile'):
+            return obj.freelancer_profile.avatar
+        elif obj.role == 'CLIENT' and hasattr(obj, 'client_profile'):
+            return obj.client_profile.avatar
+        return ""
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
