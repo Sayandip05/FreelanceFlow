@@ -185,6 +185,8 @@ graph TB
 ### 💰 2. Milestone Escrow & Protection
 - **Deposit before Work**: Clients deposit funds into escrow milestone-by-milestone.
 - **Release upon Approval**: Funds are safely held until the client inspects and approves submitted work.
+- **Freelancer Platform Wallet**: Upon milestone approval, funds (gross minus platform fee) are credited to the freelancer's wallet.
+- **Option B Payout Details**: Freelancers can securely link and update their bank details (IFSC, Account Number, Holder Name) securely via RazorpayX directly from Payout Settings or on-demand when initiating their first withdrawal.
 - **Universal USD Standard**: All financial values, budgets, invoices, and analytics formatted universally in USD (`$`).
 
 ### 💬 3. Real-Time Chat & Read Receipts
@@ -321,17 +323,3 @@ locust -f benchmarks/locustfile.py --host=http://127.0.0.1:8000
 | **[BENCHMARK_REPORT.md](./BENCHMARK_REPORT.md)** | Executive Performance Scorecard, Latency Breakdown, and SQL Query Telemetry |
 | **[docs/folderstructure.md](./docs/folderstructure.md)** | Codebase file hierarchy and component index |
 
----
-
-
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
-## 👨‍💻 Author
-
-**Sayandip Bar**
-- GitHub: [@Sayandip05](https://github.com/Sayandip05)
-- Repository: [Sayandip05/FreelanceFlow](https://github.com/Sayandip05/FreelanceFlow)

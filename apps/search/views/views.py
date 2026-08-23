@@ -59,7 +59,7 @@ class SearchView(APIView):
                 if skills:
                     skill_list = [s.strip().lower() for s in skills.split(",")]
                     for skill in skill_list:
-                        qs = qs.filter(required_skills__icontains=skill)
+                        qs = qs.filter(skills__skill_name__icontains=skill)
                 if min_budget is not None:
                     qs = qs.filter(budget__gte=float(min_budget))
                 if max_budget is not None:
@@ -100,8 +100,12 @@ class SearchView(APIView):
                     )
                 if skills:
                     skill_list = [s.strip().lower() for s in skills.split(",")]
-                    for skill in skill_list:
-                        qs = qs.filter(freelancer_profile__skills__contains=[skill])
+                    matching_user_ids = []
+                    for u in qs:
+                        user_skills = [s.lower() for s in (u.freelancer_profile.skills if u.freelancer_profile else [])]
+                        if any(skill in user_skills for skill in skill_list):
+                            matching_user_ids.append(u.id)
+                    qs = User.objects.filter(id__in=matching_user_ids)
                 results["freelancers"] = [{
                     "id": u.id,
                     "email": u.email,
@@ -167,7 +171,7 @@ class SearchView(APIView):
                     Q("multi_match", query=query, fields=["full_name^2", "bio", "skills"])
                 )
             if skills:
-                skill_list = [s.strip() for s in skills.split(",")]
+                skill_list = [s.strip().lower() for s in skills.split(",")]
                 search = search.filter("terms", skills=skill_list)
 
             response = search[:50].execute()
@@ -229,7 +233,7 @@ class ProjectSearchView(APIView):
             if skills:
                 skill_list = [s.strip().lower() for s in skills.split(",")]
                 for skill in skill_list:
-                    qs = qs.filter(required_skills__icontains=skill)
+                    qs = qs.filter(skills__skill_name__icontains=skill)
             results = []
             for p in qs[:50]:
                 results.append({
@@ -268,7 +272,7 @@ class FreelancerSearchView(APIView):
             )
         
         if skills:
-            skill_list = [s.strip() for s in skills.split(",")]
+            skill_list = [s.strip().lower() for s in skills.split(",")]
             search = search.filter("terms", skills=skill_list)
         
         try:
@@ -288,8 +292,12 @@ class FreelancerSearchView(APIView):
                 )
             if skills:
                 skill_list = [s.strip().lower() for s in skills.split(",")]
-                for skill in skill_list:
-                    qs = qs.filter(freelancer_profile__skills__contains=[skill])
+                matching_user_ids = []
+                for u in qs:
+                    user_skills = [s.lower() for s in (u.freelancer_profile.skills if u.freelancer_profile else [])]
+                    if any(skill in user_skills for skill in skill_list):
+                        matching_user_ids.append(u.id)
+                qs = User.objects.filter(id__in=matching_user_ids)
             results = []
             for u in qs[:50]:
                 results.append({

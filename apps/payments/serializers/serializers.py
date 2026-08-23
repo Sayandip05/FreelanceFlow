@@ -21,6 +21,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'contract',
             'total_amount',
             'status',
+            'razorpay_order_id',
             'razorpay_payout_id',
             'payout_error',
             'escrow',

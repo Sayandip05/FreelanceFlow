@@ -46,6 +46,10 @@ class User(AbstractUser):
         help_text="User has deactivated their account (soft delete)"
     )
     deactivated_at = models.DateTimeField(null=True, blank=True)
+    is_email_verified = models.BooleanField(
+        default=False,
+        help_text="User email address has been verified"
+    )
     
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["first_name", "last_name"]
@@ -125,6 +129,24 @@ class FreelancerProfile(models.Model):
         max_length=255,
         blank=True,
         help_text="RazorpayX fund account ID for freelancer payouts"
+    )
+    payout_bank_name = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Bank name associated with payout account"
+    )
+    payout_masked_account = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Masked account number or UPI ID for display"
+    )
+    payout_account_holder = models.CharField(
+        max_length=150,
+        blank=True,
+        default="",
+        help_text="Account holder name for payouts"
     )
     
     # Address & Onboarding Fields

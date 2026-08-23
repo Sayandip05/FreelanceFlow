@@ -119,7 +119,11 @@ const AuthPage = () => {
     setError('')
     try {
       const user = await login(loginForm.email, loginForm.password)
-      navigate(user?.role === 'CLIENT' ? '/client/home' : '/freelancer/dashboard')
+      if (!user?.role) {
+        setError('User role not found. Please try logging in again.')
+        return
+      }
+      navigate(user.role === 'CLIENT' ? '/client/home' : '/freelancer/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid email or password. Please try again.')
     } finally {

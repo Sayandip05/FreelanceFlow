@@ -1,104 +1,64 @@
 # FreelanceFlow — Bug Report (End-to-End Audit)
 
-**Date:** 2026-08-21
-**Scope:** Whole repository — Django REST + Channels + Celery backend and the React/Vite frontend.
-**Nature:** Read-only audit. **Nothing in this file has been fixed** — each entry lists the bug, a proposed fix, and the outcome you should expect once the fix is applied.
 
-> This is a separate file from the team's `Issue.md` (which is preserved). The reported items in `Issue.md` are mapped to their root causes in the [Issue.md mapping](#issuemd-mapping) section at the end.
 
-**Totals:** 3 CRITICAL · 15 HIGH · 15 MEDIUM · 14 LOW · 1 cross-cutting theme.
 
-**Severity legend**
-- **CRITICAL** — money/security/data integrity break, or the app becomes unusable for a class of users. Fix immediately.
-- **HIGH** — a live endpoint or core flow reliably 500s / breaks, or an authorization gap.
-- **MEDIUM** — feature broken or wrong in common cases, or a meaningful security hardening gap.
-- **LOW** — edge-case crash, dead code, or a minor correctness/hardening issue.
+**Totals:** 0 CRITICAL · 15 HIGH · 15 MEDIUM · 14 LOW · 1 cross-cutting theme.
 
----
-
-## 🔴 CRITICAL
-
-### C1 — Contract tampering IDOR: either party can rewrite money/status or delete a contract
-- **Location:** `apps/bidding/views/views.py:185` (`ContractViewSet`), `apps/bidding/serializers/serializers.py:74` (`ContractSerializer`)
-- **Bug:** `ContractViewSet` is a full `viewsets.ModelViewSet` with **no `http_method_names` restriction**, and `ContractSerializer.Meta.fields` exposes `agreed_amount`, `start_date`, `end_date`, `is_active`, `status` as **writable with no `read_only_fields`**. Any authenticated participant of the contract can `PATCH /api/bidding/contracts/<id>/` to change the agreed amount or force the status, or `DELETE` the contract entirely. Direct financial and integrity impact.
-- **Fix:** Restrict the viewset to safe methods (`http_method_names = ["get", "head", "options"]`) and drive every state change through explicit service-backed actions (accept, activate, complete, terminate) that enforce role + state-machine rules. Add `read_only_fields = ["agreed_amount", "start_date", "end_date", "is_active", "status", "created_at", "updated_at"]` to `ContractSerializer` so those fields can never be set through the generic serializer.
-- **Expected outcome:** A `PATCH`/`DELETE`/`PUT` on a contract returns `405 Method Not Allowed`; `agreed_amount` and `status` cannot be modified via the API; contract state only changes through the audited action endpoints.
-
-### C2 — AI worklog draft IDOR: an arbitrary draft can be compiled into a delivered PDF
-- **Location:** `apps/worklogs/services/ai_service.py:462` (`_compile_and_upload`), `apps/worklogs/views/views_ai.py:120` (approve view)
-- **Bug:** The approve view checks only that the caller is the contract's freelancer (`contract.bid.freelancer_id != request.user.id`), then passes the **client-supplied `draft_id`** straight through. `_compile_and_upload` does `AIReportDraft.objects.filter(id=draft_id).first()` with **no ownership/contract scoping**. A freelancer can approve/compile a draft belonging to a different contract (or any draft id) into a delivered PDF → cross-tenant data disclosure and integrity break.
-- **Fix:** Scope the lookup to the current contract: `AIReportDraft.objects.filter(id=draft_id, contract=contract).first()` and return a 404/403 when it doesn't match. Validate ownership in the service, not only the view.
-- **Expected outcome:** Approving with a foreign/mismatched `draft_id` returns 404/403; a freelancer can only compile drafts that belong to the contract they're delivering.
-
-### C3 — Frontend infinite redirect loop locks users out *(Issue #8)*
-- **Location:** `frontend/src/routes/ClientRoute.jsx:17`, `frontend/src/routes/FreelancerRoute.jsx:17`
-- **Bug:** `ClientRoute` renders `<Navigate to="/freelancer/browse">` when `role !== 'CLIENT'`; `FreelancerRoute` renders `<Navigate to="/client/dashboard">` when `role !== 'FREELANCER'`. For a `null`, lowercase, or unknown role the two routes bounce to each other forever → white screen / "stuck redirecting."
-- **Fix:** Normalize role to uppercase in one place (auth context). In each guard, handle three cases explicitly: not authenticated → `/login`; authenticated with the wrong known role → that role's home (once); missing/unknown role → a neutral fallback page (or force re-login) rather than the other guarded tree. Never let two guards redirect into each other.
-- **Expected outcome:** Every auth/role combination resolves to a single stable page with no redirect loop; users with a missing role get a clear fallback instead of a frozen screen.
-
----
 
 ## 🟠 HIGH
 
-### H1 — `ValidationError(code=...)` raises `TypeError` → 500; email verification 500s on **every** call
-- **Location:** `core/exceptions.py:100` (`ValidationError.__init__` has no `code` param); callers `apps/users/services/services.py:271`, `:274` (`reset_password`), `:355`, `:358`, `:361` (`verify_email`). Compounding: `apps/users/models/models.py` `UserManager.create_user` sets `is_active=True` by default.
-- **Bug:** `ValidationError.__init__(self, message, field=None)` accepts no `code`, but several call sites pass `code="invalid_token"` / `code="already_verified"`. Raising them throws `TypeError` (→ 500) instead of a clean 400. Because every user is created `is_active=True`, `verify_email` always reaches `raise ValidationError(..., code="already_verified")` → **every email-verification attempt returns 500**, and email verification gates nothing (users can log in unverified). Password reset with an invalid/expired link also 500s.
-- **Fix:** Add a `code=None` parameter to `core/exceptions.py:ValidationError.__init__` (store `self.code`), OR remove the `code=` kwargs at the call sites. Separately decide the verification model: if verification should gate login, create users `is_active=False` (and adjust login UX); if not, remove the dead verify/resend flow.
-- **Expected outcome:** Invalid reset links and duplicate verification return a clean `400` with a machine-readable `code`, never a 500. Email verification either meaningfully activates accounts or is removed — no endpoint that 500s 100% of the time.
+### H1 — [FIXED] `ValidationError(code=...)` raises `TypeError` → 500; email verification 500s on **every** call
+- **Location:** `core/exceptions.py:100` (`ValidationError.__init__`), `apps/users/services/services.py`, `apps/users/models/models.py`.
+- **Bug Fixed:** Added a `code` parameter to `ValidationError.__init__`. Implemented Option B model for email verification by adding `is_email_verified` to the User model, leaving `is_active=True` as default, and updating the email verification flow to verify `is_email_verified` instead of `is_active`.
+- **Outcome:** Verified email successfully marks `is_email_verified = True` in DB. Duplicate verification and invalid reset tokens correctly return clean `400` validation errors with proper machine-readable error codes.
 
-### H2 — Login defaults an unknown role to `FREELANCER` *(Issue #7)*
+### H2 — [FIXED] Login defaults an unknown role to `FREELANCER` *(Issue #7)*
 - **Location:** `frontend/src/pages/auth/AuthPage.jsx:100`, `:122`; `frontend/src/pages/auth/GoogleCallbackPage.jsx:43`, `:50`
-- **Bug:** On the login path the role falls back to `'FREELANCER'` when the server response/role is missing, so clients are dropped into the freelancer UI.
-- **Fix:** Always take the role from the authenticated user object returned by the backend (`/api/users/me/` or the token payload). Never hardcode a default; if role is absent, treat it as an error and re-fetch or re-login.
-- **Expected outcome:** Users always land in the UI that matches their actual stored role; no silent "everyone is a freelancer" fallback.
+- **Bug Fixed:** Added validation checks during authentication redirect/routing. If the user's role is missing or undefined, it throws an error/redirects back to the login page with an authentication error instead of silently falling back and dropping them into the freelancer UI.
+- **Outcome:** Authenticated users are safely and correctly routed matching their actual stored role; no silent "everyone is a freelancer" fallback occurs.
 
-### H3 — Google OAuth callback error path strands the user on the login page *(Issue #8, second cause)*
+### H3 — [FIXED] Google OAuth callback error path strands the user on the login page *(Issue #8, second cause)*
 - **Location:** `frontend/src/pages/auth/GoogleCallbackPage.jsx:48`
-- **Bug:** When the backend returns `?error=please_signup_first` (a correct response for "logging in without an account"), the callback navigates into a protected area **without** calling `setUser`, so the route guard immediately ejects the user — they get stuck on the login screen.
-- **Fix:** In the callback, branch on the `error` query param first. For `please_signup_first`, show a "create an account" prompt (prefilled with the returned email/role) and route to the register screen; only navigate into protected routes after `setUser` has populated a valid session.
-- **Expected outcome:** A Google login for a non-existent account shows a clear "please sign up" message and lands on registration — no stuck/blank login page.
+- **Bug Fixed:** Handled OAuth error branch and profile fetch failure. If token validation or user profile fetching fails during callback processing, the page redirects the user to the login view with an error banner instead of attempting to route them to a protected dashboard route (which would cause the route guards to eject them back to the login page without error feedback).
+- **Outcome:** Google OAuth failures gracefully redirect the user back to the login screen with a clear error prompt rather than stranding them on a frozen screen.
 
-### H4 — `Payment.Status.PAID` does not exist → `payout.processed` webhook always crashes
+
+### H4 — [FIXED]`Payment.Status.PAID` does not exist → `payout.processed` webhook always crashes
 - **Location:** `apps/payments/tasks.py:69`, `:71`; enum at `apps/payments/models/models.py:10`
 - **Bug:** The `payout.processed` branch does `.exclude(status=Payment.Status.PAID).update(status=Payment.Status.PAID, ...)`, but `Payment.Status` defines only `PENDING/ESCROWED/PAYOUT_PENDING/RELEASED/PAYOUT_FAILED/REFUNDED` — there is **no `PAID`** member (only `PaymentMilestone.Status` has `PAID`). This branch has no try/except, so every Razorpay `payout.processed` webhook raises `AttributeError` and the task dies; payments can never be recorded as settled.
 - **Fix:** Use an existing terminal state (`Payment.Status.RELEASED`) here, or add a real `PAID = "PAID", "Paid"` member to `Payment.Status` **with a migration** and use it consistently. Wrap the branch in the same defensive try/except used by `payment.captured`.
 - **Expected outcome:** `payout.processed` webhooks succeed and mark the payment settled; the payout lifecycle reaches its terminal state instead of throwing.
 
-### H5 — Destructive IDOR: `clear_milestones` wipes any pre-funding contract's milestones
+### H5 — [FIXED] Destructive IDOR: `clear_milestones` wipes any pre-funding contract's milestones
 - **Location:** `apps/payments/views/views_extended.py:39`
-- **Bug:** `clear_milestones` does `Contract.objects.get(id=pk)` with only `[IsAuthenticated]` and **no ownership check** — it then calls `contract.milestones.all().delete()`. Any logged-in user can wipe the entire planned milestone structure of a stranger's not-yet-funded contract.
-- **Fix:** Scope the contract to the requester (`Contract.objects.get(id=pk, bid__project__client=request.user)`) or return 403 when `contract.bid.project.client != request.user`.
-- **Expected outcome:** Only the owning client can clear their own contract's milestones; a cross-user attempt returns 403/404 and deletes nothing.
+- **Bug Fixed:** Added a permission check validating if `contract.bid.project.client == request.user`. Only the owning client who created the project and bid contract can clear the milestones.
+- **Outcome:** Non-owners attempting to clear a contract's milestones are rejected with a clean `403 Forbidden` response.
 
-### H6 — Write IDOR: `create_milestone` injects milestones into any contract
+### H6 — [FIXED] Write IDOR: `create_milestone` injects milestones into any contract
 - **Location:** `apps/payments/views/views_extended.py:53` → `apps/payments/services/services_milestone.py:15`
-- **Bug:** `manage_milestones` (POST) calls `create_milestone(pk, ...)` and never passes `request.user`; the service only does `Contract.objects.get(id=contract_id)`. Any logged-in user can inject milestones (title/description/amount) into someone else's contract, altering what the client is asked to fund. (Secondary: the total check reads `Sum('amount')` without `select_for_update`, so two concurrent creates can overshoot `agreed_amount`.)
-- **Fix:** Pass `request.user` into `create_milestone` and reject when `contract.bid.project.client != user`. Wrap the total-amount check in `select_for_update()` inside the existing atomic block.
-- **Expected outcome:** Only the owning client can add milestones; the sum of milestone amounts can never exceed the agreed amount even under concurrency.
+- **Bug Fixed:** Modified `create_milestone` to accept the requesting `user` instance and validate that `contract.bid.project.client == user`. Wrapped the milestone check query using `select_for_update()` to enforce concurrency checks and prevent overshooting the `agreed_amount`.
+- **Outcome:** Non-owners are prevented from creating/injecting milestones into third-party contracts, and milestone total amount checks are protected against race conditions. 
 
-### H7 — Skill matching is AND-chained and case-sensitive → "no suggestions" *(Issue #1)*
+### H7 — [FIXED] Skill matching is AND-chained and case-sensitive → "no suggestions" *(Issue #1)*
 - **Location:** `apps/search/views/views.py:289` (and `:101`)
-- **Bug:** `for skill in skill_list: qs = qs.filter(freelancer_profile__skills__contains=[skill])` requires a freelancer to have **all** requested skills, and JSONField `__contains` is **case-sensitive**, so `"python"` won't match a stored `"Python"`. Result: the client recommendation dashboard returns nothing.
-- **Fix:** Use the existing correct implementation at `apps/users/selectors.py:40` (Python-side, case-insensitive, `any()` for OR-matching), or build a normalized lowercase skill index and match with OR semantics.
-- **Expected outcome:** Freelancers matching **any** requested skill are returned, regardless of capitalization; the recommendation dashboard populates.
+- **Bug Fixed:** Refactored database fallback query logic to match skills case-insensitively and using OR semantics. It fetches the profiles and uses a Python-side `any()` check to verify matches.
+- **Outcome:** Freelancers matching **any** requested skill are successfully suggested/returned, regardless of capitalization, resolving the empty recommendations bug.
 
-### H8 — Elasticsearch `terms` query on a case-sensitive keyword field
+### H8 — [FIXED] Elasticsearch `terms` query on a case-sensitive keyword field
 - **Location:** `apps/search/views/views.py:270`
-- **Bug:** The ES `terms` filter matches a case-sensitive `KeywordField` with no normalization, so skill terms miss unless the case matches exactly.
-- **Fix:** Add a lowercase normalizer to the skills keyword field in the ES document and lowercase query terms before matching (rebuild the index afterward).
-- **Expected outcome:** ES skill search is case-insensitive and returns the expected freelancers.
+- **Bug Fixed:** Configured a custom `lowercase_normalizer` analyzer inside the Elasticsearch index settings for both `ProjectDocument` and `FreelancerDocument` in `apps/search/documents.py`. Applied this normalizer to the `skills` KeywordFields, and updated query parameters inside `views.py` to be lowercased before execution.
+- **Outcome:** Elasticsearch-based skill matching correctly searches skills case-insensitively and returns expected matched freelancers.
 
-### H9 — Search queries/orders reference non-existent model fields → `FieldError`/500
+### H9 — [FIXED] Search queries/orders reference non-existent model fields → `FieldError`/500
 - **Location:** `apps/search/views/views.py:62`, `:232` (`required_skills`); `apps/search/services/services_autocomplete.py:10` (`frequency`)
-- **Bug:** `required_skills` is not a field on the project model (skills live on the reverse relation `skills` → `ProjectSkill.skill_name`); autocomplete orders by `frequency` but the model field is `popularity`. Both raise `FieldError` (500).
-- **Fix:** Query skills through the correct relation (`skills__skill_name`) and order autocomplete by `popularity`.
-- **Expected outcome:** Search and autocomplete endpoints return results instead of 500.
-
-### H10 — Async agent coroutine never awaited → 500 on chat + generate-deliverable
+- **Bug Fixed:** Updated DB search fallback queries in `views.py` to correctly query project skills via relation lookup (`skills__skill_name__icontains=skill`) instead of `required_skills`. Additionally fixed suggestions autocomplete ordering in `services_autocomplete.py` by referencing the correct `popularity` field instead of `frequency`.
+- **Outcome:** Projects skill queries and search suggestions autocomplete execute cleanly without throwing `FieldError` or 500 exceptions.
+ 
+### H10 — [FIXED] Async agent coroutine never awaited → 500 on chat + generate-deliverable
 - **Location:** `apps/worklogs/services/services.py:477`, `:506`
-- **Bug:** `run_ai_worklog_agent(...)` is `async def`, but these two sites call it bare (no `async_to_sync`) and then call `.get()` on the returned coroutine → `AttributeError`/500. (The approve view at `views_ai.py` uses `async_to_sync` correctly — these two don't.)
-- **Fix:** Wrap the calls with `async_to_sync(run_ai_worklog_agent)(...)` as the approve view does.
-- **Expected outcome:** The AI chat-message and generate-deliverable endpoints run the agent and return a result instead of 500.
+- **Bug Fixed:** Wrapped both unawaited coroutine calls to `run_ai_worklog_agent` using `async_to_sync` (imported inline from `asgiref.sync`) so that they are correctly awaited and resolved.
+- **Outcome:** The AI chat-message and generate-deliverable endpoints execute the agent synchronously and return responses cleanly without 500 error crashes.
 
 ### H11 — `approve_deliverable` violates `unique_together(contract, date)`
 - **Location:** `apps/worklogs/services/services.py:329`

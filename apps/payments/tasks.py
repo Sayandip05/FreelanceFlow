@@ -63,18 +63,24 @@ def process_razorpay_webhook_task(event_id: str, event_type: str, event_data: di
         payout_id = payout_entity.get('id')
         logger.info("payout.processed received: payout_id=%s event_id=%s", payout_id, event_id)
         if payout_id:
-            updated = Payment.objects.filter(
-                razorpay_payout_id=payout_id,
-            ).exclude(
-                status=Payment.Status.PAID,
-            ).update(
-                status=Payment.Status.PAID,
-                payout_error="",
-            )
-            if updated:
-                logger.info("Payment marked PAID via payout.processed webhook: payout_id=%s", payout_id)
-            else:
-                logger.debug("payout.processed: no matching payment found or already PAID for payout_id=%s", payout_id)
+            try:
+                payment = Payment.objects.filter(razorpay_payout_id=payout_id).first()
+                if payment:
+                    if payment.status != Payment.Status.RELEASED:
+                        payment.status = Payment.Status.RELEASED
+                        payment.payout_error = ""
+                        payment.save()
+                        record_payment_event(payment, event_id, event_type)
+                        logger.info("Payment marked RELEASED via payout.processed webhook: payout_id=%s", payout_id)
+                    else:
+                        logger.debug("payout.processed: payment already RELEASED for payout_id=%s", payout_id)
+                else:
+                    logger.warning("payout.processed: no matching payment found for payout_id=%s", payout_id)
+            except Exception as e:
+                logger.error(
+                    "payout.processed processing failed: payout_id=%s event_id=%s error=%s",
+                    payout_id, event_id, str(e), exc_info=True,
+                )
         else:
             logger.warning("payout.processed webhook missing payout entity id: event_id=%s", event_id)
 
@@ -238,3 +244,112 @@ def process_razorpay_refund_task(self, payment_id: int, refund_amount: float):
             "Refund task failed: payment_id=%s refund_amount=%s error=%s",
             payment_id, refund_amount, str(e), exc_info=True,
         )
+
+
+@shared_task(bind=True, max_retries=3)
+def razorpay_payout_withdrawal_task(self, withdrawal_id: int):
+    """
+    Process freelancer manual withdrawal using RazorpayX Payouts.
+    """
+    from apps.payments.models import WithdrawalRequest, Wallet
+    from django.db import transaction
+    
+    logger.info("Starting payout withdrawal task: withdrawal_id=%s", withdrawal_id)
+    try:
+        withdrawal = WithdrawalRequest.objects.select_related(
+            "freelancer__freelancer_profile"
+        ).get(id=withdrawal_id)
+        
+        freelancer = withdrawal.freelancer
+        fund_account_id = getattr(
+            getattr(freelancer, "freelancer_profile", None),
+            "razorpay_fund_account_id",
+            "",
+        )
+
+        is_placeholder_keys = (
+            not getattr(settings, "RAZORPAY_KEY_ID", "") or 
+            settings.RAZORPAY_KEY_ID.startswith("rzp_test_placeholder") or
+            settings.RAZORPAY_KEY_ID == "your_razorpay_key_id"
+        )
+        use_simulation = is_placeholder_keys or not fund_account_id or not getattr(settings, "RAZORPAY_ACCOUNT_NUMBER", "")
+
+        if use_simulation:
+            withdrawal.status = WithdrawalRequest.Status.COMPLETED
+            withdrawal.razorpay_payout_id = "payout_mock_simulated"
+            withdrawal.save(update_fields=["status", "razorpay_payout_id", "updated_at"])
+
+            from apps.notifications.services import create_notification
+            from apps.notifications.models import Notification
+            create_notification(
+                recipient=freelancer,
+                title="Withdrawal Completed",
+                body=f"Your simulated withdrawal of INR {withdrawal.amount} has been successfully processed.",
+                notification_type=Notification.Type.PAYMENT_RELEASED,
+            )
+            logger.info("Simulated payout withdrawal succeeded: withdrawal_id=%s", withdrawal.id)
+            return
+
+        if not settings.RAZORPAY_ACCOUNT_NUMBER:
+            raise ValueError("RAZORPAY_ACCOUNT_NUMBER is not configured.")
+        if not fund_account_id:
+            raise ValueError("Freelancer Razorpay fund account is not configured.")
+
+        # Call Razorpay Payouts
+        payout = _get_razorpay_client().payout.create({
+            'account_number': settings.RAZORPAY_ACCOUNT_NUMBER,
+            'amount': int(Decimal(str(withdrawal.amount)) * 100),
+            'currency': 'INR',
+            'mode': 'IMPS',
+            'purpose': 'payout',
+            'fund_account_id': fund_account_id,
+            'queue_if_low_balance': True,
+            'reference_id': f'withdrawal_{withdrawal.id}',
+            'narration': 'FreelanceFlow withdrawal',
+            'notes': {
+                'withdrawal_id': withdrawal.id,
+                'freelancer_id': freelancer.id,
+            },
+        })
+
+        withdrawal.status = WithdrawalRequest.Status.COMPLETED
+        withdrawal.razorpay_payout_id = payout.get('id', '')
+        withdrawal.save(update_fields=["status", "razorpay_payout_id", "updated_at"])
+
+        # Send notification
+        from apps.notifications.models import Notification
+        from apps.notifications.services import create_notification
+        create_notification(
+            recipient=freelancer,
+            title="Withdrawal Completed",
+            body=f"Your withdrawal of INR {withdrawal.amount} has been successfully processed.",
+            notification_type=Notification.Type.PAYMENT_RELEASED,
+        )
+
+        logger.info(
+            "Withdrawal payout succeeded: withdrawal_id=%s payout_id=%s freelancer_id=%s amount=%s",
+            withdrawal.id, payout.get('id'), freelancer.id, withdrawal.amount,
+        )
+
+    except Exception as exc:
+        logger.error(
+            "Payout withdrawal task failed for withdrawal_id=%s: %s",
+            withdrawal_id, str(exc),
+        )
+        # Update withdrawal request status to FAILED and refund wallet
+        try:
+            with transaction.atomic():
+                w = WithdrawalRequest.objects.select_for_update().get(id=withdrawal_id)
+                if w.status == WithdrawalRequest.Status.PENDING:
+                    w.status = WithdrawalRequest.Status.FAILED
+                    w.save(update_fields=["status", "updated_at"])
+                    # Refund the wallet
+                    wallet = Wallet.objects.select_for_update().get(user=w.freelancer)
+                    wallet.balance += w.amount
+                    wallet.withdrawn_amount -= w.amount
+                    wallet.save()
+        except Exception as e:
+            logger.error("Failed to refund wallet for failed withdrawal: %s", str(e))
+        
+        raise self.retry(exc=exc, countdown=60)
+

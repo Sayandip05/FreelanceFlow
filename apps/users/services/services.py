@@ -357,10 +357,10 @@ def verify_email(uid: str, token: str) -> User:
     if not account_activation_token.check_token(user, token):
         raise ValidationError("Invalid or expired verification link.", code="invalid_token")
     
-    if user.is_active:
+    if user.is_email_verified:
         raise ValidationError("Email already verified.", code="already_verified")
     
-    user.is_active = True
+    user.is_email_verified = True
     user.save()
 
     logger.info("Email verified: user_id=%s", user.id)

@@ -10,14 +10,23 @@ class ProjectDocument(Document):
     
     client_name = fields.TextField(attr="client.get_full_name")
     client_email = fields.KeywordField(attr="client.email")
-    skills = fields.KeywordField(multi=True)
+    skills = fields.KeywordField(multi=True, normalizer="lowercase_normalizer")
     status = fields.KeywordField()
     
     class Index:
         name = "projects"
         settings = {
             "number_of_shards": 1,
-            "number_of_replicas": 0
+            "number_of_replicas": 0,
+            "analysis": {
+                "normalizer": {
+                    "lowercase_normalizer": {
+                        "type": "custom",
+                        "char_filter": [],
+                        "filter": ["lowercase"]
+                    }
+                }
+            }
         }
     
     class Django:
@@ -52,13 +61,22 @@ class FreelancerDocument(Document):
     
     email = fields.KeywordField(attr="user.email")
     full_name = fields.TextField(attr="user.get_full_name")
-    skills = fields.KeywordField(multi=True)
+    skills = fields.KeywordField(multi=True, normalizer="lowercase_normalizer")
     
     class Index:
         name = "freelancers"
         settings = {
             "number_of_shards": 1,
-            "number_of_replicas": 0
+            "number_of_replicas": 0,
+            "analysis": {
+                "normalizer": {
+                    "lowercase_normalizer": {
+                        "type": "custom",
+                        "char_filter": [],
+                        "filter": ["lowercase"]
+                    }
+                }
+            }
         }
     
     class Django:

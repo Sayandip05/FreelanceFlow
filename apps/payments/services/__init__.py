@@ -10,6 +10,7 @@ from .services import (
     process_contract_termination_payment,
     process_refund,
     initiate_payment_dispute,
+    withdraw_funds,
 )
 from .services_currency import (
     get_exchange_rate,
