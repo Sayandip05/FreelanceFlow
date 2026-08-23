@@ -36,3 +36,6 @@ benchmarks/load_test_credentials.json
 benchmarks/report.html
 benchmarks/results*.csv
 PaymentFlow.md
+.vscode/
+.agents/
+
