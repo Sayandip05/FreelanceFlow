@@ -5,7 +5,7 @@ import {
   DollarSign, User, MessageSquare, Plus, Download,
   ExternalLink, ChevronRight, FileText, Check, X,
   CreditCard, Sparkles, RefreshCw, AlertCircle, Calendar,
-  Briefcase, Send, Lock, Unlock, Eye
+  Briefcase, Send, Lock, Unlock, Eye, Wallet
 } from 'lucide-react'
 import { contractsAPI } from '../../api/bids'
 import { paymentsAPI } from '../../api/payments'
@@ -31,6 +31,11 @@ export default function ClientContractDetailPage() {
   const [showTerminateModal, setShowTerminateModal] = useState(false)
   const [selectedMilestone, setSelectedMilestone] = useState(null)
   const [showReviewModal, setShowReviewModal] = useState(false)
+
+  // Payment Choice Modal State
+  const [showPaymentChoiceModal, setShowPaymentChoiceModal] = useState(false)
+  const [milestoneToFund, setMilestoneToFund] = useState(null)
+  const [walletBalance, setWalletBalance] = useState(0.00)
 
   // Equal distribution generator state
   const [milestoneCount, setMilestoneCount] = useState(3)
@@ -215,9 +220,91 @@ export default function ClientContractDetailPage() {
     }
   }
 
-  /* ── Fund Milestone Escrow ─────────────────────────────────────────────────── */
-  const handleFundMilestone = async (milestone) => {
-    console.log('handleFundMilestone clicked!', milestone)
+  /* ── Fund Milestone Escrow (With Wallet Options) ───────────────────────────── */
+  const triggerFundMilestone = async (milestone) => {
+    setActionLoading(true)
+    try {
+      const res = await paymentsAPI.getClientWallet()
+      setWalletBalance(res.data.balance)
+      setMilestoneToFund(milestone)
+      setShowPaymentChoiceModal(true)
+    } catch (e) {
+      console.error('Failed to load wallet balance, using direct gateway fallback', e)
+      handleFundMilestoneDirect(milestone)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleFundMilestoneFromWallet = async () => {
+    if (!milestoneToFund) return
+    setActionLoading(true)
+    try {
+      await paymentsAPI.fundMilestoneFromWallet(milestoneToFund.id)
+      alert(`Milestone "${milestoneToFund.title}" funded in Escrow using platform wallet balance!`)
+      setShowPaymentChoiceModal(false)
+      loadContractData()
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to fund milestone from wallet.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleFundMilestoneTopUp = async (deficit) => {
+    if (!milestoneToFund) return
+    setActionLoading(true)
+    try {
+      const res = await paymentsAPI.depositClientWallet(deficit, milestoneToFund.id)
+      const { order_id, is_mock, amount } = res.data
+
+      if (is_mock) {
+        // Direct simulation success
+        await paymentsAPI.confirmClientDeposit(order_id, `pay_mock_${Math.random().toString(36).substr(2, 9)}`)
+        alert(`Successfully topped up $${parseFloat(deficit).toFixed(2)} and secured milestone "${milestoneToFund.title}" (Simulation)!`)
+        setShowPaymentChoiceModal(false)
+        loadContractData()
+      } else {
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TSUnxYrEPrLAdv',
+          amount: amount * 100,
+          currency: 'INR',
+          name: 'FreelanceFlow',
+          description: `Top-up and fund milestone: ${milestoneToFund.title}`,
+          order_id: order_id,
+          handler: async (response) => {
+            try {
+              await paymentsAPI.confirmClientDeposit(order_id, response.razorpay_payment_id)
+              alert(`Successfully topped up and secured milestone "${milestoneToFund.title}" in Escrow!`)
+              setShowPaymentChoiceModal(false)
+              loadContractData()
+            } catch (err) {
+              alert('Failed to confirm deposit. Please contact support.')
+            }
+          },
+          prefill: {
+            name: user?.get_full_name || user?.email,
+            email: user?.email,
+          },
+          theme: { color: '#4F46E5' },
+          modal: {
+            ondismiss: () => {
+              setActionLoading(false)
+            }
+          }
+        }
+        const rzp = new window.Razorpay(options)
+        rzp.open()
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to initiate top-up.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleFundMilestoneDirect = async (milestone) => {
+    console.log('handleFundMilestoneDirect clicked!', milestone)
     setActionLoading(true)
     try {
       console.log('Sending API call to fund milestone...')
@@ -691,7 +778,7 @@ support@freelanceflow.com
                       <td className="py-4 px-4 text-right whitespace-nowrap">
                         {isPending && (
                           <button
-                            onClick={() => handleFundMilestone(m)}
+                            onClick={() => triggerFundMilestone(m)}
                             disabled={actionLoading}
                             className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
                           >
@@ -1082,6 +1169,71 @@ support@freelanceflow.com
                 {actionLoading ? 'Terminating...' : 'Confirm Contract Termination'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Payment Choice / Wallet Modal */}
+      {showPaymentChoiceModal && milestoneToFund && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowPaymentChoiceModal(false)}
+              className="absolute top-4 right-4 p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-base font-extrabold text-gray-900 mb-2 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-indigo-600" /> Secure Escrow Deposit
+            </h3>
+            <p className="text-xs text-gray-500 mb-4 font-semibold">
+              Select your payment method to fund the milestone: <span className="text-gray-900 font-bold">"{milestoneToFund.title}"</span>.
+            </p>
+
+            <div className="p-4 bg-gray-50 border border-gray-150 rounded-2xl mb-6 space-y-2">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-gray-500">Milestone Amount:</span>
+                <span className="text-gray-900">{formatCurrency(milestoneToFund.amount)}</span>
+              </div>
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-gray-500">Your Wallet Balance:</span>
+                <span className="text-gray-900">{formatCurrency(walletBalance)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {walletBalance >= parseFloat(milestoneToFund.amount) ? (
+                /* Pay from Wallet Option */
+                <button
+                  onClick={handleFundMilestoneFromWallet}
+                  disabled={actionLoading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <Wallet className="w-4 h-4" /> Pay from Wallet Balance (Instant)
+                </button>
+              ) : (
+                /* Top-up & Pay Option */
+                <button
+                  onClick={() => handleFundMilestoneTopUp(parseFloat(milestoneToFund.amount) - walletBalance)}
+                  disabled={actionLoading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <Plus className="w-4 h-4" /> Top-up & Pay ({formatCurrency(parseFloat(milestoneToFund.amount) - walletBalance)} difference)
+                </button>
+              )}
+
+              {/* Direct Gateway Pay Option */}
+              <button
+                onClick={() => {
+                  setShowPaymentChoiceModal(false)
+                  handleFundMilestoneDirect(milestoneToFund)
+                }}
+                disabled={actionLoading}
+                className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold py-3 px-4 rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
+              >
+                <CreditCard className="w-4 h-4" /> Pay via Direct Gateway Checkout
+              </button>
+            </div>
           </div>
         </div>
       )}
