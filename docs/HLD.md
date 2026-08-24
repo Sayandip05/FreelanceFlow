@@ -1188,7 +1188,6 @@ Env:    DJANGO_SETTINGS_MODULE=config.settings.production
 |---|---|
 | **Structured logging** | Every service function logs at `INFO`/`ERROR` with `payment_id`, `contract_id`, `user_id` context. Per-app loggers: `apps.payments`, `apps.bidding`, `apps.worklogs`, etc. |
 | **LangSmith** | Every Groq graph execution traced: latency, token usage, node path |
-| **Sentry** | `SENTRY_DSN` configured in `production.py` — real-time exception alerts |
 | **Celery task logging** | `logger.info` at task start + completion. `logger.error` + `exc_info=True` on failures. |
 | **HTTP access logs** | Request rate, status codes, latency |
 
@@ -1306,9 +1305,6 @@ DEFAULT_FROM_EMAIL=noreply@freelanceflow.com
 FRONTEND_URL=https://freelanceflow.vercel.app
 CORS_ALLOWED_ORIGINS=https://freelanceflow.vercel.app
 PLATFORM_CUT_PERCENTAGE=10
-
-# Monitoring
-SENTRY_DSN=
 ```
 
 ---
@@ -1410,7 +1406,6 @@ docker-compose exec web python manage.py createsuperuser
 - Custom middleware: graceful shutdown, request logging, security headers, cache-control
 - OpenAPI 3.1 Swagger UI (dev-only — zero prod footprint)
 - Structured per-app logging throughout services and tasks
-- Sentry error tracking (production)
 - LangSmith AI tracing
 
 ### 🚧 Models Exist — Service/API Incomplete

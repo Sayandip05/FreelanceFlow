@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, MapPin, Briefcase, Star, DollarSign, Mail, Globe, CheckCircle, MessageSquare, ExternalLink
+  ArrowLeft, MapPin, Briefcase, Star, DollarSign, Mail, Globe, CheckCircle, ExternalLink
 } from 'lucide-react'
 import { usersAPI } from '../../api/auth'
 
@@ -50,11 +50,11 @@ const ClientFreelancerProfilePage = () => {
   }
 
   const profile = freelancer.freelancer_profile || {}
-  const skills = profile.skills || []
-  const name = freelancer.first_name
-    ? `${freelancer.first_name} ${freelancer.last_name || ''}`.trim()
-    : freelancer.email?.split('@')[0] || 'Freelancer'
-  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const skills = profile.skills || freelancer.skills || []
+  const name = freelancer.full_name || (freelancer.first_name ? `${freelancer.first_name} ${freelancer.last_name || ''}`.trim() : '') || freelancer.email?.split('@')[0] || 'Freelancer'
+  const initials = name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'FL'
+  const bannerImage = profile.banner_image || freelancer.banner_image
+  const avatarImage = profile.avatar || freelancer.avatar
 
   const avgRating = typeof profile.average_rating === 'number'
     ? profile.average_rating.toFixed(1)
@@ -72,37 +72,29 @@ const ClientFreelancerProfilePage = () => {
 
       <div className="bg-white rounded-3xl border border-gray-150 overflow-hidden shadow-sm">
         {/* Banner */}
-        <div className="h-40 w-full relative bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-          {profile.banner_image && (
-            <img src={profile.banner_image} alt="Banner" className="w-full h-full object-cover" />
+        <div className="h-44 sm:h-52 w-full relative bg-slate-100">
+          {bannerImage ? (
+            <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-slate-200 to-gray-300" />
           )}
         </div>
 
         {/* Profile Info Section */}
-        <div className="px-6 sm:px-8 pb-8 relative">
+        <div className="px-6 sm:px-8 pb-8 relative pt-14">
           {/* Avatar overlay */}
           <div className="absolute -top-12 left-6 sm:left-8">
-            <div className="w-24 h-24 rounded-full border-4 border-white shadow-md overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              {profile.avatar ? (
-                <img src={profile.avatar} alt={name} className="w-full h-full object-cover" />
+            <div className="w-24 h-24 rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-200 text-slate-700 flex items-center justify-center">
+              {avatarImage ? (
+                <img src={avatarImage} alt={name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-white font-bold text-3xl">{initials}</span>
+                <span className="font-bold text-3xl text-slate-600">{initials}</span>
               )}
             </div>
           </div>
 
-          {/* Action button container */}
-          <div className="flex justify-end pt-4 gap-3">
-            <button
-              onClick={() => navigate(`/client/messages?freelancer=${freelancer.id}`)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md shadow-indigo-600/10 transition-all"
-            >
-              <MessageSquare className="w-4 h-4" /> Message
-            </button>
-          </div>
-
           {/* Main Info */}
-          <div className="mt-6">
+          <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
@@ -166,7 +158,7 @@ const ClientFreelancerProfilePage = () => {
                 <h2 className="text-base font-bold text-gray-900 mb-2.5">Skills & Expertise</h2>
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill, idx) => (
-                    <span key={idx} className="text-xs bg-indigo-50 text-indigo-700 px-3.5 py-1 rounded-full font-bold">
+                    <span key={idx} className="text-xs bg-gray-100 text-gray-800 border border-gray-200/70 px-3.5 py-1 rounded-full font-semibold">
                       {skill}
                     </span>
                   ))}
@@ -182,9 +174,9 @@ const ClientFreelancerProfilePage = () => {
                   href={profile.portfolio_website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-semibold underline underline-offset-2"
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-800 hover:text-gray-900 font-medium underline underline-offset-2"
                 >
-                  <Globe className="w-4 h-4" /> {profile.portfolio_website} <ExternalLink className="w-3.5 h-3.5" />
+                  <Globe className="w-4 h-4 text-gray-600" /> {profile.portfolio_website} <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
                 </a>
               </div>
             )}

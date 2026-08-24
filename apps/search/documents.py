@@ -59,9 +59,20 @@ class ProjectDocument(Document):
 class FreelancerDocument(Document):
     """Elasticsearch document for Freelancer profiles."""
     
+    user_id = fields.IntegerField(attr="user_id")
     email = fields.KeywordField(attr="user.email")
+    first_name = fields.TextField(attr="user.first_name")
+    last_name = fields.TextField(attr="user.last_name")
     full_name = fields.TextField(attr="user.get_full_name")
     skills = fields.KeywordField(multi=True, normalizer="lowercase_normalizer")
+    avatar = fields.TextField(attr="avatar")
+    banner_image = fields.TextField(attr="banner_image")
+    city = fields.TextField(attr="city")
+    country = fields.TextField(attr="country")
+    experience_level = fields.TextField(attr="experience_level")
+    average_rating = fields.FloatField(attr="average_rating")
+    total_reviews = fields.IntegerField(attr="total_reviews")
+    is_onboarded = fields.BooleanField(attr="is_onboarded")
     
     class Index:
         name = "freelancers"

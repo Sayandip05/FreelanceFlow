@@ -136,11 +136,11 @@
 - **Fix:** Replace the regex approach with a vetted sanitizer (`nh3`/`bleach`) with an explicit tag/attribute allow-list.
 - **Expected outcome:** Malicious markup is neutralized regardless of formatting tricks; user content is safe to render as HTML.
 
-### M8 — Insecure `SECRET_KEY` default + Sentry PII
-- **Location:** `config/settings/base.py:15`; `config/settings/production.py:47`
-- **Bug:** `SECRET_KEY` defaults to `"change-me-in-production"`, so a missing env var in production silently runs with a known key (session/CSRF/token forgery). Sentry is initialized with `send_default_pii=True`.
-- **Fix:** Remove the insecure default — require `SECRET_KEY` and fail fast if unset in production. Set `send_default_pii=False` unless there's a specific, reviewed reason.
-- **Expected outcome:** Production refuses to boot without a real secret key; no PII is shipped to Sentry by default.
+### M8 — Insecure `SECRET_KEY` default
+- **Location:** `config/settings/base.py:15`
+- **Bug:** `SECRET_KEY` defaults to `"change-me-in-production"`, so a missing env var in production silently runs with a known key (session/CSRF/token forgery).
+- **Fix:** Remove the insecure default — require `SECRET_KEY` and fail fast if unset in production.
+- **Expected outcome:** Production refuses to boot without a real secret key.
 
 ### M9 — Duplicate handler / route double-registration shadowing
 - **Location:** `apps/projects/views/views_extended.py:27` (duplicate `bookmark` — only DELETE registers, POST is shadowed); `apps/notifications/urls/urls.py:5` (double registration)

@@ -44,6 +44,5 @@ certifi
 
 # Production Deployment
 gunicorn
-sentry-sdk
 whitenoise
 python-json-logger

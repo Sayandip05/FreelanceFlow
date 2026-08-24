@@ -2044,14 +2044,45 @@ Projects-only search endpoint.
 
 ---
 
+---
+
 #### `GET /api/search/freelancers/?q=<query>&skills=<skills>`
 
-Freelancers-only search endpoint.
+Freelancers discovery & recommendation endpoint. Results are ranked primarily by **Review & Rating Score** (`average_rating` desc, `total_reviews` desc, `total_earned` desc).
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `q` | string | `""` | Search query matching name, skills, and bio |
+| `skills` | string | `""` | Optional comma-separated skills |
 
 **Response:**
 ```json
 {
-  "results": [ ... ]
+  "results": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "first_name": "Sayandip",
+      "last_name": "Bar",
+      "full_name": "Sayandip Bar",
+      "email": "sayandipbar05@gmail.com",
+      "avatar": "https://.../media/avatars/1/...png",
+      "banner_image": "https://.../media/banners/1/...jpg",
+      "bio": "I'm a Computer Science student...",
+      "city": "Barasat",
+      "country": "India",
+      "experience_level": "Entry",
+      "hourly_rate": "20.00",
+      "average_rating": 5.0,
+      "total_reviews": 12,
+      "skills": ["Python", "Django", "React", "Node.js"],
+      "subscription_tier": "FREE",
+      "total_earned": "1500.00",
+      "is_onboarded": true,
+      "freelancer_profile": { ... }
+    }
+  ]
 }
 ```
 

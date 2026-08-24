@@ -85,7 +85,7 @@ FreelanceFlow/
 
 **Why it exists:** New developers copy this file to `.env` and fill in their own values. It documents every variable the project uses.
 
-**Key contents:** Sections for Django core, PostgreSQL (Supabase), Redis (Upstash), Celery, Razorpay, AWS S3, Groq (LLM), LangSmith (tracing), Elasticsearch, SMTP email, Sentry, Google OAuth, CORS, and platform config.
+**Key contents:** Sections for Django core, PostgreSQL (Supabase), Redis (Upstash), Celery, Razorpay, AWS S3, Groq (LLM), LangSmith (tracing), Elasticsearch, SMTP email, Google OAuth, CORS, and platform config.
 
 ---
 
@@ -290,7 +290,7 @@ config/
 
 **What it is:** Production overrides for live deployment.
 
-**Key differences:** `DEBUG=False`, full security headers (HSTS, XSS filter, nosniff, DENY frame), S3 storage for static/media files, JSON logging formatter, Sentry error tracking, PostgreSQL connection pooling with health checks.
+**Key differences:** `DEBUG=False`, full security headers (HSTS, XSS filter, nosniff, DENY frame), S3 storage for static/media files, JSON logging formatter, PostgreSQL connection pooling with health checks.
 
 ---
 
@@ -2428,7 +2428,7 @@ requirements/
 
 **What it is:** Production dependencies.
 
-**Key packages:** Includes base.txt + gunicorn, sentry-sdk, etc.
+**Key packages:** Includes base.txt + gunicorn, whitenoise, etc.
 
 ---
 

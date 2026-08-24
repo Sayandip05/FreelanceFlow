@@ -5,38 +5,18 @@ import { projectsAPI } from '../../api/projects'
 import { bidsAPI } from '../../api/bids'
 
 /* ── FreelanceFlow Auto-Scrolling Banner Carousel ───────────────────────── */
-const ANNOUNCEMENT_SLIDES = [
+const FREELANCER_SLIDES = [
   {
-    tag: 'Get hired 2X faster',
-    title: 'Boosted Proposals & Escrow Protection',
-    description: 'Submit competitive proposals backed by 100% Razorpay Escrow payment guarantees.',
-    badge: 'BOOSTED',
-    color: 'from-gray-900 via-primary-950 to-gray-900',
-    badgeBg: 'bg-primary-600 text-white',
+    src: '/images/freelancer dashboard 1.png',
+    alt: 'Freelancer Dashboard 1',
   },
   {
-    tag: 'AI-Powered Productivity',
-    title: 'Automated Daily & Weekly Worklogs',
-    description: 'Log progress in real-time chat updates to automatically generate structured client reports.',
-    badge: 'AI POWERED',
-    color: 'from-slate-900 via-indigo-950 to-slate-900',
-    badgeBg: 'bg-indigo-600 text-white',
+    src: '/images/freelancer dashboard 2.png',
+    alt: 'Freelancer Dashboard 2',
   },
   {
-    tag: '100% Escrow Security',
-    title: 'Instant Milestone Escrow Releases',
-    description: 'Project funds are deposited into Escrow upfront and released upon deliverable approval.',
-    badge: 'RAZORPAY ESCROW',
-    color: 'from-gray-900 via-emerald-950 to-gray-900',
-    badgeBg: 'bg-emerald-600 text-white',
-  },
-  {
-    tag: 'Verified Freelancer Badge',
-    title: 'Build Reputation & Get Direct Hires',
-    description: 'Complete contracts with 5-star ratings to unlock top-rated status and direct project invites.',
-    badge: 'VERIFIED',
-    color: 'from-zinc-900 via-purple-950 to-zinc-900',
-    badgeBg: 'bg-purple-600 text-white',
+    src: '/images/freelancer dashboard 3.png',
+    alt: 'Freelancer Dashboard 3',
   },
 ]
 
@@ -45,56 +25,32 @@ const BannerCarousel = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrent(prev => (prev + 1) % ANNOUNCEMENT_SLIDES.length)
-    }, 3500)
+      setCurrent(prev => (prev + 1) % FREELANCER_SLIDES.length)
+    }, 4000)
     return () => clearInterval(timer)
   }, [])
 
-  const slide = ANNOUNCEMENT_SLIDES[current]
-
   return (
-    <div className={`h-[210px] bg-gradient-to-r ${slide.color} text-white rounded-2xl p-6 sm:p-7 shadow-xl relative overflow-hidden transition-all duration-500 border border-white/10 flex flex-col justify-between`}>
-      {/* Background Graphic Illustration Cards */}
-      <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden md:flex flex-col gap-2.5 opacity-90 pointer-events-none">
-        <div className="w-60 bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4 shadow-xl transform -rotate-2 transition-transform duration-500 hover:rotate-0">
-          <div className="flex items-center justify-between mb-2">
-            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${slide.badgeBg}`}>
-              {slide.badge}
-            </span>
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          </div>
-          <div className="h-2 w-3/4 bg-white/40 rounded mb-2" />
-          <div className="h-2 w-1/2 bg-white/20 rounded" />
-        </div>
-        <div className="w-60 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-3.5 shadow-md transform rotate-2">
-          <div className="h-2 w-4/5 bg-white/30 rounded mb-1.5" />
-          <div className="h-2 w-2/3 bg-white/15 rounded" />
-        </div>
-      </div>
+    <div className="relative w-full rounded-2xl overflow-hidden shadow-sm border border-gray-200/80 mb-6 bg-white aspect-[3.2/1]">
+      {FREELANCER_SLIDES.map((slide, i) => (
+        <img
+          key={i}
+          src={slide.src}
+          alt={slide.alt}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+            i === current ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        />
+      ))}
 
-      {/* Slide Content */}
-      <div className="max-w-xl z-10 space-y-2">
-        <div>
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
-            <Sparkles className="w-3.5 h-3.5 text-yellow-400" /> {slide.tag}
-          </span>
-        </div>
-        <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white leading-snug truncate">
-          {slide.title}
-        </h2>
-        <p className="text-sm text-gray-300 leading-relaxed font-normal line-clamp-2">
-          {slide.description}
-        </p>
-      </div>
-
-      {/* Carousel Indicators / Progress Bars */}
-      <div className="flex items-center gap-2 pt-2 z-10">
-        {ANNOUNCEMENT_SLIDES.map((_, idx) => (
+      {/* Sliding Dot indicators inside the image */}
+      <div className="absolute bottom-3 right-5 flex items-center gap-1.5 z-10 bg-black/25 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
+        {FREELANCER_SLIDES.map((_, idx) => (
           <button
             key={idx}
             onClick={() => setCurrent(idx)}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              idx === current ? 'w-10 bg-white' : 'w-3 bg-white/30 hover:bg-white/50'
+            className={`rounded-full transition-all duration-300 ${
+              idx === current ? 'w-5 h-1.5 bg-white shadow' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/75'
             }`}
             title={`Slide ${idx + 1}`}
           />
@@ -152,7 +108,7 @@ export default function FreelancerBrowsePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Home</h1>
         <p className="text-gray-600 mt-1">Search and explore project opportunities</p>

@@ -75,7 +75,7 @@ const Avatar = ({ user, size = 'sm' }) => {
   const dim = size === 'lg' ? 'w-9 h-9 text-xs' : 'w-7 h-7 text-xs'
   const avatarUrl = user?.role === 'FREELANCER' ? user?.freelancer_profile?.avatar : user?.client_profile?.avatar
   return (
-    <div className={`${dim} rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold flex-shrink-0 overflow-hidden`}>
+    <div className={`${dim} rounded-full bg-slate-200 text-slate-700 border border-slate-300/60 flex items-center justify-center font-bold flex-shrink-0 overflow-hidden`}>
       {avatarUrl ? (
         <img src={avatarUrl} alt={initials} className="w-full h-full object-cover" />
       ) : (
@@ -254,11 +254,11 @@ export default function ClientLayout() {
                     !isExpanded ? 'justify-center px-0' : 'gap-3.5 px-3.5'
                   } ${
                     isActive
-                      ? 'bg-indigo-50 text-indigo-700'
+                      ? 'bg-gray-100 text-gray-900 font-bold'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  <link.icon className="w-5 h-5 flex-shrink-0" />
+                  <link.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-500'}`} />
                   {isExpanded && <span className="truncate">{link.label}</span>}
                 </button>
               )

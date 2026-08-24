@@ -88,7 +88,7 @@ class SearchView(APIView):
                     freelancer_results, many=True
                 ).data
             except Exception:
-                # Fallback to database
+                # Fallback to database with review-based ranking
                 from apps.users.models import User
                 from django.db.models import Q as DB_Q
                 qs = User.objects.filter(role="FREELANCER", freelancer_profile__is_onboarded=True)
@@ -106,8 +106,17 @@ class SearchView(APIView):
                         if any(skill in user_skills for skill in skill_list):
                             matching_user_ids.append(u.id)
                     qs = User.objects.filter(id__in=matching_user_ids)
+                
+                # Review-based ranking: highest rated first, then total reviews, then total earned
+                qs = qs.order_by(
+                    "-freelancer_profile__average_rating",
+                    "-freelancer_profile__total_reviews",
+                    "-freelancer_profile__total_earned",
+                    "-id"
+                )
                 results["freelancers"] = [{
                     "id": u.id,
+                    "user_id": u.id,
                     "email": u.email,
                     "first_name": u.first_name,
                     "last_name": u.last_name,
@@ -120,6 +129,11 @@ class SearchView(APIView):
                         "city": u.freelancer_profile.city if u.freelancer_profile else "",
                         "country": u.freelancer_profile.country if u.freelancer_profile else "",
                         "avatar": u.freelancer_profile.avatar if u.freelancer_profile and u.freelancer_profile.avatar else "",
+                        "banner_image": u.freelancer_profile.banner_image if u.freelancer_profile and u.freelancer_profile.banner_image else "",
+                        "experience_level": u.freelancer_profile.experience_level if u.freelancer_profile else "Intermediate",
+                        "average_rating": float(u.freelancer_profile.average_rating) if u.freelancer_profile and u.freelancer_profile.average_rating else 0.0,
+                        "total_reviews": u.freelancer_profile.total_reviews if u.freelancer_profile else 0,
+                        "is_onboarded": u.freelancer_profile.is_onboarded if u.freelancer_profile else True,
                     }
                 } for u in qs[:50]]
         
@@ -163,7 +177,7 @@ class SearchView(APIView):
             ]
 
     def _search_freelancers(self, query, skills):
-        """Search freelancers using Elasticsearch with PostgreSQL DB fallback."""
+        """Search freelancers using Elasticsearch ranked primarily by ratings and reviews."""
         try:
             search = FreelancerDocument.search()
             if query:
@@ -174,11 +188,23 @@ class SearchView(APIView):
                 skill_list = [s.strip().lower() for s in skills.split(",")]
                 search = search.filter("terms", skills=skill_list)
 
+            # Review & rating based ranking
+            search = search.sort(
+                {"average_rating": {"order": "desc"}},
+                {"total_reviews": {"order": "desc"}},
+                {"total_earned": {"order": "desc"}},
+            )
+
             response = search[:50].execute()
             return [hit.to_dict() for hit in response]
         except Exception:
             from apps.users.models import FreelancerProfile
-            qs = FreelancerProfile.objects.select_related("user").all()
+            qs = FreelancerProfile.objects.select_related("user").filter(is_onboarded=True).order_by(
+                "-average_rating",
+                "-total_reviews",
+                "-total_earned",
+                "-id"
+            )
             if query:
                 qs = qs.filter(title__icontains=query)
             return [
@@ -186,7 +212,17 @@ class SearchView(APIView):
                     "id": f.id,
                     "user_id": f.user_id,
                     "full_name": f.user.get_full_name() or f.user.email,
-                    "title": f.title,
+                    "first_name": f.user.first_name,
+                    "last_name": f.user.last_name,
+                    "email": f.user.email,
+                    "avatar": f.avatar,
+                    "banner_image": f.banner_image,
+                    "city": f.city,
+                    "country": f.country,
+                    "experience_level": f.experience_level,
+                    "average_rating": float(f.average_rating or 0),
+                    "total_reviews": f.total_reviews,
+                    "is_onboarded": f.is_onboarded,
                     "bio": f.bio,
                     "hourly_rate": float(f.hourly_rate or 0),
                     "skills": f.skills if isinstance(f.skills, list) else [],
@@ -257,11 +293,11 @@ class ProjectSearchView(APIView):
 
 
 class FreelancerSearchView(APIView):
-    """Dedicated endpoint for freelancer search with DB fallback."""
+    """Dedicated endpoint for freelancer search with review-based recommendation ranking."""
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get(self, request):
-        """Search freelancers."""
+        """Search and rank freelancers primarily by reviews and ratings."""
         query = request.query_params.get("q", "")
         skills = request.query_params.get("skills", "")
         search = FreelancerDocument.search()
@@ -275,12 +311,19 @@ class FreelancerSearchView(APIView):
             skill_list = [s.strip().lower() for s in skills.split(",")]
             search = search.filter("terms", skills=skill_list)
         
+        # Rank by review rating (highest first), then total reviews, then total earned
+        search = search.sort(
+            {"average_rating": {"order": "desc"}},
+            {"total_reviews": {"order": "desc"}},
+            {"total_earned": {"order": "desc"}},
+        )
+        
         try:
             response = search[:50].execute()
             results = [hit.to_dict() for hit in response]
             data = FreelancerSearchSerializer(results, many=True).data
         except Exception:
-            # Fallback to database
+            # Fallback to database with review-based ranking
             from apps.users.models import User
             from django.db.models import Q as DB_Q
             qs = User.objects.filter(role="FREELANCER", freelancer_profile__is_onboarded=True)
@@ -298,22 +341,37 @@ class FreelancerSearchView(APIView):
                     if any(skill in user_skills for skill in skill_list):
                         matching_user_ids.append(u.id)
                 qs = User.objects.filter(id__in=matching_user_ids)
+            
+            # Review-based ranking: highest rated first, then total reviews, then total earned
+            qs = qs.order_by(
+                "-freelancer_profile__average_rating",
+                "-freelancer_profile__total_reviews",
+                "-freelancer_profile__total_earned",
+                "-id"
+            )
             results = []
             for u in qs[:50]:
+                fp = getattr(u, 'freelancer_profile', None)
                 results.append({
                     "id": u.id,
+                    "user_id": u.id,
                     "email": u.email,
                     "first_name": u.first_name,
                     "last_name": u.last_name,
                     "full_name": u.full_name,
                     "role": u.role,
                     "freelancer_profile": {
-                        "bio": u.freelancer_profile.bio if u.freelancer_profile else "",
-                        "skills": u.freelancer_profile.skills if u.freelancer_profile else [],
-                        "hourly_rate": str(u.freelancer_profile.hourly_rate) if u.freelancer_profile and u.freelancer_profile.hourly_rate else "0.00",
-                        "city": u.freelancer_profile.city if u.freelancer_profile else "",
-                        "country": u.freelancer_profile.country if u.freelancer_profile else "",
-                        "avatar": u.freelancer_profile.avatar if u.freelancer_profile and u.freelancer_profile.avatar else "",
+                        "bio": fp.bio if fp else "",
+                        "skills": fp.skills if fp else [],
+                        "hourly_rate": str(fp.hourly_rate) if fp and fp.hourly_rate else "0.00",
+                        "city": fp.city if fp else "",
+                        "country": fp.country if fp else "",
+                        "avatar": fp.avatar if fp and fp.avatar else "",
+                        "banner_image": fp.banner_image if fp and fp.banner_image else "",
+                        "experience_level": fp.experience_level if fp else "Intermediate",
+                        "average_rating": float(fp.average_rating) if fp and fp.average_rating else 0.0,
+                        "total_reviews": fp.total_reviews if fp else 0,
+                        "is_onboarded": fp.is_onboarded if fp else True,
                     }
                 })
             data = results

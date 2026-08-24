@@ -52,7 +52,6 @@ env = environ.Env(
     BACKEND_URL=(str, "http://localhost:8000"),
     CORS_ALLOWED_ORIGINS=(list, ["http://localhost:3000", "http://127.0.0.1:3000"]),
     PLATFORM_CUT_PERCENTAGE=(int, 10),
-    SENTRY_DSN=(str, ""),
     # Google OAuth
     GOOGLE_CLIENT_ID=(str, ""),
     GOOGLE_CLIENT_SECRET=(str, ""),

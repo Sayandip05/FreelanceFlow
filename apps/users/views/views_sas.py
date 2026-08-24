@@ -32,50 +32,51 @@ class GenerateUploadSASTokenView(APIView):
         connection_string = getattr(settings, 'AZURE_STORAGE_CONNECTION_STRING', '')
         container_name = getattr(settings, 'AZURE_CONTAINER_NAME', 'media')
         
-        if connection_string:
-            try:
-                from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
-                
-                blob_service = BlobServiceClient.from_connection_string(connection_string)
-                account_name = blob_service.account_name
-                account_key = blob_service.credential.account_key
-                
-                # 15 minutes write window
-                expiry_write = datetime.now(timezone.utc) + timedelta(minutes=15)
-                sas_token_write = generate_blob_sas(
-                    account_name=account_name,
-                    container_name=container_name,
-                    blob_name=relative_path,
-                    account_key=account_key,
-                    permission=BlobSasPermissions(write=True, create=True),
-                    expiry=expiry_write,
-                )
-                upload_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{relative_path}?{sas_token_write}"
-                
-                # 1 year read window
-                expiry_read = datetime.now(timezone.utc) + timedelta(days=365)
-                sas_token_read = generate_blob_sas(
-                    account_name=account_name,
-                    container_name=container_name,
-                    blob_name=relative_path,
-                    account_key=account_key,
-                    permission=BlobSasPermissions(read=True),
-                    expiry=expiry_read,
-                )
-                public_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{relative_path}?{sas_token_read}"
-                
-                return Response({
-                    "is_local": False,
-                    "upload_url": upload_url,
-                    "public_url": public_url,
-                    "relative_path": relative_path,
-                })
-            except Exception as e:
-                logger.error("Failed to generate Azure SAS token: %s", e)
-                
-        # Local fallback details
-        return Response({
-            "is_local": True,
-            "upload_url": "/users/upload-image/",
-            "image_type": image_type,
-        })
+        if not connection_string:
+            return Response(
+                {"error": "Azure Blob Storage connection string is not configured."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        try:
+            from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
+            
+            blob_service = BlobServiceClient.from_connection_string(connection_string)
+            account_name = blob_service.account_name
+            account_key = blob_service.credential.account_key
+            
+            # 15 minutes write window
+            expiry_write = datetime.now(timezone.utc) + timedelta(minutes=15)
+            sas_token_write = generate_blob_sas(
+                account_name=account_name,
+                container_name=container_name,
+                blob_name=relative_path,
+                account_key=account_key,
+                permission=BlobSasPermissions(write=True, create=True),
+                expiry=expiry_write,
+            )
+            upload_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{relative_path}?{sas_token_write}"
+            
+            # 1 year read window
+            expiry_read = datetime.now(timezone.utc) + timedelta(days=365)
+            sas_token_read = generate_blob_sas(
+                account_name=account_name,
+                container_name=container_name,
+                blob_name=relative_path,
+                account_key=account_key,
+                permission=BlobSasPermissions(read=True),
+                expiry=expiry_read,
+            )
+            public_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{relative_path}?{sas_token_read}"
+            
+            return Response({
+                "upload_url": upload_url,
+                "public_url": public_url,
+                "relative_path": relative_path,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error("Failed to generate Azure SAS token: %s", e)
+            return Response(
+                {"error": f"Failed to generate Azure upload token: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

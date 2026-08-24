@@ -84,11 +84,11 @@ A log of architectural and technical decisions made in FreelanceFlow explaining 
 
 ---
 
-## 11. Elasticsearch 8 Dual Inverted Index for Hybrid Search
-- **What**: Dedicated Elasticsearch 8 indices (`projects` and `freelancers`) synchronized via Celery signal handlers alongside database query analytics (`SearchHistory`, `SearchSuggestion`).
-- **Why**: Enables typo-tolerant fuzzy matching, multi-field boosting (title > skills > description), and sub-10ms response times on large marketplace catalogs without heavy SQL `ILIKE` queries.
-- **Alternatives considered**: PostgreSQL Trigram / `pg_trgm` full-text search (degrades database performance at high concurrency), Algolia (high third-party vendor cost).
-- **Tradeoff accepted**: Requires maintaining an external Elasticsearch service and handling eventual consistency on document updates.
+## 11. Elasticsearch 8 Dual Inverted Index & Review-First Freelancer Recommendation
+- **What**: Dedicated Elasticsearch 8 indices (`projects` and `freelancers`) synchronized via Celery signal handlers alongside database query analytics (`SearchHistory`, `SearchSuggestion`). Freelancer discovery results are ranked primarily by **Review & Rating Score (`average_rating` desc, `total_reviews` desc, `total_earned` desc)** rather than complex multi-attribute filter grids (which are deferred to a future scale milestone).
+- **Why**: Enables sub-10ms response times and surfaces verified, highest-rated talent directly to clients from day one, maximizing trust and contract success without sparse empty filter sets in early marketplace growth.
+- **Alternatives considered**: Multi-facet complex filter trees (causes sparse result friction on early platforms), PostgreSQL Trigram / `pg_trgm` full-text search (degrades database performance at high concurrency), Algolia (high third-party vendor cost).
+- **Tradeoff accepted**: Requires maintaining an external Elasticsearch service and ranking strictly by verified ratings until user volume warrants fine-grained multi-filter facets.
 
 ---
 

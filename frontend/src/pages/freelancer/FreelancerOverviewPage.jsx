@@ -492,18 +492,11 @@ export default function FreelancerOverviewPage() {
     return acc
   }, {})
 
-  // Profile Completeness Calculation
+  // Profile Reference
   const profile = user?.freelancer_profile || {}
-  let score = 0
-  if (user?.first_name) score += 15
-  if (profile.city && profile.country) score += 25
-  if (profile.skills?.length > 0) score += 25
-  if (profile.hourly_rate) score += 15
-  if (profile.bio) score += 10
-  if (profile.portfolio_website) score += 10
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -545,17 +538,6 @@ export default function FreelancerOverviewPage() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 bg-primary-500/20 border border-primary-400/30 text-primary-300 text-xs font-extrabold rounded-full uppercase tracking-wider">
-                Profile {score}% Complete
-              </span>
-              {score < 100 && (
-                <span className="text-[11px] text-amber-300 font-medium">
-                  • Complete all details for higher visibility!
-                </span>
-              )}
-            </div>
-
             <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
               {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.email}
             </h2>
@@ -580,11 +562,6 @@ export default function FreelancerOverviewPage() {
                 </span>
               )}
             </p>
-
-            {/* Progress bar */}
-            <div className="w-full sm:w-80 bg-white/10 h-1.5 rounded-full overflow-hidden mt-1">
-              <div className="bg-primary-500 h-full rounded-full transition-all duration-500" style={{ width: `${score}%` }} />
-            </div>
           </div>
         </div>
 

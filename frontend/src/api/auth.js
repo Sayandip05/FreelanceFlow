@@ -37,49 +37,37 @@ export const authAPI = {
     api.post('/users/avatar/', { avatar_url: avatarUrl }),
 
   uploadImage: async (imageFile, imageType = 'avatar', onUploadProgress = null) => {
-    // 1. Get SAS token (or local fallback url)
+    // 1. Get SAS token from backend
     const tokenRes = await api.post('/users/sas-token/', {
       image_type: imageType,
       filename: imageFile.name,
     })
     
-    const { is_local, upload_url, public_url } = tokenRes.data
+    const { upload_url, public_url } = tokenRes.data
     
-    if (is_local) {
-      // Fallback: standard local upload
-      const formData = new FormData()
-      formData.append('image', imageFile)
-      formData.append('image_type', imageType)
-      return api.post(upload_url, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress,
-      })
+    // 2. Direct Cloud Upload: PUT directly to Azure Blob Storage
+    const axios = (await import('axios')).default
+    await axios.put(upload_url, imageFile, {
+      headers: {
+        'Content-Type': imageFile.type || 'image/jpeg',
+        'x-ms-blob-type': 'BlockBlob',
+      },
+      onUploadProgress,
+    })
+    
+    // 3. Update profile with the Azure public URL
+    let userRes
+    if (imageType === 'avatar') {
+      userRes = await api.post('/users/avatar/', { avatar_url: public_url })
     } else {
-      // Direct Cloud Upload
-      // Using axios/fetch to PUT directly to Azure Blob Storage
-      const axios = (await import('axios')).default
-      await axios.put(upload_url, imageFile, {
-        headers: {
-          'Content-Type': imageFile.type,
-          'x-ms-blob-type': 'BlockBlob',
-        },
-        onUploadProgress,
-      })
-      
-      // Update local profile with the public URL
-      let userRes;
-      if (imageType === 'avatar') {
-        userRes = await api.post('/users/avatar/', { avatar_url: public_url })
-      } else {
-        userRes = await api.post('/users/banner/', { banner_url: public_url })
-      }
-      
-      return {
-        data: {
-          url: public_url,
-          user: userRes.data.user
-        }
-      }
+      userRes = await api.post('/users/banner/', { banner_url: public_url })
+    }
+    
+    return {
+      data: {
+        url: public_url,
+        user: userRes?.data?.user,
+      },
     }
   },
 
