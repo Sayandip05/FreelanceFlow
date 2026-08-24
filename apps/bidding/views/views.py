@@ -16,6 +16,7 @@ from apps.bidding.services import (
     decline_contract,
     reject_bid,
     withdraw_bid,
+    propose_milestone_schedule,
 )
 from apps.bidding.selectors import (
     get_bid_by_id,
@@ -119,28 +120,17 @@ class BidViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def accept(self, request, pk=None):
-        """Accept a bid and propose a contract (client only)."""
+        """Accept a bid and create a contract (client only)."""
         bid = self.get_object()
         
-        milestones_mode = request.data.get("milestones_mode", "auto")
-        milestone_count = int(request.data.get("milestone_count", 1))
-        frequency = request.data.get("frequency", "monthly")
-        start_date = request.data.get("start_date")
-        custom_milestones = request.data.get("custom_milestones")
-
         try:
             contract = accept_bid(
                 bid_id=bid.id,
-                client=request.user,
-                milestones_mode=milestones_mode,
-                milestone_count=milestone_count,
-                frequency=frequency,
-                start_date=start_date,
-                custom_milestones=custom_milestones
+                client=request.user
             )
             return Response(
                 {
-                    "message": "Bid accepted and contract proposed successfully.",
+                    "message": "Bid accepted and contract created successfully.",
                     "contract": ContractSerializer(contract).data,
                 },
                 status=status.HTTP_201_CREATED,
@@ -199,7 +189,7 @@ class ContractViewSet(viewsets.ModelViewSet):
     """
 
     # ── Security: disable all mutating HTTP verbs at dispatch level ──────────
-    http_method_names = ['get', 'head', 'options']
+    http_method_names = ['get', 'post', 'head', 'options']
 
     def get_queryset(self):
         user = self.request.user
@@ -221,6 +211,12 @@ class ContractViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsContractParticipant]
 
     # ── Belt-and-suspenders: explicit 405 even if method list is widened ─────
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {"error": "Contracts cannot be created directly.", "code": "method_not_allowed"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
     def update(self, request, *args, **kwargs):
         return Response(
             {"error": "Contracts cannot be modified directly.", "code": "method_not_allowed"},
@@ -270,4 +266,27 @@ class ContractViewSet(viewsets.ModelViewSet):
             return Response(
                 {"error": e.message, "code": e.code, "field": e.field},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['post'])
+    def propose_milestones(self, request, pk=None):
+        """Propose milestone schedule for a contract (client only)."""
+        milestones_list = request.data.get("milestones")
+        try:
+            contract = propose_milestone_schedule(
+                contract_id=pk,
+                client=request.user,
+                milestones_list=milestones_list
+            )
+            return Response(
+                {
+                    "message": "Milestone schedule proposed successfully.",
+                    "contract": ContractSerializer(contract).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except ValidationError as e:
+            return Response(
+                {"error": e.message, "code": e.code, "field": e.field},
+                status=status.HTTP_400_BAD_REQUEST,
             )

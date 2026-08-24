@@ -123,6 +123,24 @@ class PaymentMilestoneViewSet(viewsets.ViewSet):
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=['post'], url_path='fund-from-wallet')
+    def fund_from_wallet(self, request, pk=None):
+        """Fund escrow for a specific milestone using client's wallet balance."""
+        from apps.payments.models.models_milestone import PaymentMilestone
+        from apps.payments.services.services import fund_milestone_from_wallet_service
+        from apps.payments.serializers import PaymentSerializer
+        try:
+            milestone = PaymentMilestone.objects.select_related('contract', 'contract__bid__project').get(id=pk)
+            payment = fund_milestone_from_wallet_service(milestone, request.user)
+            return Response({
+                'message': 'Milestone funded from wallet successfully',
+                'payment': PaymentSerializer(payment).data
+            }, status=status.HTTP_200_OK)
+        except PaymentMilestone.DoesNotExist:
+            return Response({'error': 'Milestone not found'}, status=status.HTTP_404_NOT_FOUND)
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=['post'])
     def release(self, request, pk=None):
         """Release payment for a completed milestone (by client)"""

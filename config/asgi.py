@@ -16,12 +16,14 @@ django_asgi_app = get_asgi_application()
 from apps.messaging import routing as chat_routing
 from apps.notifications import routing as notif_routing
 from apps.payments import routing as contract_routing
+from apps.bidding import routing as bidding_routing
 
 # Combine all WS URL patterns — single Daphne process handles everything
 all_websocket_urlpatterns = (
     chat_routing.websocket_urlpatterns
     + notif_routing.websocket_urlpatterns
     + contract_routing.websocket_urlpatterns
+    + bidding_routing.websocket_urlpatterns
 )
 
 application = ProtocolTypeRouter({

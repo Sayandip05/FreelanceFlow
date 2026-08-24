@@ -14,6 +14,7 @@ from apps.bidding.services import (
     reject_bid,
     withdraw_bid,
     complete_contract,
+    propose_milestone_schedule,
 )
 from apps.projects.tests.factories import make_client, make_freelancer, make_project, make_bid, make_contract
 from apps.projects.models import Project
@@ -132,26 +133,33 @@ class AcceptBidTests(TestCase):
 
     def test_contract_proposal_and_milestone_splitting(self):
         from decimal import Decimal
-        # Propose with 3 auto milestones (amount: 3000)
+        # Accept bid first (creates contract with 0 milestones)
         contract = accept_bid(
             bid_id=self.bid.id,
             client=self.client_user,
-            milestones_mode="auto",
-            milestone_count=3,
-            frequency="monthly"
         )
         self.assertEqual(contract.status, Contract.Status.PENDING_ACCEPTANCE)
         self.assertEqual(contract.is_active, False)
+        self.assertEqual(contract.milestones.count(), 0)
+
+        # Propose 3 milestones manually with custom descriptions (amount: 3000)
+        milestones_list = [
+            {"title": "M1", "description": "Desc 1", "amount": 1000},
+            {"title": "M2", "description": "Desc 2", "amount": 1000},
+            {"title": "M3", "description": "Desc 3", "amount": 1000},
+        ]
+        propose_milestone_schedule(contract.id, self.client_user, milestones_list)
         
         # Verify 3 milestones created
         milestones = list(contract.milestones.all().order_by("order"))
         self.assertEqual(len(milestones), 3)
         # 3000 / 3 = 1000 each
         self.assertEqual(milestones[0].amount, Decimal('1000.00'))
+        self.assertEqual(milestones[0].description, "Desc 1")
         self.assertEqual(milestones[1].amount, Decimal('1000.00'))
         self.assertEqual(milestones[2].amount, Decimal('1000.00'))
 
-        # Propose with 3 auto milestones with rounding (amount: 5000)
+        # Propose with rounding (amount: 5000)
         bid2 = make_bid(
             make_project(self.client_user, budget=10000, title="Project 2"),
             self.freelancer,
@@ -160,11 +168,14 @@ class AcceptBidTests(TestCase):
         contract2 = accept_bid(
             bid_id=bid2.id,
             client=self.client_user,
-            milestones_mode="auto",
-            milestone_count=3
         )
+        milestones_list2 = [
+            {"title": "M1", "description": "Desc 1", "amount": 1666.66},
+            {"title": "M2", "description": "Desc 2", "amount": 1666.66},
+            {"title": "M3", "description": "Desc 3", "amount": 1666.68},
+        ]
+        propose_milestone_schedule(contract2.id, self.client_user, milestones_list2)
         ms2 = list(contract2.milestones.all().order_by("order"))
-        # 5000 / 3 = 1666.66, last absorbs rounding difference: 5000 - (1666.66 * 2) = 1666.68
         self.assertEqual(ms2[0].amount, Decimal('1666.66'))
         self.assertEqual(ms2[1].amount, Decimal('1666.66'))
         self.assertEqual(ms2[2].amount, Decimal('1666.68'))

@@ -16,6 +16,7 @@ class BidListSerializer(serializers.ModelSerializer):
             'project',
             'freelancer',
             'amount',
+            'cover_letter',
             'status',
             'contract_id',
             'created_at',

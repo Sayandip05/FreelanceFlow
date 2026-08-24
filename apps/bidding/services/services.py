@@ -85,6 +85,17 @@ def submit_bid(
                 freelancer_name=freelancer.get_full_name(),
             )
         )
+        
+        # Real-time WebSocket push for bid dashboard
+        from apps.bidding.consumers import push_project_event
+        from apps.bidding.serializers.serializers import BidListSerializer
+        transaction.on_commit(
+            lambda: push_project_event(
+                project_id=project.id,
+                event_type="bid_submitted",
+                payload=BidListSerializer(bid).data
+            )
+        )
 
     logger.info(
         "Bid submitted: bid_id=%s project_id=%s freelancer_id=%s amount=%s",
@@ -107,22 +118,12 @@ def _get_due_date(start_date, i, frequency):
 
 def accept_bid(
     bid_id: int, 
-    client, 
-    milestones_mode: str = "auto",
-    milestone_count: int = 1,
-    frequency: str = "monthly",
-    start_date = None,
-    custom_milestones: list = None
+    client
 ) -> Contract:
     """
-    Accept a bid and propose a contract with milestones.
+    Accept a bid and propose a contract.
     Uses select_for_update to prevent race conditions.
     """
-    from apps.notifications.tasks import notify_freelancer_bid_accepted
-
-    if milestones_mode not in ["auto", "manual"]:
-        raise ValidationError("milestones_mode must be 'auto' or 'manual'.")
-
     with transaction.atomic():
         # Lock the bid row to prevent concurrent modifications
         try:
@@ -144,78 +145,6 @@ def accept_bid(
         if bid.status != Bid.Status.PENDING:
             raise ValidationError("Bid is no longer pending.")
         
-        # Prepare milestones to create
-        milestones_to_create = []
-        bid_amount = Decimal(str(bid.amount))
-        
-        if milestones_mode == "auto":
-            if milestone_count < 1:
-                raise ValidationError("milestone_count must be at least 1.")
-            
-            # Parse start date or use today
-            if start_date:
-                if isinstance(start_date, str):
-                    parsed_start = datetime.datetime.strptime(start_date.split('T')[0], "%Y-%m-%d").date()
-                else:
-                    parsed_start = start_date
-            else:
-                parsed_start = timezone.now().date()
-
-            # Split budget equally, with last milestone absorbing the remainder
-            base_amount = (bid_amount / milestone_count).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
-            last_amount = bid_amount - (base_amount * (milestone_count - 1))
-            
-            for i in range(1, milestone_count + 1):
-                amount = last_amount if i == milestone_count else base_amount
-                due_date = _get_due_date(parsed_start, i, frequency)
-                milestones_to_create.append({
-                    "title": f"Milestone {i}",
-                    "description": f"Automatically generated Milestone {i} for '{bid.project.title}'",
-                    "amount": amount,
-                    "percentage": (amount / bid_amount) * Decimal('100'),
-                    "order": i,
-                    "due_date": due_date,
-                    "status": PaymentMilestone.Status.PENDING
-                })
-        else:
-            if not custom_milestones or not isinstance(custom_milestones, list):
-                raise ValidationError("custom_milestones list must be provided in manual mode.")
-            
-            total_sum = Decimal('0.00')
-            for i, ms in enumerate(custom_milestones, 1):
-                title = ms.get("title")
-                desc = ms.get("description", "")
-                amount_val = ms.get("amount")
-                due_date_str = ms.get("due_date")
-                
-                if not title:
-                    raise ValidationError(f"Milestone {i} is missing a title.")
-                if amount_val is None:
-                    raise ValidationError(f"Milestone {i} is missing an amount.")
-                
-                amount = Decimal(str(amount_val))
-                if amount <= 0:
-                    raise ValidationError(f"Milestone {i} amount must be positive.")
-                
-                total_sum += amount
-                
-                due_date = None
-                if due_date_str:
-                    due_date = datetime.datetime.strptime(due_date_str.split('T')[0], "%Y-%m-%d").date()
-                
-                milestones_to_create.append({
-                    "title": title,
-                    "description": desc,
-                    "amount": amount,
-                    "percentage": (amount / bid_amount) * Decimal('100'),
-                    "order": i,
-                    "due_date": due_date,
-                    "status": PaymentMilestone.Status.PENDING
-                })
-            
-            if total_sum != bid_amount:
-                raise ValidationError(f"Total milestone amounts ({total_sum}) must sum exactly to the bid amount ({bid_amount}).")
-
         # Update bid status
         bid.status = Bid.Status.ACCEPTED
         bid.save()
@@ -232,21 +161,114 @@ def accept_bid(
             status=Contract.Status.PENDING_ACCEPTANCE
         )
         
+        # Create initial pending setup notification for the freelancer
+        from apps.notifications.services import create_notification
+        create_notification(
+            recipient=bid.freelancer,
+            title="Bid Accepted — Milestone Setup Pending",
+            body=(
+                f"Congratulations! Your bid for \"{bid.project.title}\" has been accepted. "
+                f"Please wait while the client configures the milestone schedule."
+            ),
+            notification_type="BID_ACCEPTED",
+        )
+
+        logger.info(
+            "Bid accepted: bid_id=%s contract_id=%s project_id=%s client_id=%s freelancer_id=%s",
+            bid.id, contract.id, bid.project.id, client.id, bid.freelancer.id,
+        )
+        return contract
+
+
+def propose_milestone_schedule(
+    contract_id: int,
+    client,
+    milestones_list: list
+) -> Contract:
+    """
+    Propose milestones for a contract (client only).
+    """
+    from apps.notifications.tasks import notify_freelancer_bid_accepted
+
+    with transaction.atomic():
+        try:
+            contract = Contract.objects.select_for_update().get(id=contract_id)
+        except Contract.DoesNotExist:
+            raise NotFoundError("Contract not found.")
+
+        # Verify client owns the contract's project
+        if contract.bid.project.client != client:
+            raise PermissionDeniedError("Only the project owner can propose milestones.")
+
+        # Verify contract is still pending acceptance
+        if contract.status != Contract.Status.PENDING_ACCEPTANCE:
+            raise ValidationError("Contract is no longer pending acceptance.")
+
+        # Ensure milestones list is provided
+        if not milestones_list or not isinstance(milestones_list, list):
+            raise ValidationError("milestones_list must be a non-empty list.")
+
+        # Clear any existing proposed milestones
+        contract.milestones.all().delete()
+
+        total_sum = Decimal('0.00')
+        bid_amount = Decimal(str(contract.agreed_amount))
+        milestones_to_create = []
+
+        for i, ms in enumerate(milestones_list, 1):
+            title = ms.get("title")
+            desc = ms.get("description")
+            amount_val = ms.get("amount")
+            due_date_str = ms.get("due_date")
+
+            if not title or not title.strip():
+                raise ValidationError(f"Milestone {i} is missing a title.")
+            if not desc or not desc.strip():
+                raise ValidationError(f"Milestone {i} is missing a description.")
+            if amount_val is None:
+                raise ValidationError(f"Milestone {i} is missing an amount.")
+
+            amount = Decimal(str(amount_val))
+            if amount <= 0:
+                raise ValidationError(f"Milestone {i} amount must be positive.")
+
+            total_sum += amount
+
+            due_date = None
+            if due_date_str:
+                try:
+                    due_date = datetime.datetime.strptime(due_date_str.split('T')[0], "%Y-%m-%d").date()
+                except Exception:
+                    pass
+
+            milestones_to_create.append({
+                "title": title.strip(),
+                "description": desc.strip(),
+                "amount": amount,
+                "percentage": (amount / bid_amount) * Decimal('100'),
+                "order": i,
+                "due_date": due_date,
+                "status": PaymentMilestone.Status.PENDING
+            })
+
+        if total_sum != bid_amount:
+            raise ValidationError(f"Total milestone amounts ({total_sum}) must sum exactly to the agreed contract budget ({bid_amount}).")
+
         # Create milestones
         for ms_data in milestones_to_create:
             PaymentMilestone.objects.create(
                 contract=contract,
                 **ms_data
             )
-        
-        # Schedule notification after commit
+
+        # Notify the freelancer that the proposed milestone schedule is ready for review
         transaction.on_commit(
             lambda: notify_freelancer_bid_accepted.delay(contract.id)
         )
 
         logger.info(
-            "Bid accepted: bid_id=%s contract_id=%s project_id=%s client_id=%s freelancer_id=%s",
-            bid.id, contract.id, bid.project.id, client.id, bid.freelancer.id,
+            "Milestones proposed: contract_id=%s count=%s client_id=%s",
+            contract.id, len(milestones_to_create), client.id,
         )
         return contract
 

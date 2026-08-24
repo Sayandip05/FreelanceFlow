@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, FileText, Briefcase, DollarSign,
   MessageSquare, Clock, TrendingUp, ArrowUpRight, Calendar, CheckCircle,
-  Wallet, ArrowDownRight, RefreshCw, AlertCircle, X
+  Wallet, ArrowDownRight, RefreshCw, AlertCircle, X, Download
 } from 'lucide-react'
 import { paymentsAPI } from '../../api/payments'
 import { usersAPI } from '../../api/auth'
@@ -350,9 +350,18 @@ const FreelancerEarningsPage = () => {
                 <div className="space-y-4">
                   {withdrawals.map(w => (
                     <div key={w.id} className="flex justify-between items-center text-xs font-semibold pb-3 border-b border-gray-50 last:border-b-0 last:pb-0">
-                      <div>
-                        <p className="text-gray-900">Withdrawal #{w.id}</p>
-                        <span className="text-[10px] text-gray-400 mt-0.5 block">{new Date(w.created_at).toLocaleDateString()}</span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => window.open(paymentsAPI.getReceiptDownloadUrl(w.id, 'withdrawal'), '_blank')}
+                          className="p-1.5 border border-gray-150 hover:bg-gray-50 text-gray-500 hover:text-gray-700 rounded-lg transition-colors flex-shrink-0"
+                          title="Download PDF Invoice"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                        <div>
+                          <p className="text-gray-900">Withdrawal #{w.id}</p>
+                          <span className="text-[10px] text-gray-400 mt-0.5 block">{new Date(w.created_at).toLocaleDateString()}</span>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-gray-900">${parseFloat(w.amount).toLocaleString()}</p>

@@ -60,6 +60,19 @@ export const paymentsAPI = {
   // Wallet APIs
   getWallet: () => api.get('/payments/wallet/'),
   withdrawFunds: (amount) => api.post('/payments/wallet/withdraw/', { amount }),
+
+  // Client Wallet APIs
+  getClientWallet: () => api.get('/payments/client-wallet/'),
+  depositClientWallet: (amount, autoFundMilestoneId = null) => 
+    api.post('/payments/client-wallet/deposit/', { amount, auto_fund_milestone_id: autoFundMilestoneId }),
+  confirmClientDeposit: (orderId, paymentId) => 
+    api.post('/payments/client-wallet/deposit/confirm/', { razorpay_order_id: orderId, razorpay_payment_id: paymentId }),
+  fundMilestoneFromWallet: (milestoneId) =>
+    api.post(`/payments/milestones/${milestoneId}/fund-from-wallet/`),
+  
+  // Invoice / Receipt Download url helper
+  getReceiptDownloadUrl: (txId, type = 'payment') => 
+    `${api.defaults.baseURL || ''}/payments/transactions/${txId}/receipt/?type=${type}`
 }
 
 export default paymentsAPI

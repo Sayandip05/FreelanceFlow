@@ -223,8 +223,16 @@ const FreelancerWorklogsPage = () => {
                   {/* Client and Rate Details */}
                   <div className="mt-5 pt-4 border-t border-gray-100 space-y-2 text-xs text-gray-600">
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-gray-500">
-                        <UserCircleIcon className="w-4 h-4" />
+                      <span className="flex items-center gap-2 text-gray-500">
+                        {contract.client?.avatar ? (
+                          <img
+                            src={contract.client.avatar}
+                            alt={clientName}
+                            className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                          />
+                        ) : (
+                          <UserCircleIcon className="w-4 h-4" />
+                        )}
                         Client:
                       </span>
                       <span className="font-semibold text-gray-900">{clientName}</span>

@@ -6,6 +6,7 @@ from .services import (
     reject_bid,
     withdraw_bid,
     complete_contract,
+    propose_milestone_schedule,
 )
 from .services_amendment import (
     propose_contract_amendment,
