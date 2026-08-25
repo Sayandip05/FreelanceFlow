@@ -302,24 +302,20 @@ export default function ClientLayout() {
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  <div className="flex items-center w-full">
-                    <div className="relative flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                      <link.icon className={`w-5 h-5 ${isActive ? 'text-gray-900' : 'text-gray-500'}`} />
-                      {badgeCount > 0 && !isExpanded && (
-                        <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
-                          {badgeCount > 99 ? '99+' : badgeCount}
-                        </span>
-                      )}
-                    </div>
-                    {isExpanded && (
-                      <span className="ml-3.5 text-left truncate flex-1 leading-none">{link.label}</span>
-                    )}
-                    {isExpanded && badgeCount > 0 && (
-                      <span className="ml-2 min-w-[18px] h-4.5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none flex-shrink-0">
+                  <div className="relative flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                    <link.icon className={`w-5 h-5 ${isActive ? 'text-gray-900' : 'text-gray-500'}`} />
+                    {badgeCount > 0 && !isExpanded && (
+                      <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
                         {badgeCount > 99 ? '99+' : badgeCount}
                       </span>
                     )}
                   </div>
+                  {isExpanded && <span className="truncate flex-1 text-left">{link.label}</span>}
+                  {isExpanded && badgeCount > 0 && (
+                    <span className="ml-auto min-w-[18px] h-4.5 px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none flex-shrink-0">
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
+                  )}
                 </button>
               )
             })}
