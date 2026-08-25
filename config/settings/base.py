@@ -213,9 +213,15 @@ CORS_ALLOW_CREDENTIALS = True
 REDIS_URL = env("REDIS_URL")
 
 # Channels Configuration (WebSocket with Upstash Redis)
+# expiry=60  → messages older than 60 seconds are dropped (stale real-time events are useless)
+# capacity=100 → max 100 messages buffered per channel before back-pressure kicks in
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "CONFIG": {
+            "expiry": 60,     # seconds — bid updates / milestone drafts / worklog events
+            "capacity": 100,  # messages per channel group
+        },
     }
 }
 
@@ -277,6 +283,16 @@ CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+
+# ── TTL / Expiry Settings ────────────────────────────────────────────────────
+# Task result expiry: how long Celery keeps the result in Redis after completion.
+# After 1 hour nobody is waiting for the result anymore (user has moved on).
+CELERY_RESULT_EXPIRES = 3600  # 1 hour in seconds
+
+# Task queue expiry: how long a queued task waits before being dropped.
+# Default for LOW-priority tasks (PDF, reports). Payment tasks override this
+# individually with expires=None so money tasks are never silently dropped.
+CELERY_TASK_EXPIRES = 7200  # 2 hours — applies to all tasks unless overridden
 
 # Beat schedule (for periodic tasks)
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
