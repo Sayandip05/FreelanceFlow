@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   Briefcase, CreditCard, MessageSquare, Star,
@@ -8,6 +8,48 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import PrivacyPolicyModal from '../ui/PrivacyPolicyModal'
 import NotificationBell from '../common/NotificationBell'
+import { notificationsAPI } from '../../api/notifications'
+
+// Map notification types → which sidebar section they belong to
+const NOTIFICATION_SECTION_MAP = {
+  BID_SUBMITTED:     '/client/projects',
+  BID_ACCEPTED:      '/client/contracts',
+  ESCROW_CREATED:    '/client/payments',
+  PAYMENT_RELEASED:  '/client/payments',
+  LOG_SUBMITTED:     '/client/contracts',
+  REPORT_READY:      '/client/contracts',
+  CLIENT_REPORT_READY: '/client/contracts',
+  PROOF_READY:       '/client/contracts',
+  MESSAGE_RECEIVED:  '/client/messages',
+  REVIEW_RECEIVED:   '/client/reviews',
+}
+
+function useSidebarBadges() {
+  const [badges, setBadges] = useState({})
+
+  const fetchBadges = useCallback(async () => {
+    try {
+      const res = await notificationsAPI.getUnreadNotifications()
+      const notifications = res.data?.results || res.data || []
+      const counts = {}
+      notifications.forEach(n => {
+        const section = NOTIFICATION_SECTION_MAP[n.type]
+        if (section) counts[section] = (counts[section] || 0) + 1
+      })
+      setBadges(counts)
+    } catch {
+      // silently ignore — badges are non-critical
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchBadges()
+    const interval = setInterval(fetchBadges, 30000) // refresh every 30s
+    return () => clearInterval(interval)
+  }, [fetchBadges])
+
+  return badges
+}
 
 const NAV_LINKS = [
   { icon: Home,          label: 'Home',      path: '/client/home' },
@@ -169,6 +211,7 @@ export default function ClientLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const active = location.pathname
+  const badges = useSidebarBadges()
 
   const [showHelp, setShowHelp] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
@@ -245,6 +288,7 @@ export default function ClientLayout() {
           <nav className="p-3 space-y-2 overflow-y-auto flex-1">
             {NAV_LINKS.map(link => {
               const isActive = active === link.path || active.startsWith(link.path + '/')
+              const badgeCount = badges[link.path] || 0
               return (
                 <button
                   key={link.path}
@@ -258,8 +302,24 @@ export default function ClientLayout() {
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  <link.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-500'}`} />
-                  {isExpanded && <span className="truncate">{link.label}</span>}
+                  <div className="flex items-center w-full">
+                    <div className="relative flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                      <link.icon className={`w-5 h-5 ${isActive ? 'text-gray-900' : 'text-gray-500'}`} />
+                      {badgeCount > 0 && !isExpanded && (
+                        <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                          {badgeCount > 99 ? '99+' : badgeCount}
+                        </span>
+                      )}
+                    </div>
+                    {isExpanded && (
+                      <span className="ml-3.5 text-left truncate flex-1 leading-none">{link.label}</span>
+                    )}
+                    {isExpanded && badgeCount > 0 && (
+                      <span className="ml-2 min-w-[18px] h-4.5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none flex-shrink-0">
+                        {badgeCount > 99 ? '99+' : badgeCount}
+                      </span>
+                    )}
+                  </div>
                 </button>
               )
             })}
