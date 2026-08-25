@@ -316,14 +316,14 @@ export default function FreelancerLayout() {
                   <div className="relative w-5 h-5 flex-shrink-0">
                     <link.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-500'}`} />
                     {badgeCount > 0 && !isExpanded && (
-                      <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-gray-100 text-gray-700 text-[10px] font-bold rounded-full border border-gray-200/80 flex items-center justify-center leading-none">
                         {badgeCount > 99 ? '99+' : badgeCount}
                       </span>
                     )}
                   </div>
                   {isExpanded && <span className="truncate">{link.label}</span>}
                   {isExpanded && badgeCount > 0 && (
-                    <span className="ml-auto min-w-[18px] h-4.5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none flex-shrink-0">
+                    <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-gray-100 text-gray-700 text-[11px] font-bold rounded-full border border-gray-200/80 flex items-center justify-center leading-none flex-shrink-0">
                       {badgeCount > 99 ? '99+' : badgeCount}
                     </span>
                   )}
