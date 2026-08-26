@@ -99,7 +99,7 @@ def call_gemini_fallback_sync(system_prompt: str, history: List[Dict], user_msg:
         full_prompt += f"{role}: {msg.get('content', '')}\n"
     full_prompt += f"Freelancer: {user_msg}\nAssistant:"
 
-    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
+    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
     payload = {
         "contents": [
             {
