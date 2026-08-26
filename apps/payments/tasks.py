@@ -9,7 +9,7 @@ from apps.payments.models import Payment, PlatformEarning
 from apps.payments.services.services import confirm_escrow_payment, record_payment_event, _get_razorpay_client
 logger = logging.getLogger("apps.payments.tasks")
 
-@shared_task
+@shared_task(expires=None)  # Payment webhook — NEVER drop from queue
 def process_razorpay_webhook_task(event_id: str, event_type: str, event_data: dict):
     """
     Process Razorpay webhook event asynchronously.
@@ -114,7 +114,7 @@ def process_razorpay_webhook_task(event_id: str, event_type: str, event_data: di
         logger.debug("Unhandled webhook event type: %s event_id=%s", event_type, event_id)
 
 
-@shared_task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=3, expires=None)  # Payout — NEVER drop, money involved
 def razorpay_transfer_to_freelancer_task(self, payment_id: int, amount: float):
     """
     Transfer funds to freelancer using RazorpayX Payouts.
@@ -222,7 +222,7 @@ def razorpay_transfer_to_freelancer_task(self, payment_id: int, amount: float):
         )
 
 
-@shared_task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=3, expires=None)  # Refund — NEVER drop, money involved
 def process_razorpay_refund_task(self, payment_id: int, refund_amount: float):
     """
     Process a Razorpay refund asynchronously.
@@ -246,7 +246,7 @@ def process_razorpay_refund_task(self, payment_id: int, refund_amount: float):
         )
 
 
-@shared_task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=3, expires=None)  # Withdrawal — NEVER drop, money involved
 def razorpay_payout_withdrawal_task(self, withdrawal_id: int):
     """
     Process freelancer manual withdrawal using RazorpayX Payouts.
