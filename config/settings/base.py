@@ -229,8 +229,9 @@ REDIS_URL = env("REDIS_URL")
 # capacity=100 → max 100 messages buffered per channel before back-pressure kicks in
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
+            "hosts": [env("REDIS_URL", default="redis://localhost:6379/0")],
             "expiry": 60,     # seconds — bid updates / milestone drafts / worklog events
             "capacity": 100,  # messages per channel group
         },
