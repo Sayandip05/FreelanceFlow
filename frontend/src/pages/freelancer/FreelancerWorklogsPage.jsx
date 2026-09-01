@@ -57,30 +57,18 @@ const FreelancerWorklogsPage = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-16">
       {/* ── Top Header ────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
-              <SparklesIcon className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-              Work & AI Assistant
-            </h1>
-          </div>
-          <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-            Track milestones, chat with your AI project assistant grounded with Qdrant vector memory, and auto-generate client-ready deliverables.
-          </p>
+      <div>
+        <div className="flex items-center gap-2.5">
+          <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+            <SparklesIcon className="w-5 h-5" />
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+            Work & AI Assistant
+          </h1>
         </div>
-
-        {/* Quick stat pill */}
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2 bg-indigo-50 border border-indigo-100/80 rounded-2xl flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-xs font-bold text-indigo-950">
-              {totalActive} Active Projects Available
-            </span>
-          </div>
-        </div>
+        <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+          Track milestones, chat with your AI project assistant, and auto-generate client-ready deliverables.
+        </p>
       </div>
 
       {/* ── Key Metrics Cards ─────────────────────────────────────────────── */}
@@ -90,7 +78,7 @@ const FreelancerWorklogsPage = () => {
             <BriefcaseIcon className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Active Workspaces</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Active Projects</p>
             <p className="text-2xl font-black text-gray-900">{totalActive}</p>
             <p className="text-xs text-indigo-600 font-medium mt-0.5">Contracts ready for AI assistant</p>
           </div>
@@ -108,16 +96,13 @@ const FreelancerWorklogsPage = () => {
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-            <ShieldCheckIcon className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-900 shrink-0">
+            <CheckCircleIcon className="w-6 h-6 text-gray-900" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Qdrant Vector Cloud</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span className="text-sm font-bold text-gray-900">Active Vector Grounding</span>
-            </div>
-            <p className="text-xs text-purple-600 font-medium mt-0.5">Real-time semantic chat retrieval</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Completed Projects</p>
+            <p className="text-2xl font-black text-gray-900">{completedContracts.length}</p>
+            <p className="text-xs text-gray-600 font-medium mt-0.5">Finished milestones & reports</p>
           </div>
         </div>
       </div>
