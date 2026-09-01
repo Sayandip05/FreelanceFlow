@@ -2,7 +2,7 @@ from .base import *
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver", ".ngrok.io", ".ngrok-free.app"]
+ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1", "testserver", ".ngrok.io", ".ngrok-free.app", ".ngrok-free.dev"]
 
 # Email backend for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
