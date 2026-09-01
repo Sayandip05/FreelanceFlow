@@ -151,30 +151,62 @@ const FreelancerWorkPage = () => {
     }
   }
 
+  // Listen for ai_draft_pdf_ready from WebSocket (assumes global WS is listening, 
+  // but we can add a specific listener here since we are inside FreelancerWorkPage)
+  useEffect(() => {
+    if (!contractId) return
+
+    const token =
+      localStorage.getItem('access_token') ||
+      sessionStorage.getItem('access_token') ||
+      ''
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host =
+      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
+    const wsUrl = `${protocol}//${host}/ws/contract/${contractId}/?token=${token}`
+
+    const ws = new WebSocket(wsUrl)
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'ai_draft_pdf_ready') {
+          const { draft_id, pdf_url } = data.payload
+          setPdfUrl(pdf_url)
+          setApproving(false)
+          setActiveDraft((prev) => (prev ? { ...prev, status: 'APPROVED', pdf_url } : null))
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: `🎉 **Report Approved & Compiled!** Your official client report is ready for download.`,
+              pdf_url,
+            },
+          ])
+          loadContextBundle()
+        } else if (data.type === 'ai_draft_pdf_error') {
+          setApproving(false)
+          alert('Failed to compile PDF: ' + data.payload.error)
+        }
+      } catch {}
+    }
+
+    ws.onerror = () => ws.close()
+
+    return () => {
+      ws.close()
+    }
+  }, [contractId])
+
   const handleApproveDraft = async (draftIdToApprove = null) => {
     const targetDraftId = draftIdToApprove || activeDraft?.id
     setApproving(true)
     try {
       const res = await aiWorklogAPI.approveDraft(contractId, targetDraftId)
-      const data = res.data
-      if (data.pdf_url) {
-        setPdfUrl(data.pdf_url)
-        setActiveDraft((prev) => (prev ? { ...prev, status: 'APPROVED', pdf_url: data.pdf_url } : null))
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: `🎉 **Report Approved & Compiled!** Your official client report is ready for download.`,
-            pdf_url: data.pdf_url,
-          },
-        ])
-        // Refresh context to update past reports list
-        loadContextBundle()
-      }
+      // Request accepted, now wait for WebSocket event ai_draft_pdf_ready
     } catch (err) {
       console.error('Error approving report draft:', err)
-      alert('Failed to compile and approve report PDF. Please try again.')
-    } finally {
+      alert('Failed to approve report PDF. Please try again.')
       setApproving(false)
     }
   }

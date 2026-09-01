@@ -97,12 +97,14 @@ export default function ClientWalletPage() {
     }
   }
 
-  const handleDownloadReceipt = (id, type) => {
-    const transactionType = type === 'DEPOSIT' ? 'deposit' : 'payment'
-    const url = paymentsAPI.getReceiptDownloadUrl(id, transactionType)
-    
-    // Open in a new tab to download the generated PDF invoice
-    window.open(url, '_blank')
+  const handleDownloadReceipt = async (id, type) => {
+    try {
+      alert("Generating receipt... You will be notified when it's ready.");
+      await paymentsAPI.generateReceipt(id, type);
+    } catch (err) {
+      alert('Failed to request receipt generation.');
+      console.error(err);
+    }
   }
 
   if (loading) {

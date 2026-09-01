@@ -353,3 +353,62 @@ def razorpay_payout_withdrawal_task(self, withdrawal_id: int):
         
         raise self.retry(exc=exc, countdown=60)
 
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    queue="freelanceflow_low_priority",
+)
+def generate_receipt_pdf_task(self, tx_id: int, tx_type: str, user_id: int):
+    """
+    Asynchronously generates a PDF receipt for a transaction, uploads to Azure,
+    and pushes a WebSocket notification with the download link.
+    """
+    from apps.payments.services.services import generate_transaction_receipt_pdf
+    from apps.notifications.consumers import push_notification_to_user
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Generate the PDF and get the SAS URL
+        pdf_url = generate_transaction_receipt_pdf(tx_id, tx_type, user_id)
+
+        # Broadcast real-time event to the user's personal WebSocket channel
+        # We wrap it as a "notification" so NotificationConsumer can process it easily.
+        # But we use type="receipt_pdf_ready" for the frontend to distinguish.
+        import datetime
+        push_notification_to_user(
+            user_id=user_id,
+            notification_data={
+                "id": tx_id,
+                "title": "Receipt Ready",
+                "body": "Your transaction receipt is ready to download.",
+                "type": "receipt_pdf_ready",
+                "pdf_url": pdf_url,
+                "is_read": False,
+                "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+            }
+        )
+
+        return {"tx_id": tx_id, "pdf_url": pdf_url}
+    except Exception as exc:
+        logger.error("Error generating receipt PDF for tx %s: %s", tx_id, exc)
+        # Notify the user of failure
+        import datetime
+        try:
+            push_notification_to_user(
+                user_id=user_id,
+                notification_data={
+                    "id": tx_id,
+                    "title": "Receipt Failed",
+                    "body": "There was an error generating your transaction receipt.",
+                    "type": "receipt_pdf_error",
+                    "error": str(exc),
+                    "is_read": False,
+                    "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+                }
+            )
+        except Exception:
+            pass
+        raise self.retry(exc=exc)

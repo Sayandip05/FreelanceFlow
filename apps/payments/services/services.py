@@ -753,4 +753,145 @@ def fund_milestone_from_wallet_service(milestone, client) -> Payment:
     logger.info("Milestone funded from Client Wallet: milestone_id=%s payment_id=%s", milestone.id, payment.id)
     return payment
 
+def generate_transaction_receipt_pdf(tx_id: int, tx_type: str, user_id: int) -> str:
+    """
+    Generate PDF for a transaction receipt and upload to Azure Blob Storage.
+    Args:
+        tx_id: Transaction ID (numeric)
+        tx_type: 'deposit', 'withdrawal', or 'payment'
+        user_id: ID of the user requesting the receipt
+    Returns:
+        Azure Blob SAS URL of the generated PDF (7-day expiry)
+    """
+    from apps.payments.models import ClientDeposit, Payment, WithdrawalRequest
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        raise ValueError(f"User {user_id} not found")
+
+    amount = 0.0
+    receipt_tx_id = f"TXN-{tx_id}"
+    date_str = ""
+    description = ""
+    user_name = user.get_full_name() or user.email
+    
+    if tx_type == "deposit":
+        deposit = ClientDeposit.objects.get(id=tx_id, client=user)
+        amount = float(deposit.amount)
+        date_str = deposit.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        description = f"Wallet Deposit (Order: {deposit.razorpay_order_id})"
+        receipt_tx_id = f"DEP-{deposit.id}"
+            
+    elif tx_type == "withdrawal":
+        withdrawal = WithdrawalRequest.objects.get(id=tx_id, freelancer=user)
+        amount = float(withdrawal.amount)
+        date_str = withdrawal.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        description = f"Wallet Withdrawal (Payout: {withdrawal.razorpay_payout_id or 'Simulated'})"
+        receipt_tx_id = f"WTH-{withdrawal.id}"
+            
+    elif tx_type == "payment":
+        payment = Payment.objects.get(id=tx_id)
+        if payment.contract.client != user and payment.contract.bid.freelancer != user:
+            raise PermissionError("Access denied.")
+        amount = float(payment.total_amount)
+        date_str = payment.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        description = f"Milestone Escrow Funding: {payment.milestone.title if payment.milestone else 'Project Milestone'}"
+        receipt_tx_id = f"PAY-{payment.id}"
+    else:
+        raise ValueError(f"Unknown transaction type: {tx_type}")
+
+    # Generate styled HTML
+    html_content = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 40px; }}
+            .receipt-box {{ border: 1px solid #eee; padding: 30px; border-radius: 10px; max-width: 800px; margin: auto; }}
+            .logo {{ font-size: 24px; font-weight: bold; color: #1e3a8a; }}
+            .title {{ font-size: 20px; font-weight: bold; color: #3b82f6; text-align: right; }}
+            .details-table {{ width: 100%; margin-top: 30px; border-collapse: collapse; }}
+            .details-table th, .details-table td {{ text-align: left; padding: 12px; border-bottom: 1px solid #eee; }}
+            .details-table th {{ background-color: #f8fafc; font-weight: bold; color: #475569; }}
+            .total-box {{ margin-top: 30px; text-align: right; font-size: 18px; font-weight: bold; color: #1e3a8a; }}
+            .footer {{ margin-top: 50px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #eee; padding-top: 20px; }}
+        </style>
+    </head>
+    <body>
+        <div class="receipt-box">
+            <table style="width: 100%;">
+                <tr>
+                    <td>
+                        <div class="logo">Freelance<span style="color:#3b82f6;">Flow</span></div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">Secure Platform Payouts</div>
+                    </td>
+                    <td style="text-align: right;">
+                        <div class="title">TRANSACTION RECEIPT</div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">Invoice ID: {receipt_tx_id}</div>
+                    </td>
+                </tr>
+            </table>
+            
+            <hr style="border: 0; border-top: 2px solid #3b82f6; margin: 20px 0;">
+
+            <table style="width: 100%; font-size: 14px; color: #475569;">
+                <tr>
+                    <td>
+                        <strong>Billed To:</strong><br>
+                        {user_name}<br>
+                        Platform Account ID: {user.id}
+                    </td>
+                    <td style="text-align: right;">
+                        <strong>Transaction Details:</strong><br>
+                        Date: {date_str}<br>
+                        Gateway: Razorpay Escrow
+                    </td>
+                </tr>
+            </table>
+
+            <table class="details-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th style="text-align: right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{description}</td>
+                        <td style="text-align: right; font-weight: bold;">${amount:.2f} USD</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="total-box">
+                Total: ${amount:.2f} USD
+            </div>
+
+            <div class="footer">
+                Thank you for choosing FreelanceFlow. If you have any questions, please contact support@freelanceflow.com.<br>
+                This is a computer-generated transaction receipt. No signature required.
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    from xhtml2pdf import pisa
+    from io import BytesIO
+    from apps.worklogs.services.pdf_service import upload_to_azure_blob
+    
+    pdf_buffer = BytesIO()
+    pisa_status = pisa.CreatePDF(html_content, dest=pdf_buffer)
+    
+    if pisa_status.err:
+        raise Exception("PDF generation failed with xhtml2pdf errors.")
+        
+    blob_name = f"receipts/{user_id}/receipt_{receipt_tx_id}.pdf"
+    pdf_url = upload_to_azure_blob(pdf_buffer.getvalue(), blob_name)
+    return pdf_url
+
+
 

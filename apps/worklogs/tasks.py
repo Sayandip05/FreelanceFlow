@@ -406,3 +406,62 @@ def initialize_qdrant_collection_task(self, contract_id: int):
     except Exception as exc:
         raise self.retry(exc=exc)
 
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    queue="freelanceflow_low_priority",
+)
+def compile_ai_draft_pdf_task(self, contract_id: int, freelancer_id: int, draft_id: int = None):
+    """
+    Asynchronously compiles an AIReportDraft into a PDF and notifies the frontend via WebSocket.
+    """
+    from apps.worklogs.services.ai_service import run_ai_worklog_agent
+    from asgiref.sync import async_to_sync
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        agent_result = async_to_sync(run_ai_worklog_agent)(
+            contract_id=contract_id,
+            freelancer_id=freelancer_id,
+            user_message="Approve and generate official PDF report",
+            action="approve",
+            draft_id=draft_id,
+        )
+
+        # Notify via WebSocket if successful
+        if not agent_result.get("error"):
+            try:
+                from apps.payments.consumers import push_contract_event
+                push_contract_event(
+                    contract_id=contract_id,
+                    event_type="ai_draft_pdf_ready",
+                    payload={
+                        "draft_id": agent_result.get("draft_id"),
+                        "pdf_url": agent_result.get("pdf_url"),
+                        "reply": agent_result.get("reply"),
+                    }
+                )
+            except Exception as wse:
+                logger.warning("Failed to push ai_draft_pdf_ready WebSocket event: %s", wse)
+
+        return agent_result
+    except Exception as exc:
+        logger.error("Error generating PDF for draft %s: %s", draft_id, exc)
+        try:
+            from apps.payments.consumers import push_contract_event
+            push_contract_event(
+                contract_id=contract_id,
+                event_type="ai_draft_pdf_error",
+                payload={
+                    "draft_id": draft_id,
+                    "error": str(exc),
+                }
+            )
+        except Exception:
+            pass
+        raise self.retry(exc=exc)
+

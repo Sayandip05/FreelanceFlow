@@ -352,9 +352,16 @@ const FreelancerEarningsPage = () => {
                     <div key={w.id} className="flex justify-between items-center text-xs font-semibold pb-3 border-b border-gray-50 last:border-b-0 last:pb-0">
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => window.open(paymentsAPI.getReceiptDownloadUrl(w.id, 'withdrawal'), '_blank')}
-                          className="p-1.5 border border-gray-150 hover:bg-gray-50 text-gray-500 hover:text-gray-700 rounded-lg transition-colors flex-shrink-0"
-                          title="Download PDF Invoice"
+                          className="p-1.5 border border-gray-150 hover:bg-gray-50 text-gray-500 hover:text-indigo-600 rounded-lg transition-colors flex-shrink-0"
+                          title="Download Receipt"
+                          onClick={async () => {
+                            try {
+                              alert("Generating receipt... You will be notified when it's ready.");
+                              await paymentsAPI.generateReceipt(w.id, 'withdrawal');
+                            } catch (err) {
+                              alert('Failed to request receipt generation.');
+                            }
+                          }}
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>

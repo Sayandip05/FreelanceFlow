@@ -81,6 +81,13 @@ export function NotificationProvider({ children }) {
 
         if (data.type === 'new_notification') {
           const notif = data.notification
+          
+          if (notif.type === 'receipt_pdf_ready') {
+            alert(`Receipt Ready! Downloading now...`);
+            window.open(notif.pdf_url, '_blank');
+            return; // Don't add to standard notifications list
+          }
+          
           setNotifications((prev) => {
             if (prev.some((n) => n.id === notif.id)) return prev
             return [notif, ...prev]

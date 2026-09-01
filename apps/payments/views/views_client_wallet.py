@@ -260,97 +260,13 @@ class DownloadTransactionReceiptView(views.APIView):
             except Payment.DoesNotExist:
                 return Response({"error": "Payment transaction not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Generate styled HTML for WeasyPrint
-        html_content = f"""
-        <html>
-        <head>
-            <style>
-                body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 40px; }}
-                .receipt-box {{ border: 1px solid #eee; padding: 30px; border-radius: 10px; max-width: 800px; margin: auto; }}
-                .logo {{ font-size: 24px; font-weight: bold; color: #1e3a8a; }}
-                .title {{ font-size: 20px; font-weight: bold; color: #3b82f6; text-align: right; }}
-                .details-table {{ width: 100%; margin-top: 30px; border-collapse: collapse; }}
-                .details-table th, .details-table td {{ text-align: left; padding: 12px; border-bottom: 1px solid #eee; }}
-                .details-table th {{ background-color: #f8fafc; font-weight: bold; color: #475569; }}
-                .total-box {{ margin-top: 30px; text-align: right; font-size: 18px; font-weight: bold; color: #1e3a8a; }}
-                .footer {{ margin-top: 50px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #eee; padding-top: 20px; }}
-            </style>
-        </head>
-        <body>
-            <div class="receipt-box">
-                <table style="width: 100%;">
-                    <tr>
-                        <td>
-                            <div class="logo">Freelance<span style="color:#3b82f6;">Flow</span></div>
-                            <div style="font-size: 12px; color: #64748b; margin-top: 5px;">Secure Platform Payouts</div>
-                        </td>
-                        <td style="text-align: right;">
-                            <div class="title">TRANSACTION RECEIPT</div>
-                            <div style="font-size: 12px; color: #64748b; margin-top: 5px;">Invoice ID: {tx_id}</div>
-                        </td>
-                    </tr>
-                </table>
-                
-                <hr style="border: 0; border-top: 2px solid #3b82f6; margin: 20px 0;">
-
-                <table style="width: 100%; font-size: 14px; color: #475569;">
-                    <tr>
-                        <td>
-                            <strong>Billed To:</strong><br>
-                            {user_name}<br>
-                            Platform Account ID: {request.user.id}
-                        </td>
-                        <td style="text-align: right;">
-                            <strong>Transaction Details:</strong><br>
-                            Date: {date_str}<br>
-                            Gateway: Razorpay Escrow
-                        </td>
-                    </tr>
-                </table>
-
-                <table class="details-table">
-                    <thead>
-                        <tr>
-                            <th>Description</th>
-                            <th style="text-align: right;">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>{description}</td>
-                            <td style="text-align: right; font-weight: bold;">${amount:.2f} USD</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="total-box">
-                    Total: ${amount:.2f} USD
-                </div>
-
-                <div class="footer">
-                    Thank you for choosing FreelanceFlow. If you have any questions, please contact support@freelanceflow.com.<br>
-                    This is a computer-generated transaction receipt. No signature required.
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-
-        try:
-            from xhtml2pdf import pisa
-            from django.http import HttpResponse
-            from io import BytesIO
-            
-            pdf_buffer = BytesIO()
-            pisa_status = pisa.CreatePDF(html_content, dest=pdf_buffer)
-            
-            if pisa_status.err:
-                raise Exception("PDF generation failed with xhtml2pdf errors.")
-                
-            response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="receipt_{tx_id}.pdf"'
-            return response
-        except Exception as e:
-            logger.error("Failed to generate PDF invoice receipt: %s", e)
-            return Response({"error": f"Failed to generate receipt PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Enqueue background task
+        from apps.payments.tasks import generate_receipt_pdf_task
+        generate_receipt_pdf_task.delay(id, tx_type, request.user.id)
+        
+        return Response({
+            "status": "processing",
+            "message": "Receipt generation started. You will be notified when it is ready.",
+            "tx_id": tx_id
+        }, status=status.HTTP_202_ACCEPTED)
 

@@ -160,28 +160,19 @@ class AIApproveDraftView(views.APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        # Run async agent with action="approve"
-        agent_result = async_to_sync(run_ai_worklog_agent)(
+        # Run async agent with action="approve" using Celery queue
+        from apps.worklogs.tasks import compile_ai_draft_pdf_task
+        compile_ai_draft_pdf_task.delay(
             contract_id=contract_id,
             freelancer_id=request.user.id,
-            user_message="Approve and generate official PDF report",
-            action="approve",
             draft_id=draft_id,
         )
 
-        if agent_result.get("error"):
-            return Response(
-                {"error": agent_result["error"], "code": "compilation_error"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         return Response({
             "success": True,
-            "message": "Report approved and compiled successfully",
-            "pdf_url": agent_result.get("pdf_url"),
-            "draft_id": agent_result.get("draft_id"),
-            "reply": agent_result.get("reply"),
-        }, status=status.HTTP_200_OK)
+            "message": "PDF generation queued. You will be notified when it's ready.",
+            "draft_id": draft_id,
+        }, status=status.HTTP_202_ACCEPTED)
 
 
 class AIHistoryView(views.APIView):

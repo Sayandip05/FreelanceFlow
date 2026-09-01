@@ -70,11 +70,9 @@ export const paymentsAPI = {
   fundMilestoneFromWallet: (milestoneId) =>
     api.post(`/payments/milestones/${milestoneId}/fund-from-wallet/`),
   
-  // Invoice / Receipt Download url helper
-  getReceiptDownloadUrl: (txId, type = 'payment') => {
-    const token = localStorage.getItem('access_token');
-    return `${api.defaults.baseURL || ''}/payments/transactions/${txId}/receipt/?type=${type}&access=${token}`;
-  }
+  // Invoice / Receipt Async Generation
+  generateReceipt: (txId, type = 'payment') => 
+    api.get(`/payments/transactions/${txId}/receipt/?type=${type}`),
 }
 
 export default paymentsAPI
