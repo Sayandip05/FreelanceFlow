@@ -12,6 +12,7 @@ export default function ClientWalletPage() {
   const [showLoadModal, setShowLoadModal] = useState(false)
   const [loadAmount, setLoadAmount] = useState('')
   const [processing, setProcessing] = useState(false)
+  const [generatingId, setGeneratingId] = useState(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -99,11 +100,13 @@ export default function ClientWalletPage() {
 
   const handleDownloadReceipt = async (id, type) => {
     try {
-      alert("Generating receipt... You will be notified when it's ready.");
+      setGeneratingId(id);
       await paymentsAPI.generateReceipt(id, type);
     } catch (err) {
       alert('Failed to request receipt generation.');
       console.error(err);
+    } finally {
+      setGeneratingId(null);
     }
   }
 
@@ -204,10 +207,15 @@ export default function ClientWalletPage() {
                   </div>
                   <button
                     onClick={() => handleDownloadReceipt(tx.id, tx.type)}
-                    className="p-2 border border-gray-150 hover:bg-gray-50 text-gray-500 hover:text-gray-700 rounded-xl transition-colors"
+                    disabled={generatingId === tx.id}
+                    className="p-2 border border-gray-150 hover:bg-gray-50 text-gray-500 hover:text-gray-700 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center"
                     title="Download PDF Invoice"
                   >
-                    <Download className="w-4 h-4" />
+                    {generatingId === tx.id ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>

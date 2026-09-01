@@ -18,6 +18,7 @@ const FreelancerEarningsPage = () => {
   const [showLinkModalOnly, setShowLinkModalOnly] = useState(false)
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [withdrawing, setWithdrawing] = useState(false)
+  const [generatingId, setGeneratingId] = useState(null)
   const [withdrawError, setWithdrawError] = useState('')
   const [withdrawSuccess, setWithdrawSuccess] = useState('')
 
@@ -352,18 +353,25 @@ const FreelancerEarningsPage = () => {
                     <div key={w.id} className="flex justify-between items-center text-xs font-semibold pb-3 border-b border-gray-50 last:border-b-0 last:pb-0">
                       <div className="flex items-center gap-3">
                         <button
-                          className="p-1.5 border border-gray-150 hover:bg-gray-50 text-gray-500 hover:text-indigo-600 rounded-lg transition-colors flex-shrink-0"
+                          className="p-1.5 border border-gray-150 hover:bg-gray-50 text-gray-500 hover:text-indigo-600 rounded-lg transition-colors flex-shrink-0 disabled:opacity-50 flex items-center justify-center"
                           title="Download Receipt"
+                          disabled={generatingId === w.id}
                           onClick={async () => {
                             try {
-                              alert("Generating receipt... You will be notified when it's ready.");
+                              setGeneratingId(w.id);
                               await paymentsAPI.generateReceipt(w.id, 'withdrawal');
                             } catch (err) {
                               alert('Failed to request receipt generation.');
+                            } finally {
+                              setGeneratingId(null);
                             }
                           }}
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          {generatingId === w.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
                         </button>
                         <div>
                           <p className="text-gray-900">Withdrawal #{w.id}</p>
