@@ -941,40 +941,40 @@ support@freelanceflow.com
       {/* ── Milestone Setup Modal (Equal Distribution / Custom) ───────────── */}
       {showMilestoneModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150 my-8 max-h-[85vh] overflow-y-auto">
+          <div className="bg-white rounded-[2rem] w-full max-w-3xl p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] space-y-8 relative animate-in fade-in zoom-in-95 duration-200 my-8 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowMilestoneModal(false)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Configure Milestone Schedule</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Total Contract Budget: <span className="font-bold text-indigo-600">{formatCurrency(totalBudget)}</span>
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight">Configure Milestone Schedule</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Total Contract Budget: <span className="font-black text-indigo-600">{formatCurrency(totalBudget)}</span>
               </p>
             </div>
 
             {/* Tabs */}
-            <div className="flex bg-gray-50 border border-gray-150 p-1 rounded-xl">
+            <div className="flex bg-gray-100/80 p-1.5 rounded-2xl shadow-inner">
               <button
                 type="button"
                 onClick={() => setActiveSetupTab('auto')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  activeSetupTab === 'auto' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
+                  activeSetupTab === 'auto' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                 }`}
               >
-                Equal Auto-Generator
+                Auto-Generator
               </button>
               <button
                 type="button"
                 onClick={() => setActiveSetupTab('manual')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  activeSetupTab === 'manual' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
+                  activeSetupTab === 'manual' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                 }`}
               >
-                Manual Custom Setup
+                Custom Setup
               </button>
             </div>
 
@@ -989,11 +989,11 @@ support@freelanceflow.com
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-700 mb-1">Number of Milestones</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-2">Number of Milestones</label>
                       <select
                         value={milestoneCount}
                         onChange={(e) => setMilestoneCount(e.target.value)}
-                        className="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                        className="w-full p-3.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-semibold transition-all shadow-sm"
                       >
                         <option value="2">2 Milestones (50% each)</option>
                         <option value="3">3 Milestones (33.3% each)</option>
@@ -1003,11 +1003,11 @@ support@freelanceflow.com
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-700 mb-1">Frequency Interval</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-2">Frequency Interval</label>
                       <select
                         value={milestoneInterval}
                         onChange={(e) => setMilestoneInterval(e.target.value)}
-                        className="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                        className="w-full p-3.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-semibold transition-all shadow-sm"
                       >
                         <option value="monthly">Monthly Milestones</option>
                         <option value="biweekly">Bi-weekly (14 days)</option>
@@ -1018,16 +1018,19 @@ support@freelanceflow.com
                 </div>
 
                 {/* Milestone Detail Form Blocks */}
-                <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                   {generatedMilestones.map((m, idx) => (
-                    <div key={idx} className="p-3 bg-gray-50 border border-gray-150 rounded-2xl space-y-3">
-                      <div className="flex justify-between items-center text-xs font-bold text-gray-900">
-                        <span>Milestone #{idx + 1}</span>
-                        <span className="text-indigo-600">{formatCurrency(m.amount)}</span>
+                    <div key={idx} className="p-5 bg-white border border-gray-200 shadow-sm rounded-2xl space-y-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-center text-sm font-black text-gray-900 border-b border-gray-100 pb-3">
+                        <span className="flex items-center gap-2">
+                          <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">#{idx + 1}</span> 
+                          Stage Details
+                        </span>
+                        <span className="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">{formatCurrency(m.amount)}</span>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-[10px] font-bold text-gray-500 mb-1">Title</label>
+                          <label className="block text-xs font-bold text-gray-600 mb-2">Title</label>
                           <input
                             type="text"
                             required
@@ -1037,11 +1040,11 @@ support@freelanceflow.com
                               newList[idx].title = e.target.value
                               setGeneratedMilestones(newList)
                             }}
-                            className="w-full p-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-gray-900"
+                            className="w-full p-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-semibold text-gray-900 transition-all"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-gray-500 mb-1">Due Date</label>
+                          <label className="block text-xs font-bold text-gray-600 mb-2">Due Date</label>
                           <input
                             type="date"
                             value={m.due_date}
@@ -1050,12 +1053,12 @@ support@freelanceflow.com
                               newList[idx].due_date = e.target.value
                               setGeneratedMilestones(newList)
                             }}
-                            className="w-full p-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-gray-900"
+                            className="w-full p-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-semibold text-gray-900 transition-all"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Description</label>
+                        <label className="block text-xs font-bold text-gray-600 mb-2">Description</label>
                         <textarea
                           rows={2}
                           required
@@ -1066,7 +1069,7 @@ support@freelanceflow.com
                             setGeneratedMilestones(newList)
                           }}
                           placeholder="Provide details about the deliverables of this stage..."
-                          className="w-full p-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-gray-800"
+                          className="w-full p-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-semibold text-gray-800 transition-all"
                         />
                       </div>
                     </div>
@@ -1077,7 +1080,7 @@ support@freelanceflow.com
                   type="button"
                   onClick={() => handleProposeSchedule(generatedMilestones)}
                   disabled={actionLoading}
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                  className="w-full py-4 mt-6 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-2xl text-sm font-black tracking-wide transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"
                 >
                   {actionLoading ? 'Proposing Milestones...' : 'Propose Milestone Schedule'}
                 </button>
@@ -1087,34 +1090,34 @@ support@freelanceflow.com
             {/* Mode 2: Custom Milestone Form */}
             {activeSetupTab === 'manual' && (
               <div className="space-y-4">
-                <form onSubmit={handleAddLocalCustomMilestone} className="space-y-3">
+                <form onSubmit={handleAddLocalCustomMilestone} className="space-y-4 p-5 bg-white border border-gray-200 shadow-sm rounded-2xl hover:shadow-md transition-shadow">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Milestone Title</label>
+                    <label className="block text-xs font-bold text-gray-600 mb-2">Milestone Title</label>
                     <input
                       type="text"
                       required
                       value={customMilestone.title}
                       onChange={(e) => setCustomMilestone({ ...customMilestone, title: e.target.value })}
                       placeholder="e.g. Design Wireframes & Architecture"
-                      className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-semibold transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Milestone Description</label>
+                    <label className="block text-xs font-bold text-gray-600 mb-2">Milestone Description</label>
                     <textarea
                       rows={2}
                       required
                       value={customMilestone.description}
                       onChange={(e) => setCustomMilestone({ ...customMilestone, description: e.target.value })}
                       placeholder="Provide details about the deliverables of this stage..."
-                      className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-semibold transition-all"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Amount ($)</label>
+                      <label className="block text-xs font-bold text-gray-600 mb-2">Amount ($)</label>
                       <input
                         type="number"
                         required
@@ -1122,35 +1125,35 @@ support@freelanceflow.com
                         value={customMilestone.amount}
                         onChange={(e) => setCustomMilestone({ ...customMilestone, amount: e.target.value })}
                         placeholder="e.g. 500"
-                        className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full p-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-semibold transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Due Date</label>
+                      <label className="block text-xs font-bold text-gray-600 mb-2">Due Date</label>
                       <input
                         type="date"
                         value={customMilestone.due_date}
                         onChange={(e) => setCustomMilestone({ ...customMilestone, due_date: e.target.value })}
-                        className="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full p-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-semibold transition-all"
                       />
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all"
+                    className="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 mt-2"
                   >
-                    Add Custom Milestone
+                    <Plus className="w-4 h-4" /> Add Custom Milestone
                   </button>
                 </form>
 
                 {/* Added custom milestones list */}
                 {customMilestonesList.length > 0 && (
-                  <div className="space-y-3.5 pt-2">
-                    <div className="flex justify-between items-center text-xs font-bold text-gray-900 border-b border-gray-100 pb-2">
+                  <div className="space-y-4 pt-4 border-t border-gray-200 mt-6">
+                    <div className="flex justify-between items-center text-sm font-black text-gray-900 px-1">
                       <span>Proposed Milestone List</span>
-                      <span>
+                      <span className="bg-gray-100 py-1.5 px-3 rounded-full text-xs">
                         Allocated:{' '}
                         <span className="text-indigo-600">
                           {formatCurrency(customMilestonesList.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0))}
@@ -1159,24 +1162,29 @@ support@freelanceflow.com
                       </span>
                     </div>
 
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                       {customMilestonesList.map((m, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 border border-gray-150 rounded-xl text-xs">
-                          <div>
-                            <p className="font-bold text-gray-900">{m.title}</p>
-                            <p className="text-[10px] text-gray-500 font-medium mt-0.5 truncate max-w-[240px]">{m.description}</p>
-                          </div>
-                          <div className="flex items-center gap-3 text-right flex-shrink-0">
+                        <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 border border-gray-200 shadow-sm rounded-2xl text-sm transition-all hover:bg-white">
+                          <div className="flex gap-3 items-center">
+                            <span className="bg-white border border-gray-200 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-gray-500">
+                              {idx + 1}
+                            </span>
                             <div>
-                              <p className="font-bold text-gray-900">{formatCurrency(m.amount)}</p>
-                              <p className="text-[9px] text-gray-400 mt-0.5">{m.due_date || 'No due date'}</p>
+                              <p className="font-bold text-gray-900">{m.title}</p>
+                              <p className="text-xs text-gray-500 font-medium mt-0.5 truncate max-w-[280px]">{m.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-right flex-shrink-0">
+                            <div>
+                              <p className="font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">{formatCurrency(m.amount)}</p>
+                              <p className="text-[10px] text-gray-400 mt-1 font-bold uppercase">{m.due_date || 'No due date'}</p>
                             </div>
                             <button
                               type="button"
                               onClick={() => handleRemoveLocalCustomMilestone(idx)}
-                              className="p-1 text-red-500 hover:bg-red-50 rounded"
+                              className="p-1.5 text-red-500 hover:text-white hover:bg-red-500 rounded-lg transition-colors border border-transparent hover:border-red-600 shadow-sm"
                             >
-                              <X className="w-3.5 h-3.5" />
+                              <X className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
@@ -1192,7 +1200,7 @@ support@freelanceflow.com
                           customMilestonesList.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0) - totalBudget
                         ) > 0.01
                       }
-                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                      className="w-full py-4 mt-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-40 disabled:hover:from-indigo-600 disabled:hover:to-violet-600 text-white rounded-2xl text-sm font-black tracking-wide transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"
                     >
                       {actionLoading ? 'Proposing Milestones...' : 'Propose Milestone Schedule'}
                     </button>
