@@ -2,6 +2,7 @@ from .services import (
     create_project,
     update_project,
     close_project,
+    delete_project,
     mark_project_in_progress,
     mark_project_completed,
 )

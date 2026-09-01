@@ -112,14 +112,7 @@ export default function FreelancerOnboardingPage() {
     setLoading(true)
     setError('')
     try {
-      // 1. Upload images if selected
-      if (avatarFile) {
-        await uploadImage(avatarFile, 'avatar', setUploadingAvatar)
-      }
-      if (bannerFile) {
-        await uploadImage(bannerFile, 'banner', setUploadingBanner)
-      }
-
+      // 1. Save profile fields to backend first (instant)
       const formattedPortfolio = formatUrl(portfolioWebsite)
       const payload = {
         city: city.trim(),
@@ -139,6 +132,16 @@ export default function FreelancerOnboardingPage() {
       } else {
         await fetchUser()
       }
+
+      // 2. Fire image uploads in the background — no await, user goes to dashboard immediately
+      if (avatarFile) {
+        uploadImage(avatarFile, 'avatar', setUploadingAvatar)
+      }
+      if (bannerFile) {
+        uploadImage(bannerFile, 'banner', setUploadingBanner)
+      }
+
+      // 3. Navigate instantly — images will finish uploading in the browser background
       navigate('/freelancer/browse')
     } catch (err) {
       console.error('Onboarding profile submit error:', err)
@@ -160,7 +163,7 @@ export default function FreelancerOnboardingPage() {
     }
   }
 
-  // Upload image to local / Azure via /api/users/upload-image/
+  // Upload image to Azure via SAS token — runs silently in background after navigation
   const uploadImage = async (file, imageType, setUploading) => {
     if (!file) return
     setUploading(true)

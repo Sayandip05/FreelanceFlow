@@ -199,7 +199,7 @@ export default function FreelancerProjectDetailPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm sticky top-20">
             <h2 className="text-lg font-bold text-gray-900 mb-2">Submit Proposal</h2>
-            <p className="text-xs text-gray-500 mb-5">Submit your bid and cover letter to apply for this project.</p>
+            <p className="text-xs text-gray-500 mb-5">Submit your bid and a short pitch explaining why you're interested.</p>
 
             {isBidded ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center space-y-2">
@@ -234,17 +234,25 @@ export default function FreelancerProjectDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Cover Letter
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Why You're a Great Fit
+                    </label>
+                    <span className="text-[11px] font-medium text-gray-400">
+                      4–5 lines recommended
+                    </span>
+                  </div>
                   <textarea
                     value={bidForm.cover_letter}
                     onChange={e => setBidForm({ ...bidForm, cover_letter: e.target.value })}
                     required
-                    rows={5}
-                    placeholder="Describe your qualifications and how you plan to tackle this project..."
+                    rows={4}
+                    placeholder="Briefly explain why you're interested in this project and your relevant experience (approx. 4–5 lines)..."
                     className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm text-gray-900 resize-none"
                   />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Tip: Keep it short and focused. Clients prefer quick, relevant overviews.
+                  </p>
                 </div>
 
                 <button

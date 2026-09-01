@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Briefcase, Clock, User, DollarSign, CheckCircle, XCircle, MessageSquare
+  ArrowLeft, Briefcase, Clock, User, DollarSign, CheckCircle, XCircle, MessageSquare,
+  Trash2, AlertTriangle, Loader2
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 import { bidsAPI } from '../../api/bids'
@@ -14,6 +15,9 @@ const ClientProjectDetailPage = () => {
   const [bids, setBids] = useState([])
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const wsRef = useRef(null)
 
   useEffect(() => {
@@ -100,6 +104,19 @@ const ClientProjectDetailPage = () => {
     }
   }
 
+  const handleDeleteProject = async () => {
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await projectsAPI.deleteProject(projectId)
+      navigate('/client/projects')
+    } catch (err) {
+      const msg = err.response?.data?.error || err.response?.data?.detail || 'Failed to delete project. Active or completed projects cannot be deleted.'
+      setDeleteError(msg)
+      setDeleting(false)
+    }
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="w-10 h-10 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
@@ -120,21 +137,79 @@ const ClientProjectDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2.5 bg-red-100 rounded-xl">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Delete Project</h2>
+                <p className="text-xs text-gray-500">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+                {deleteError}
+              </div>
+            )}
+
+            <p className="text-sm text-gray-600">
+              Are you sure you want to permanently delete <strong className="text-gray-900 font-semibold">"{project.title}"</strong>?
+              Any proposals received on this project will also be removed.
+            </p>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteProject}
+                disabled={deleting}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {deleting ? 'Deleting...' : 'Delete Project'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-6 py-4">
         <button onClick={() => navigate('/client/projects')} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-3">
           <ArrowLeft className="w-4 h-4" /> Back to Projects
         </button>
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
             <p className="text-gray-500 text-sm mt-1">Posted {new Date(project.created_at).toLocaleDateString()}</p>
           </div>
-          <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-            project.status === 'OPEN' ? 'bg-green-100 text-green-700' :
-            project.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
-            'bg-gray-100 text-gray-600'
-          }`}>{project.status}</span>
+          <div className="flex items-center gap-3">
+            {(project.status === 'OPEN' || project.status === 'CANCELLED') && (
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="px-3.5 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete Project
+              </button>
+            )}
+            <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+              project.status === 'OPEN' ? 'bg-green-100 text-green-700' :
+              project.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+              'bg-gray-100 text-gray-600'
+            }`}>{project.status}</span>
+          </div>
         </div>
       </div>
 

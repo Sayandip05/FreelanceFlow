@@ -135,6 +135,30 @@ def close_project(project: Project, user) -> Project:
     return project
 
 
+def delete_project(project: Project, user) -> bool:
+    """
+    Permanently delete a project. Only the client owner can delete it.
+    Projects with in-progress or completed contracts cannot be deleted.
+    """
+    if project.client != user:
+        raise PermissionDeniedError("Only the project owner can delete it.")
+    
+    from apps.bidding.models import Contract
+    has_active_contracts = Contract.objects.filter(
+        bid__project=project,
+        status__in=[Contract.Status.ACTIVE, Contract.Status.COMPLETED, Contract.Status.DISPUTED]
+    ).exists()
+    
+    if has_active_contracts or project.status in [Project.Status.IN_PROGRESS, Project.Status.COMPLETED]:
+        raise ValidationError("Cannot delete a project that is in progress or has active contracts.")
+        
+    project_id = project.id
+    project.delete()
+
+    logger.info("Project deleted: project_id=%s deleted_by=%s", project_id, user.id)
+    return True
+
+
 def mark_project_in_progress(project: Project) -> Project:
     """
     Mark project as in progress (called when bid is accepted).
