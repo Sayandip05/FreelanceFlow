@@ -387,17 +387,6 @@ const ClientMessagesPage = () => {
                 </span>
               )}
             </div>
-            {wsConnected ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                Live
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                Sync
-              </span>
-            )}
           </div>
 
           {/* Search Box */}
@@ -481,7 +470,7 @@ const ClientMessagesPage = () => {
 
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-gray-500 truncate flex-1">
-                        {conv.last_message?.content || conv.contract?.project?.title || 'Start conversation...'}
+                        {conv.last_message?.content || 'Start conversation...'}
                       </p>
                       {unread > 0 && (
                         <span className="min-w-[18px] h-[18px] px-1.5 bg-emerald-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center shadow-sm flex-shrink-0">
@@ -520,18 +509,11 @@ const ClientMessagesPage = () => {
                 <div className="min-w-0">
                   <p className="font-bold text-gray-900 text-sm truncate">{getOtherUserName(selected)}</p>
                   <p className="text-xs text-gray-500 flex items-center gap-1.5 truncate">
-                    <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-                    <span className="truncate">{selected.contract?.project?.title ? `${selected.contract.project.title}` : 'Contract Workspace'}</span>
+                    <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                    <span className="truncate font-medium">{wsConnected ? 'Online' : 'Offline'}</span>
                   </p>
                 </div>
               </div>
-
-              {wsConnected && (
-                <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-3 py-1 rounded-full font-medium flex-shrink-0">
-                  <Wifi className="w-3.5 h-3.5" />
-                  Live Connected
-                </div>
-              )}
             </div>
 
             {/* Scrollable Message History with Page-in-set Infinite Scroll */}
