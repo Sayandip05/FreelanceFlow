@@ -354,7 +354,7 @@ export default function ClientContractDetailPage() {
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TSUnxYrEPrLAdv',
           amount: amount * 100,
-          currency: 'INR',
+          currency: 'USD',
           name: 'FreelanceFlow',
           description: `Top-up and fund milestone: ${milestoneToFund.title}`,
           order_id: order_id,
@@ -405,7 +405,7 @@ export default function ClientContractDetailPage() {
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
           amount: milestone.amount * 100,
-          currency: 'INR',
+          currency: 'USD',
           order_id: paymentData.razorpay_order_id,
           name: 'FreelanceFlow Escrow',
           description: `Escrow funding for: ${milestone.title}`,
@@ -796,7 +796,7 @@ support@freelanceflow.com
                 <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                   <th className="py-3.5 px-4">#</th>
                   <th className="py-3.5 px-4">Milestone Title & Scope</th>
-                  <th className="py-3.5 px-4">Amount (₹)</th>
+                  <th className="py-3.5 px-4">Amount ($)</th>
                   <th className="py-3.5 px-4">Due Date</th>
                   <th className="py-3.5 px-4">Escrow Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
@@ -1114,7 +1114,7 @@ support@freelanceflow.com
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Amount (₹)</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Amount ($)</label>
                       <input
                         type="number"
                         required

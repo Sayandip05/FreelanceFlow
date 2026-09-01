@@ -112,7 +112,7 @@ class ClientWalletDepositView(views.APIView):
             try:
                 order_data = {
                     'amount': int(amount_dec * 100),  # paise
-                    'currency': 'INR',
+                    'currency': 'USD',
                     'receipt': f'deposit_{uuid.uuid4().hex[:10]}',
                 }
                 razorpay_order = _get_razorpay_client().order.create(data=order_data)

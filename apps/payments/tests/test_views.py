@@ -45,7 +45,7 @@ class PaymentAPIPermissionsTest(TestCase):
         mock_razorpay.return_value.order.create.return_value = {
             "id": "order_mock_001",
             "amount": 500000,
-            "currency": "INR",
+            "currency": "USD",
         }
         token = _get_token(self.api_client, "cl@pay.test", "StrongPass#123")
         self.api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")

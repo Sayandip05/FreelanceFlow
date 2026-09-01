@@ -142,7 +142,7 @@ def razorpay_transfer_to_freelancer_task(self, payment_id: int, amount: float):
         payout = _get_razorpay_client().payout.create({
             'account_number': settings.RAZORPAY_ACCOUNT_NUMBER,
             'amount': int(Decimal(str(amount)) * 100),
-            'currency': 'INR',
+            'currency': 'USD',
             'mode': 'IMPS',
             'purpose': 'payout',
             'fund_account_id': fund_account_id,
@@ -284,7 +284,7 @@ def razorpay_payout_withdrawal_task(self, withdrawal_id: int):
             create_notification(
                 recipient=freelancer,
                 title="Withdrawal Completed",
-                body=f"Your simulated withdrawal of INR {withdrawal.amount} has been successfully processed.",
+                body=f"Your simulated withdrawal of USD {withdrawal.amount} has been successfully processed.",
                 notification_type=Notification.Type.PAYMENT_RELEASED,
             )
             logger.info("Simulated payout withdrawal succeeded: withdrawal_id=%s", withdrawal.id)
@@ -299,7 +299,7 @@ def razorpay_payout_withdrawal_task(self, withdrawal_id: int):
         payout = _get_razorpay_client().payout.create({
             'account_number': settings.RAZORPAY_ACCOUNT_NUMBER,
             'amount': int(Decimal(str(withdrawal.amount)) * 100),
-            'currency': 'INR',
+            'currency': 'USD',
             'mode': 'IMPS',
             'purpose': 'payout',
             'fund_account_id': fund_account_id,
@@ -322,7 +322,7 @@ def razorpay_payout_withdrawal_task(self, withdrawal_id: int):
         create_notification(
             recipient=freelancer,
             title="Withdrawal Completed",
-            body=f"Your withdrawal of INR {withdrawal.amount} has been successfully processed.",
+            body=f"Your withdrawal of USD {withdrawal.amount} has been successfully processed.",
             notification_type=Notification.Type.PAYMENT_RELEASED,
         )
 

@@ -62,7 +62,7 @@ def create_milestone_escrow(contract: Contract, client, milestone) -> Payment:
     try:
         order_data = {
             'amount': int(milestone.amount * 100),  # paise
-            'currency': 'INR',
+            'currency': 'USD',
             'receipt': f'milestone_{milestone.id}',
             'notes': {
                 'contract_id': contract.id,
@@ -134,7 +134,7 @@ def create_escrow(contract: Contract, client) -> Payment:
     try:
         order_data = {
             'amount': int(contract.agreed_amount * 100),  # paise
-            'currency': 'INR',
+            'currency': 'USD',
             'receipt': f'contract_{contract.id}',
             'notes': {
                 'contract_id': contract.id,
@@ -661,7 +661,7 @@ def withdraw_funds(user, amount) -> "WithdrawalRequest":
     with transaction.atomic():
         wallet, _ = Wallet.objects.select_for_update().get_or_create(user=user)
         if wallet.balance < amount_dec:
-            raise ValidationError(f"Insufficient funds. Maximum available balance is INR {wallet.balance}.")
+            raise ValidationError(f"Insufficient funds. Maximum available balance is USD {wallet.balance}.")
 
         # Deduct from wallet
         wallet.balance -= amount_dec

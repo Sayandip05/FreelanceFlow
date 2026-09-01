@@ -90,7 +90,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
                     "payment": PaymentSerializer(payment).data,
                     "razorpay_order_id": payment.razorpay_order_id,
                     "amount": int(payment.total_amount * 100),  # Amount in paise
-                    "currency": "INR",
+                    "currency": "USD",
                 },
                 status=status.HTTP_201_CREATED,
             )
