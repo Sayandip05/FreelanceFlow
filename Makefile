@@ -4,10 +4,10 @@
 # ============================================================
 
 ifeq ($(OS),Windows_NT)
-    VENV     = venv
+    VENV     = .venv
     PYTHON   = $(VENV)/Scripts/python
 else
-    VENV     = venv
+    VENV     = .venv
     PYTHON   = $(VENV)/bin/python
 endif
 MANAGE   = $(PYTHON) manage.py
@@ -22,8 +22,8 @@ help:                          ## Show this help
 
 # ── Backend ──────────────────────────────────────────────────────────────────
 
-backend:                       ## Run Daphne ASGI server on :8000
-	$(VENV)/bin/daphne -b 127.0.0.1 -p 8000 config.asgi:application
+backend:                       ## Run Django dev server on :8000
+	$(MANAGE) runserver 8000
 
 test:                          ## Run all tests (--keepdb avoids teardown errors)
 	$(MANAGE) test --verbosity=2 --keepdb
@@ -32,9 +32,9 @@ test-auth:                     ## Run auth (users app) tests only
 	$(MANAGE) test apps.users --verbosity=2 --keepdb
 
 worker:                        ## Run Celery worker (using solo pool for Windows compatibility)
-	$(VENV)/bin/celery -A config worker -Q freelanceflow,freelanceflow_high_priority,freelanceflow_low_priority --loglevel=info --pool=solo
+	$(PYTHON) -m celery -A config worker -Q freelanceflow,freelanceflow_high_priority,freelanceflow_low_priority --loglevel=info --pool=solo
 beat:                         ## Run Celery beat scheduler
-	celery -A config beat --loglevel=info
+	$(PYTHON) -m celery -A config beat --loglevel=info
 
 shell:                         ## Open Django shell
 	$(MANAGE) shell
