@@ -69,38 +69,38 @@ const LandingPage = () => {
         Stop doing everything. Hire the top 1% of talent on Business Plus. <a href="/register" className="underline hover:text-blue-700 ml-1 inline-flex items-center gap-1 font-semibold">Get started <ArrowRight className="w-3 h-3" /></a>
       </div>
 
-      {/* Hero Section */}
-      <section className="px-2 sm:px-3 lg:px-4 py-2 sm:py-4 w-full max-w-[1760px] mx-auto">
-        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-900 min-h-[480px] sm:min-h-[580px] lg:min-h-[640px] flex flex-col justify-center px-6 sm:px-12 md:px-16 lg:px-24 py-8 sm:py-14 lg:py-20 shadow-2xl">
-          {/* Background Video */}
-          <div className="absolute inset-0">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              onEnded={(e) => e.target.play()}
-              className="w-full h-full object-cover scale-105"
-            >
-              <source src="/images/home%20video.mp4" type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 sm:via-gray-900/70 to-gray-900/40"></div>
-          </div>
-          
-          <div className="relative z-10 max-w-3xl">
-            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.15] sm:leading-[1.08] mb-3 sm:mb-5 tracking-tight">
+      {/* Hero Section - Full-bleed edge-to-edge with sharp edges */}
+      <section className="relative w-full overflow-hidden bg-gray-900 min-h-[540px] sm:min-h-[620px] lg:min-h-[690px] flex flex-col justify-center shadow-lg">
+        {/* Background Video */}
+        <div className="absolute inset-0">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            onEnded={(e) => e.target.play()}
+            className="w-full h-full object-cover"
+          >
+            <source src="/images/home%20video.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 sm:via-gray-900/70 to-gray-900/40"></div>
+        </div>
+        
+        <div className="relative z-10 max-w-[1440px] mx-auto w-full px-6 sm:px-12 md:px-16 lg:px-20 pt-12 sm:pt-16 lg:pt-24 pb-14 sm:pb-18 lg:pb-28">
+          <div className="max-w-3xl">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-white leading-[1.12] sm:leading-[1.08] mb-4 sm:mb-6 tracking-tight">
               {activeHeroTab === 'hire' 
                 ? 'Hire the experts your business needs' 
                 : 'Find work that fits your skills'}
             </h1>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-200 mb-5 sm:mb-8 font-normal sm:font-medium max-w-2xl leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-200 mb-6 sm:mb-8 font-normal sm:font-medium max-w-2xl leading-relaxed">
               {activeHeroTab === 'hire'
                 ? 'Access skilled freelancers ready to help you build and scale without the full-time commitment'
                 : 'Join thousands of freelancers earning on their own terms, no office, no fixed hours, just real work'}
             </p>
             
             {/* Toggle */}
-            <div className="flex bg-white/10 p-1 rounded-full w-fit mb-5 sm:mb-8 backdrop-blur-md border border-white/20">
+            <div className="flex bg-white/10 p-1 rounded-full w-fit mb-6 sm:mb-8 backdrop-blur-md border border-white/20">
               <button 
                 onClick={() => {
                   setActiveHeroTab('hire');
@@ -121,20 +121,20 @@ const LandingPage = () => {
               </button>
             </div>
             
-            {/* CTA Buttons - Side by Side on Mobile just like Laptop */}
-            <div className="flex flex-row gap-2.5 sm:gap-4 mb-5 sm:mb-8 max-w-md sm:max-w-xl">
-              <a href="/register" className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-8 py-2.5 sm:py-3.5 rounded-full font-bold text-center transition-colors shadow-lg text-xs sm:text-sm md:text-base whitespace-nowrap">
+            {/* CTA Buttons */}
+            <div className="flex flex-row gap-3 sm:gap-4 mb-6 sm:mb-8 max-w-md sm:max-w-xl">
+              <a href="/register" className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-5 sm:px-9 py-3 sm:py-4 rounded-full font-bold text-center transition-colors shadow-lg text-xs sm:text-sm md:text-base whitespace-nowrap">
                 Get Started - It's Free
               </a>
-              <a href="/login" className="flex-1 sm:flex-initial bg-white hover:bg-gray-50 text-gray-900 px-4 sm:px-8 py-2.5 sm:py-3.5 rounded-full font-bold text-center transition-colors shadow-lg border-2 border-white text-xs sm:text-sm md:text-base whitespace-nowrap">
+              <a href="/login" className="flex-1 sm:flex-initial bg-white hover:bg-gray-50 text-gray-900 px-5 sm:px-9 py-3 sm:py-4 rounded-full font-bold text-center transition-colors shadow-lg border-2 border-white text-xs sm:text-sm md:text-base whitespace-nowrap">
                 Sign In
               </a>
             </div>
             
             {/* Pills */}
-            <div className="flex flex-wrap gap-2 sm:gap-3">
+            <div className="flex flex-wrap gap-2.5 sm:gap-3">
               {['Web design', 'AI development', 'Video editing', 'Google Ads'].map(pill => (
-                <a key={pill} href="#" className="px-3.5 sm:px-4.5 py-1 sm:py-1.5 rounded-full border border-white/30 text-white text-xs sm:text-sm hover:bg-white/20 hover:border-white/50 transition-all backdrop-blur-sm font-medium">
+                <a key={pill} href="#" className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full border border-white/30 text-white text-xs sm:text-sm hover:bg-white/20 hover:border-white/50 transition-all backdrop-blur-sm font-medium">
                   {pill}
                 </a>
               ))}
@@ -377,21 +377,20 @@ const LandingPage = () => {
       </section>
 
       {/* Bottom CTA */}
-      <section className="px-4 lg:px-8 py-16 max-w-[1440px] mx-auto mb-10">
-        <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 rounded-[2.5rem] p-12 lg:p-20 text-center relative overflow-hidden shadow-2xl">
-          {/* Decorative elements */}
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] opacity-30 mix-blend-overlay"></div>
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
-          
-          <div className="relative z-10">
-            <h2 className="text-3xl lg:text-5xl font-bold text-white mb-10 tracking-tight max-w-3xl mx-auto leading-tight">
-              Find freelancers who can help you build what's next
-            </h2>
-            <a href="/register" className="inline-block bg-white text-blue-600 hover:bg-gray-50 px-10 py-4 rounded-full font-bold text-lg transition-all transform hover:scale-105 shadow-xl hover:shadow-2xl">
-              Explore freelancers
-            </a>
-          </div>
+      {/* Bottom CTA Banner - Full-bleed edge-to-edge */}
+      <section className="w-full relative overflow-hidden bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 py-16 sm:py-20 lg:py-24 text-center">
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] opacity-30 mix-blend-overlay"></div>
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+        
+        <div className="relative z-10 max-w-[1440px] mx-auto px-6 sm:px-12 lg:px-20">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-8 sm:mb-10 tracking-tight max-w-3xl mx-auto leading-tight">
+            Find freelancers who can help you build what's next
+          </h2>
+          <a href="/register" className="inline-block bg-white text-blue-600 hover:bg-gray-50 px-10 py-4 rounded-full font-bold text-base sm:text-lg transition-all transform hover:scale-105 shadow-xl hover:shadow-2xl">
+            Explore freelancers
+          </a>
         </div>
       </section>
 
