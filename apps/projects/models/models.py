@@ -25,8 +25,6 @@ class Project(models.Model):
     )
     approx_duration = models.CharField(
         max_length=50,
-        blank=True,
-        default="",
         help_text="Approximate time period for the project (e.g. '1-2 months')"
     )
     description = models.TextField()

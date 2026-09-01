@@ -58,8 +58,8 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Approximate Duration (Optional)</label>
-            <input value={form.approx_duration} onChange={e => setForm({...form, approx_duration: e.target.value})} placeholder="e.g. 1-2 months, 3 weeks"
+            <label className="block text-sm font-medium text-gray-700 mb-1">Approximate Duration</label>
+            <input value={form.approx_duration} onChange={e => setForm({...form, approx_duration: e.target.value})} required placeholder="e.g. 1-2 months, 3 weeks"
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm" />
           </div>
           <div>
