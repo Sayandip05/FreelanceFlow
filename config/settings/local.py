@@ -19,8 +19,8 @@ CSRF_COOKIE_SECURE = False
 # When ES IS running, rebuild the index manually:
 #   python manage.py search_index --rebuild
 ELASTICSEARCH_DSL_AUTOSYNC = True
-# Use the real-time signal processor to automatically sync models to ES on save.
-ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "django_elasticsearch_dsl.signals.RealTimeSignalProcessor"
+# Use BaseSignalProcessor to disable synchronous updates. Celery will handle it async.
+ELASTICSEARCH_DSL_SIGNAL_PROCESSOR = "django_elasticsearch_dsl.signals.BaseSignalProcessor"
 
 # Debug toolbar (optional)
 # INSTALLED_APPS += ["debug_toolbar"]
@@ -76,3 +76,5 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
 
 # Disable django-axes lockout during local development and load testing
 AXES_ENABLED = False
+
+

@@ -194,12 +194,30 @@ class ClientWalletConfirmDepositView(views.APIView):
 
 class DownloadTransactionReceiptView(views.APIView):
     """
-    GET /api/payments/transactions/<id>/receipt/?type=<deposit|withdrawal|payment>
+    GET /api/payments/transactions/<id>/receipt/?type=<deposit|withdrawal|payment>&access=<jwt_token>
     Generates and downloads a styled PDF transaction receipt.
+    Allows token in query string so browser can download directly.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, id, *args, **kwargs):
+        # If the browser is opening this in a new tab, it won't have the Authorization header.
+        # We can accept the token from the query string instead.
+        token = request.query_params.get("access")
+        if not request.user.is_authenticated and token:
+            from rest_framework_simplejwt.authentication import JWTAuthentication
+            try:
+                validated_token = JWTAuthentication().get_validated_token(token)
+                request.user = JWTAuthentication().get_user(validated_token)
+            except Exception:
+                pass
+
+        if not request.user.is_authenticated:
+            return Response(
+                {"error": "Authentication required to download receipt."}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         tx_type = request.query_params.get("type", "payment").lower()
         
         # Load transaction details based on type
