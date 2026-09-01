@@ -337,18 +337,17 @@ class DownloadTransactionReceiptView(views.APIView):
         """
 
         try:
-            from weasyprint import HTML
+            from xhtml2pdf import pisa
             from django.http import HttpResponse
-            import tempfile
+            from io import BytesIO
             
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as target:
-                HTML(string=html_content).write_pdf(target.name)
+            pdf_buffer = BytesIO()
+            pisa_status = pisa.CreatePDF(html_content, dest=pdf_buffer)
+            
+            if pisa_status.err:
+                raise Exception("PDF generation failed with xhtml2pdf errors.")
                 
-                # Read file content to response
-                with open(target.name, 'rb') as f:
-                    pdf_data = f.read()
-                    
-            response = HttpResponse(pdf_data, content_type='application/pdf')
+            response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="receipt_{tx_id}.pdf"'
             return response
         except Exception as e:

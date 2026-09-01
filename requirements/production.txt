@@ -8,7 +8,9 @@ django-filter
 django-extensions
 psycopg2-binary
 django-redis
+redis
 channels
+channels_redis
 daphne
 celery
 django-celery-beat
@@ -18,7 +20,7 @@ django-elasticsearch-dsl
 django-storages
 azure-storage-blob
 groq
-weasyprint
+xhtml2pdf
 razorpay
 django-axes
 drf-spectacular
@@ -46,3 +48,4 @@ certifi
 gunicorn
 whitenoise
 python-json-logger
+
