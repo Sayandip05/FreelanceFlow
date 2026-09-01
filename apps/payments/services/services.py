@@ -777,6 +777,7 @@ def generate_transaction_receipt_pdf(tx_id: int, tx_type: str, user_id: int) -> 
     date_str = ""
     description = ""
     user_name = user.get_full_name() or user.email
+    tx_type = tx_type.lower()
     
     if tx_type == "deposit":
         deposit = ClientDeposit.objects.get(id=tx_id, client=user)
