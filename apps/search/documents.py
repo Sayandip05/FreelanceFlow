@@ -37,6 +37,7 @@ class ProjectDocument(Document):
             "description",
             "budget",
             "deadline",
+            "approx_duration",
             "created_at",
             "updated_at",
         ]

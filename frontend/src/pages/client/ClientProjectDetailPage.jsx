@@ -342,6 +342,7 @@ const ClientProjectDetailPage = () => {
               <div className="space-y-3">
                 {[
                   { icon: DollarSign, label: 'Budget', value: formatCurrency(project.budget) },
+                  { icon: Clock, label: 'Duration', value: project.approx_duration || 'Not specified' },
                   { icon: Clock, label: 'Posted', value: new Date(project.created_at).toLocaleDateString() },
                   { icon: User, label: 'Total Bids', value: bids.length },
                   { icon: CheckCircle, label: 'Pending Bids', value: pendingBids.length },

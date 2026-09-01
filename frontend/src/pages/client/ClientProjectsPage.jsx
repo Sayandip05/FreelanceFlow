@@ -13,7 +13,7 @@ const STATUS_COLORS = {
 }
 
 const CreateProjectModal = ({ onClose, onCreated }) => {
-  const [form, setForm] = useState({ title: '', description: '', budget: '', skills: '' })
+  const [form, setForm] = useState({ title: '', description: '', budget: '', approx_duration: '', skills: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -25,6 +25,7 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
         title: form.title,
         description: form.description,
         budget: parseFloat(form.budget),
+        approx_duration: form.approx_duration,
         required_skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
       })
       onCreated(res.data)
@@ -54,6 +55,11 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Budget (USD)</label>
             <input type="number" value={form.budget} onChange={e => setForm({...form, budget: e.target.value})} required min="1" placeholder="500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Approximate Duration (Optional)</label>
+            <input value={form.approx_duration} onChange={e => setForm({...form, approx_duration: e.target.value})} placeholder="e.g. 1-2 months, 3 weeks"
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm" />
           </div>
           <div>

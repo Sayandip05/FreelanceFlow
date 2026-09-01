@@ -155,6 +155,11 @@ export default function FreelancerProjectDetailPage() {
           <span className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-gray-400" /> Posted {new Date(project.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
           </span>
+          {project.approx_duration && (
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-gray-400" /> Duration: {project.approx_duration}
+            </span>
+          )}
           {project.client && (
             <span className="flex items-center gap-1.5">
               <User className="w-4 h-4 text-gray-400" /> Posted by {project.client.first_name || project.client.full_name || 'Client'} {project.client.client_profile?.company_name ? `(${project.client.client_profile.company_name})` : ''}

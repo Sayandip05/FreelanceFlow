@@ -8,6 +8,7 @@ class ProjectSearchSerializer(serializers.Serializer):
     description = serializers.CharField(required=False, allow_blank=True, default="")
     budget = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True, default=0)
     deadline = serializers.DateTimeField(required=False, allow_null=True)
+    approx_duration = serializers.CharField(required=False, allow_blank=True, default="")
 
     client_name = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
     client_email = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")

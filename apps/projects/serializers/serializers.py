@@ -30,6 +30,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'description',
             'budget',
             'deadline',
+            'approx_duration',
             'status',
             'skills',
             'skill_names',
@@ -65,6 +66,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'description',
             'budget',
             'deadline',
+            'approx_duration',
             'status',
             'skills',
             'skill_names',
@@ -96,6 +98,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
             'description',
             'budget',
             'deadline',
+            'approx_duration',
             'skill_names',
         ]
     
@@ -127,6 +130,7 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
             'description',
             'budget',
             'deadline',
+            'approx_duration',
             'skill_names',
         ]
     

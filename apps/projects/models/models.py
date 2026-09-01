@@ -23,6 +23,12 @@ class Project(models.Model):
         default="",
         help_text="Short summary shown in search/browse view"
     )
+    approx_duration = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Approximate time period for the project (e.g. '1-2 months')"
+    )
     description = models.TextField()
     budget = models.DecimalField(
         max_digits=12,
