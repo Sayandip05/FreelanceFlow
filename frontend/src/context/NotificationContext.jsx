@@ -14,6 +14,7 @@ const NotificationContext = createContext(null)
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [pdfReadyUrl, setPdfReadyUrl] = useState(null)
   const wsRef = useRef(null)
   const reconnectTimer = useRef(null)
   const { user } = useAuth()
@@ -83,9 +84,13 @@ export function NotificationProvider({ children }) {
           const notif = data.notification
           
           if (notif.type === 'receipt_pdf_ready') {
-            alert(`Receipt Ready! Downloading now...`);
-            window.open(notif.pdf_url, '_blank');
+            setPdfReadyUrl(notif.pdf_url);
             return; // Don't add to standard notifications list
+          }
+          
+          if (notif.type === 'receipt_pdf_error') {
+            alert(`Receipt generation failed: ${notif.error}`);
+            return;
           }
           
           setNotifications((prev) => {
@@ -172,10 +177,41 @@ export function NotificationProvider({ children }) {
   }, [user, fetchNotifications, connectWS])
 
   return (
-    <NotificationContext.Provider
-      value={{ notifications, unreadCount, markRead, markAllRead, fetchNotifications }}
-    >
+    <NotificationContext.Provider value={{ notifications, unreadCount, markRead, markAllRead, fetchNotifications }}>
       {children}
+      {/* PDF Ready Toast Overlay */}
+      {pdfReadyUrl && (
+        <div className="fixed bottom-4 right-4 bg-white border border-green-200 shadow-xl rounded-xl p-4 z-[9999] animate-in slide-in-from-bottom-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center text-green-600 flex-shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-sm">Receipt Ready!</p>
+              <p className="text-xs text-gray-500 mt-0.5">Your PDF has been generated.</p>
+            </div>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button 
+              onClick={() => setPdfReadyUrl(null)} 
+              className="flex-1 px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg transition-colors"
+            >
+              Dismiss
+            </button>
+            <a 
+              href={pdfReadyUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={() => setPdfReadyUrl(null)}
+              className="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-colors text-center"
+            >
+              Download
+            </a>
+          </div>
+        </div>
+      )}
     </NotificationContext.Provider>
   )
 }
