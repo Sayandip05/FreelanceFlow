@@ -16,6 +16,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import SocialProofRating from '../components/ui/demo';
 
 const LandingPage = () => {
   const [activeHeroTab, setActiveHeroTab] = useState('hire');
@@ -25,11 +26,11 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-200 selection:text-blue-900">
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <a href="#" className="inline-flex items-center gap-2.5">
-            <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain" />
-            <span className="text-2xl font-black tracking-tight text-gray-900">
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+          <a href="#" className="inline-flex items-center gap-2 shrink-0">
+            <img src="/logo.png" alt="FreelanceFlow" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-gray-900">
               Freelance<span className="text-blue-600">Flow</span>
             </span>
           </a>
@@ -40,10 +41,10 @@ const LandingPage = () => {
             <a href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</a>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <a href="/login" className="text-sm font-medium text-gray-700 hover:text-blue-600 hidden sm:block transition-colors">Log in</a>
-          <a href="/register" className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-full transition-colors">Get started</a>
-          <button className="lg:hidden text-gray-700 p-1" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          <a href="/register" className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full transition-colors whitespace-nowrap shadow-xs">Get started</a>
+          <button className="lg:hidden text-gray-700 p-1 hover:bg-gray-100 rounded-lg transition-colors" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
@@ -51,26 +52,26 @@ const LandingPage = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 top-[60px] z-40 bg-white border-t border-gray-200 overflow-y-auto">
+        <div className="lg:hidden fixed inset-0 top-[56px] sm:top-[60px] z-40 bg-white border-t border-gray-200 overflow-y-auto">
           <div className="flex flex-col p-6 gap-4 text-base font-medium text-gray-800">
             <a href="/login?role=CLIENT" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Hire freelancers</a>
             <a href="/login?role=FREELANCER" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Find work</a>
             <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">How it works</a>
             <a href="#pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100">Pricing</a>
             <a href="/login" className="hover:text-blue-600 transition-colors py-2 border-b border-gray-100 sm:hidden">Log in</a>
-            <a href="/register" className="bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-full transition-colors mt-2">Get started</a>
+            <a href="/register" className="bg-blue-600 hover:bg-blue-700 text-white text-center py-2.5 px-4 rounded-full font-bold transition-colors mt-2">Get started</a>
           </div>
         </div>
       )}
 
       {/* Top Banner */}
-      <div className="bg-blue-50 text-blue-900 text-center py-3 px-4 text-sm font-medium border-b border-blue-100">
-        Stop doing everything. Hire the top 1% of talent on Business Plus. <a href="/register" className="underline hover:text-blue-700 ml-1 inline-flex items-center gap-1">Get started <ArrowRight className="w-3 h-3" /></a>
+      <div className="bg-blue-50 text-blue-900 text-center py-2.5 px-4 text-xs sm:text-sm font-medium border-b border-blue-100">
+        Stop doing everything. Hire the top 1% of talent on Business Plus. <a href="/register" className="underline hover:text-blue-700 ml-1 inline-flex items-center gap-1 font-semibold">Get started <ArrowRight className="w-3 h-3" /></a>
       </div>
 
       {/* Hero Section */}
-      <section className="px-4 lg:px-8 py-6 max-w-[1440px] mx-auto">
-        <div className="relative rounded-3xl overflow-hidden bg-gray-900 min-h-[500px] flex flex-col justify-center px-6 lg:px-16 py-16 shadow-xl">
+      <section className="px-3 sm:px-6 lg:px-8 py-3 sm:py-6 max-w-[1560px] mx-auto">
+        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-900 min-h-[480px] sm:min-h-[580px] lg:min-h-[640px] flex flex-col justify-center px-5 sm:px-10 md:px-14 lg:px-20 py-8 sm:py-14 lg:py-20 shadow-2xl">
           {/* Background Video */}
           <div className="absolute inset-0">
             <video
@@ -79,33 +80,33 @@ const LandingPage = () => {
               muted
               playsInline
               onEnded={(e) => e.target.play()}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover scale-105"
             >
               <source src="/images/home%20video.mp4" type="video/mp4" />
             </video>
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/65 to-gray-900/30"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 sm:via-gray-900/70 to-gray-900/40"></div>
           </div>
           
-          <div className="relative z-10 max-w-2xl">
-            <h1 className="text-4xl lg:text-6xl font-bold text-white leading-[1.1] mb-6 tracking-tight">
+          <div className="relative z-10 max-w-3xl">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.15] sm:leading-[1.08] mb-3 sm:mb-5 tracking-tight">
               {activeHeroTab === 'hire' 
                 ? 'Hire the experts your business needs' 
                 : 'Find work that fits your skills'}
             </h1>
-            <p className="text-lg lg:text-xl text-gray-200 mb-10 font-medium max-w-xl">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-200 mb-5 sm:mb-8 font-normal sm:font-medium max-w-2xl leading-relaxed">
               {activeHeroTab === 'hire'
                 ? 'Access skilled freelancers ready to help you build and scale — without the full-time commitment'
                 : 'Join thousands of freelancers earning on their own terms — no office, no fixed hours, just real work'}
             </p>
             
             {/* Toggle */}
-            <div className="flex bg-white/10 p-1 rounded-full w-fit mb-8 backdrop-blur-md border border-white/20">
+            <div className="flex bg-white/10 p-1 rounded-full w-fit mb-5 sm:mb-8 backdrop-blur-md border border-white/20">
               <button 
                 onClick={() => {
                   setActiveHeroTab('hire');
                   setActiveHowItWorksTab('hiring');
                 }}
-                className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHeroTab === 'hire' ? 'bg-white text-gray-900 shadow-sm' : 'text-white hover:bg-white/10'}`}
+                className={`px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-full font-semibold text-xs sm:text-sm transition-all ${activeHeroTab === 'hire' ? 'bg-white text-gray-900 shadow-sm' : 'text-white hover:bg-white/10'}`}
               >
                 I want to hire
               </button>
@@ -114,26 +115,26 @@ const LandingPage = () => {
                   setActiveHeroTab('work');
                   setActiveHowItWorksTab('work');
                 }}
-                className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHeroTab === 'work' ? 'bg-white text-gray-900 shadow-sm' : 'text-white hover:bg-white/10'}`}
+                className={`px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-full font-semibold text-xs sm:text-sm transition-all ${activeHeroTab === 'work' ? 'bg-white text-gray-900 shadow-sm' : 'text-white hover:bg-white/10'}`}
               >
                 I want to work
               </button>
             </div>
             
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8 max-w-xl">
-              <a href="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-center transition-colors shadow-lg">
+            {/* CTA Buttons - Side by Side on Mobile just like Laptop */}
+            <div className="flex flex-row gap-2.5 sm:gap-4 mb-5 sm:mb-8 max-w-md sm:max-w-xl">
+              <a href="/register" className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-8 py-2.5 sm:py-3.5 rounded-full font-bold text-center transition-colors shadow-lg text-xs sm:text-sm md:text-base whitespace-nowrap">
                 Get Started - It's Free
               </a>
-              <a href="/login" className="bg-white hover:bg-gray-50 text-gray-900 px-8 py-4 rounded-full font-bold text-center transition-colors shadow-lg border-2 border-white">
+              <a href="/login" className="flex-1 sm:flex-initial bg-white hover:bg-gray-50 text-gray-900 px-4 sm:px-8 py-2.5 sm:py-3.5 rounded-full font-bold text-center transition-colors shadow-lg border-2 border-white text-xs sm:text-sm md:text-base whitespace-nowrap">
                 Sign In
               </a>
             </div>
             
             {/* Pills */}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {['Web design', 'AI development', 'Video editing', 'Google Ads'].map(pill => (
-                <a key={pill} href="#" className="px-4 py-1.5 rounded-full border border-white/30 text-white text-sm hover:bg-white/20 hover:border-white/50 transition-all flex items-center gap-1.5 backdrop-blur-sm">
+                <a key={pill} href="#" className="px-3 sm:px-4.5 py-1 sm:py-1.5 rounded-full border border-white/30 text-white text-xs sm:text-sm hover:bg-white/20 hover:border-white/50 transition-all flex items-center gap-1 backdrop-blur-sm font-medium">
                   {pill} <ArrowRight className="w-3 h-3" />
                 </a>
               ))}
@@ -142,17 +143,9 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Trusted By */}
-      <section className="py-10 border-b border-gray-100">
-        <p className="text-center text-xs font-bold tracking-widest text-gray-400 uppercase mb-8">Trusted by 800,000 clients</p>
-        <div className="flex flex-wrap justify-center items-center gap-10 lg:gap-20 opacity-50 grayscale hover:grayscale-0 transition-all duration-500 px-4">
-          <span className="text-xl font-bold text-[#FF5A5F] flex items-center gap-1.5"><svg viewBox="0 0 1000 1000" className="w-6 h-6 fill-current"><path d="M499.3 736.7c-51-64-81-120.1-91-168.1-10-39-9-78 1.1-114.1 14-42.1 45-87.1 91-138.1 46 51 77 96 91 138.1 10 36.1 11 75.1 1.1 114.1-11 48-41 104.1-93.2 168.1zm362.2 43c-7 47.1-39 86.1-83 105.1-85 37.1-169.1-22-279.1-22-110 0-194 59.1-279.1 22-44-19-76-58-83-105.1-6-45.1 7-92.1 34-130.1s66-59.1 111-59.1c11.1 0 28.1 4.1 45.1 15.1s32.1 22.1 42.1 22.1c10 0 25.1-11.1 42.1-22.1s34-15.1 45.1-15.1c45 0 84 21.1 111 59.1 27.1 38 40.1 85 34 130.1zM499.3 228.2c-58.1 66-102.1 124.1-123.1 181.1-20 54.1-22 109.1-5 166.1 15 53.1 48 107.1 98.1 165.1 26.1 30.1 53.1 58.1 81.1 84.1 28-26 55-54 81.1-84.1 50-58 83-112 98.1-165.1 17-57.1 15-112.1-5-166.1-21-57.1-65-115.1-123.1-181.1z"/></svg> airbnb</span>
-          <span className="text-xl font-bold text-[#FF3621]">databricks</span>
-          <span className="text-xl font-bold text-[#F38020] flex items-center gap-1.5"><svg viewBox="0 0 24 24" className="w-6 h-6 fill-current"><path d="M16.4 10.2c-.3-3.6-3.3-6.4-7-6.4-2.8 0-5.2 1.6-6.3 4C1.3 8.3 0 10 0 12c0 2.8 2.2 5 5 5h13.5c2.5 0 4.5-2 4.5-4.5 0-2.3-1.7-4.2-3.9-4.5z"/></svg> CLOUDFLARE</span>
-          <span className="text-xl font-bold text-gray-800">scale</span>
-          <span className="text-xl font-bold text-[#00A4EF] flex items-center gap-1.5"><svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z"/></svg> Microsoft</span>
-          <span className="text-xl font-bold text-[#15C39A] flex items-center gap-1.5"><svg viewBox="0 0 24 24" className="w-6 h-6 fill-current"><path d="M24 12c0 6.627-5.373 12-12 12S0 18.627 0 12 5.373 0 12 0s12 5.373 12 12zm-12 7.5a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/></svg> grammarly</span>
-        </div>
+      {/* Social Proof & Ratings */}
+      <section className="py-8 bg-gray-50/60 border-b border-gray-100 flex items-center justify-center px-4">
+        <SocialProofRating />
       </section>
 
       {/* Find freelancers for every type of work */}
