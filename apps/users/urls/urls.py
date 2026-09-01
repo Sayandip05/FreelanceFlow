@@ -17,6 +17,7 @@ from apps.users.views import (
     DeactivateAccountView,
     ReactivateAccountView,
     FreelancerPayoutAccountView,
+    UserPresenceView,
 )
 from apps.users.views.views_sas import GenerateUploadSASTokenView
 
@@ -54,5 +55,6 @@ urlpatterns = [
     path("reactivate/", ReactivateAccountView.as_view(), name="reactivate-account"),
     # User details
     path("<int:pk>/", UserDetailView.as_view(), name="user-detail"),
+    path("<int:pk>/presence/", UserPresenceView.as_view(), name="user-presence"),
 ]
  

@@ -6,6 +6,7 @@ import {
   Loader2, X, ArrowDown, Check, CheckCheck
 } from 'lucide-react'
 import { messagesAPI } from '../../api/messages'
+import { authAPI } from '../../api/auth'
 
 const Avatar = ({ name, size = 'md' }) => {
   const initials = name ? name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : '?'
@@ -48,6 +49,7 @@ const FreelancerMessagesPage = () => {
   const [sending, setSending] = useState(false)
   const [search, setSearch] = useState('')
   const [wsConnected, setWsConnected] = useState(false)
+  const [otherUserOnline, setOtherUserOnline] = useState(false)
   const [showScrollBottom, setShowScrollBottom] = useState(false)
   const [typingUser, setTypingUser] = useState(null)
 
@@ -77,6 +79,30 @@ const FreelancerMessagesPage = () => {
       setLoading(false)
     }
   }
+
+  // Poll presence of selected user
+  useEffect(() => {
+    if (!selected) {
+      setOtherUserOnline(false)
+      return
+    }
+    
+    const otherId = selected.other_user?.id || selected.contract?.client?.id
+    if (!otherId) return
+
+    const checkPresence = async () => {
+      try {
+        const res = await authAPI.getUserPresence(otherId)
+        setOtherUserOnline(res.data.is_online)
+      } catch (err) {
+        // silently fail
+      }
+    }
+
+    checkPresence()
+    const interval = setInterval(checkPresence, 20000)
+    return () => clearInterval(interval)
+  }, [selected])
 
   // Load initial page of messages when selected conversation changes
   useEffect(() => {
@@ -508,10 +534,6 @@ const FreelancerMessagesPage = () => {
                 <Avatar name={getOtherUserName(selected)} />
                 <div className="min-w-0">
                   <p className="font-bold text-gray-900 text-sm truncate">{getOtherUserName(selected)}</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1.5 truncate">
-                    <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                    <span className="truncate font-medium">{wsConnected ? 'Online' : 'Offline'}</span>
-                  </p>
                 </div>
               </div>
             </div>
@@ -576,18 +598,6 @@ const FreelancerMessagesPage = () => {
                               minute: '2-digit',
                             })}
                           </span>
-                          {isMe && (
-                            <span
-                              className="inline-flex items-center ml-1 text-[11px]"
-                              title={msg.is_read ? 'Read' : 'Delivered'}
-                            >
-                              {msg.is_read ? (
-                                <CheckCheck className="w-3.5 h-3.5 text-sky-200" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5 text-white/70" />
-                              )}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>

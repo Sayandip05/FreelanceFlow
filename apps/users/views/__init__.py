@@ -21,3 +21,4 @@ from .views_extended import (
     OnlineStatusViewSet,
 )
 from .views_google_oauth import GoogleOAuthInitView, GoogleOAuthCallbackView
+from .presence import UserPresenceView

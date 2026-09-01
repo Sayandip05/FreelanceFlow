@@ -91,12 +91,45 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         logger.info("NotificationConsumer connected: user_id=%s group=%s", self.user.id, self.group_name)
 
+        # Track online presence
+        from django.core.cache import cache
+        from asgiref.sync import sync_to_async
+        presence_key = f"presence_count_user_{self.user.id}"
+        
+        @sync_to_async
+        def track_presence():
+            try:
+                cache.add(presence_key, 0, timeout=None)
+                cache.incr(presence_key)
+            except Exception as e:
+                logger.warning("Failed to increment presence counter: %s", e)
+        
+        await track_presence()
+
         # Deliver existing unread notifications immediately on connect
         await self._send_initial_notifications()
 
     async def disconnect(self, close_code):
         if self.group_name:
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+            
+            # Untrack online presence
+            from django.core.cache import cache
+            from asgiref.sync import sync_to_async
+            if self.user and not isinstance(self.user, AnonymousUser):
+                presence_key = f"presence_count_user_{self.user.id}"
+                
+                @sync_to_async
+                def untrack_presence():
+                    try:
+                        current_count = cache.get(presence_key, 0)
+                        if current_count > 0:
+                            cache.decr(presence_key)
+                    except Exception as e:
+                        logger.warning("Failed to decrement presence counter: %s", e)
+                
+                await untrack_presence()
+
         logger.info(
             "NotificationConsumer disconnected: user_id=%s code=%s",
             getattr(self.user, "id", "anon"), close_code,

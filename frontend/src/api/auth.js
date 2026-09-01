@@ -74,6 +74,9 @@ export const authAPI = {
   // Get user by ID
   getUser: (id) => api.get(`/users/${id}/`),
 
+  // Get user presence status (online/offline)
+  getUserPresence: (id) => api.get(`/users/${id}/presence/`),
+
   // Link payout account for freelancer bank details
   linkPayoutAccount: (data) =>
     api.post('/users/freelancer/payout-account/', data),
