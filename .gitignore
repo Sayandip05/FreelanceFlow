@@ -38,4 +38,7 @@ benchmarks/results*.csv
 PaymentFlow.md
 .vscode/
 .agents/
+interview*.md
+interview*.pdf
+*.pdf
 
