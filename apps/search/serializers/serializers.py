@@ -82,7 +82,7 @@ class FreelancerSearchSerializer(serializers.Serializer):
 
 class SearchQuerySerializer(serializers.Serializer):
     """Serializer for search query parameters."""
-    q = serializers.CharField(required=True, help_text="Search query string")
+    q = serializers.CharField(required=False, allow_blank=True, default="", help_text="Search query string")
     type = serializers.ChoiceField(
         choices=["projects", "freelancers", "all"],
         default="all",

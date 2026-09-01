@@ -206,7 +206,12 @@ class SearchView(APIView):
                 "-id"
             )
             if query:
-                qs = qs.filter(title__icontains=query)
+                from django.db.models import Q as DB_Q
+                qs = qs.filter(
+                    DB_Q(user__first_name__icontains=query) |
+                    DB_Q(user__last_name__icontains=query) |
+                    DB_Q(bio__icontains=query)
+                )
             return [
                 {
                     "id": f.id,
