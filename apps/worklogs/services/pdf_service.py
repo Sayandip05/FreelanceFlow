@@ -19,7 +19,7 @@ Azure Upload:
 from django.conf import settings
 from django.template.loader import render_to_string
 from io import BytesIO
-from apps.worklogs.models import WeeklyReport, DeliveryProof, WorkLog
+from apps.worklogs.models import WeeklyReport, DeliveryProof, WorkLog, Deliverable
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -355,7 +355,7 @@ def generate_delivery_proof_pdf(proof_id: int) -> str:
 
     # Render HTML → PDF bytes
     html_string = render_to_string(
-        "worklogs/delivery_proof.html",
+        "worklogs/deliverable.html",
         {
             "proof": proof,
             "logs": logs,

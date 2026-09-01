@@ -177,7 +177,7 @@ export function NotificationProvider({ children }) {
   }, [user, fetchNotifications, connectWS])
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, markRead, markAllRead, fetchNotifications }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, markRead, markAllRead, fetchNotifications, setPdfReadyUrl }}>
       {children}
       {/* PDF Ready Toast Overlay */}
       {pdfReadyUrl && (

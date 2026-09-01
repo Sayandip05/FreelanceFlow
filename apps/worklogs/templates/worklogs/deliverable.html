@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Deliverable Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .header { margin-bottom: 30px; }
+        .meta-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .meta-row { margin-bottom: 8px; }
+        .meta-label { font-weight: bold; width: 150px; display: inline-block; }
+        .content { margin-top: 20px; }
+        .summary-box {
+            border-left: 4px solid #3498db;
+            padding: 10px 15px;
+            background: #f1f8ff;
+            margin-bottom: 20px;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 12px;
+            color: #7f8c8d;
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Deliverable Document</h1>
+    </div>
+
+    <div class="meta-info">
+        <div class="meta-row"><span class="meta-label">Project:</span> {{ project_title }}</div>
+        <div class="meta-row"><span class="meta-label">Deliverable Title:</span> {{ deliverable.title }}</div>
+        <div class="meta-row"><span class="meta-label">Freelancer:</span> {{ freelancer_name }}</div>
+        <div class="meta-row"><span class="meta-label">Client:</span> {{ client_name }}</div>
+        <div class="meta-row"><span class="meta-label">Submitted On:</span> {{ submitted_at|date:"F j, Y, g:i a" }}</div>
+        <div class="meta-row"><span class="meta-label">Hours Logged:</span> {{ hours_logged }} hours</div>
+    </div>
+
+    <div class="content">
+        <h3>Summary of Work</h3>
+        <div class="summary-box">
+            {{ summary|linebreaks }}
+        </div>
+    </div>
+
+    <div class="footer">
+        Generated automatically by FreelanceFlow AI Worklogs on {{ submitted_at|date:"F j, Y" }}
+    </div>
+</body>
+</html>

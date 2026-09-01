@@ -10,6 +10,8 @@ class NotificationSerializer(serializers.ModelSerializer):
             "title",
             "body",
             "type",
+            "action_url",
+            "data",
             "is_read",
             "created_at"
         ]

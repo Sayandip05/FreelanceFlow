@@ -9,7 +9,7 @@ import { useNotifications } from '../../context/NotificationContext'
 const NotificationBell = () => {
   const navigate = useNavigate()
   // Pull live state from context (fed by WebSocket + REST)
-  const { notifications, unreadCount, markRead, markAllRead, fetchNotifications } = useNotifications() || {}
+  const { notifications, unreadCount, markRead, markAllRead, fetchNotifications, setPdfReadyUrl } = useNotifications() || {}
   const safeNotifications = notifications || []
   const safeUnreadCount = unreadCount || 0
 
@@ -64,7 +64,9 @@ const NotificationBell = () => {
     setOpen(false)
 
     // Route based on notification type or action_url
-    if (notif.action_url) {
+    if (notif.data?.pdf_url && setPdfReadyUrl) {
+      setPdfReadyUrl(notif.data.pdf_url)
+    } else if (notif.action_url) {
       navigate(notif.action_url)
     } else if (notif.type === 'MESSAGE' || notif.notification_type === 'MESSAGE') {
       navigate('/messages')

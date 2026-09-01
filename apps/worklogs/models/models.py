@@ -181,6 +181,10 @@ class Deliverable(models.Model):
         default=list,
         help_text="List of attached file URLs"
     )
+    pdf_url = models.URLField(
+        blank=True,
+        help_text="Azure Blob Storage SAS URL to generated Deliverable PDF"
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,

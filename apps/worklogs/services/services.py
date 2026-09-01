@@ -276,20 +276,28 @@ def submit_deliverable_for_review(deliverable: Deliverable, freelancer) -> Deliv
     
     if deliverable.status != Deliverable.Status.DRAFT:
         raise ValidationError("Only draft deliverables can be submitted.")
+        
+    # Enforce sequential submission: check if any older deliverables are still pending submission
+    from django.db.models import Q
+    unsubmitted_exists = Deliverable.objects.filter(
+        contract=deliverable.contract,
+        freelancer=freelancer,
+        status__in=[Deliverable.Status.DRAFT, Deliverable.Status.REVISION_REQUESTED],
+        id__lt=deliverable.id
+    ).exists()
+    
+    if unsubmitted_exists:
+        raise ValidationError("You must submit previous deliverables before submitting this one.")
     
     deliverable.status = Deliverable.Status.SUBMITTED
     deliverable.submitted_at = timezone.now()
     deliverable.save()
     
-    # Notify client
-    from apps.notifications.services import create_notification
-    from apps.notifications.models import Notification
-    create_notification(
-        recipient=deliverable.contract.bid.project.client,
-        title="New Deliverable Submitted",
-        body=f"{freelancer.get_full_name()} submitted '{deliverable.title}' for review.",
-        notification_type=Notification.Type.LOG_SUBMITTED,
-        data={"deliverable_id": deliverable.id, "contract_id": deliverable.contract.id}
+    # Enqueue PDF generation and notification task
+    from apps.worklogs.tasks import generate_deliverable_pdf_task
+    from django.db import transaction
+    transaction.on_commit(
+        lambda: generate_deliverable_pdf_task.delay(deliverable.id)
     )
     
     return deliverable

@@ -22,6 +22,8 @@ def create_notification(
             title=title,
             body=body,
             type=notification_type,
+            action_url=kwargs.get("action_url", ""),
+            data=kwargs.get("data", {}),
         )
 
     # Push to any open WebSocket connection for this user (best-effort, non-blocking)
@@ -34,6 +36,8 @@ def create_notification(
                 "title": notification.title,
                 "body": notification.body,
                 "type": notification.type,
+                "action_url": notification.action_url,
+                "data": notification.data,
                 "is_read": notification.is_read,
                 "created_at": notification.created_at.isoformat(),
             },

@@ -25,6 +25,8 @@ class Notification(models.Model):
     body = models.TextField()
     type = models.CharField(max_length=50, choices=Type.choices)
     is_read = models.BooleanField(default=False)
+    action_url = models.URLField(blank=True, max_length=500)
+    data = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
