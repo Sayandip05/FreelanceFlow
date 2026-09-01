@@ -112,6 +112,10 @@ const FreelancerMessagesPage = () => {
           setMessages((prev) =>
             prev.map((m) => (readIds.size === 0 || readIds.has(m.id) ? { ...m, is_read: true } : m))
           )
+          // Clear unread count in sidebar
+          setConversations((prev) =>
+            prev.map((c) => (c.id === selected.id ? { ...c, unread_count: 0 } : c))
+          )
           return
         }
 
@@ -199,6 +203,12 @@ const FreelancerMessagesPage = () => {
       const chronological = [...rawList].reverse()
       setMessages(chronological)
       setHasMore(Boolean(res.data?.next))
+      
+      // Clear unread count locally instantly
+      setConversations((prev) =>
+        prev.map((c) => (c.id === convId ? { ...c, unread_count: 0 } : c))
+      )
+      
       await messagesAPI.markAsRead(convId).catch(() => {})
 
       // Scroll to bottom on initial load
