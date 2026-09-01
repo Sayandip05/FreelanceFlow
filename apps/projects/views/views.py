@@ -86,6 +86,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 title=serializer.validated_data['title'],
                 description=serializer.validated_data['description'],
                 budget=serializer.validated_data['budget'],
+                approx_duration=serializer.validated_data['approx_duration'],
                 deadline=serializer.validated_data.get('deadline'),
                 skills=serializer.validated_data.get('skill_names', []),
             )
@@ -113,6 +114,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 title=serializer.validated_data.get('title'),
                 description=serializer.validated_data.get('description'),
                 budget=serializer.validated_data.get('budget'),
+                approx_duration=serializer.validated_data.get('approx_duration'),
                 deadline=serializer.validated_data.get('deadline'),
                 skills=serializer.validated_data.get('skill_names'),
             )

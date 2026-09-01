@@ -11,6 +11,7 @@ def create_project(
     title: str,
     description: str,
     budget: float,
+    approx_duration: str,
     deadline: str | None = None,
     skills: list[str] | None = None,
 ) -> Project:
@@ -47,6 +48,7 @@ def create_project(
             title=title,
             description=description,
             budget=budget,
+            approx_duration=approx_duration,
             deadline=deadline,
         )
 
@@ -70,6 +72,7 @@ def update_project(
     title: str | None = None,
     description: str | None = None,
     budget: float | None = None,
+    approx_duration: str | None = None,
     deadline: str | None = None,
     skills: list[str] | None = None,
 ) -> Project:
@@ -95,6 +98,8 @@ def update_project(
             if budget <= 0:
                 raise ValidationError("Budget must be greater than 0.", field="budget")
             project.budget = budget
+        if approx_duration is not None:
+            project.approx_duration = approx_duration
         if deadline is not None:
             project.deadline = deadline
         
