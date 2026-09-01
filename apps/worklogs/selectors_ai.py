@@ -26,6 +26,7 @@ def get_ai_context_bundle(contract_id: int, user_id: int) -> Optional[Dict[str, 
             "bid__freelancer"
         ).prefetch_related(
             "deliverables",
+            "milestones",
             "qdrant_collection"
         ).get(id=contract_id)
     except Contract.DoesNotExist:
@@ -43,6 +44,18 @@ def get_ai_context_bundle(contract_id: int, user_id: int) -> Optional[Dict[str, 
 
     # 1. Deliverables list
     deliverables = list(contract.deliverables.all().order_by("-created_at"))
+    
+    # 1.5 Milestones list
+    milestones_qs = list(contract.milestones.all().order_by("order"))
+    milestones = [
+        {
+            "id": m.id,
+            "title": m.title,
+            "status": m.status,
+            "amount": str(m.amount)
+        }
+        for m in milestones_qs
+    ]
 
     # 2. Stats calculation
     total_hours = WorkLog.objects.filter(
@@ -130,6 +143,7 @@ def get_ai_context_bundle(contract_id: int, user_id: int) -> Optional[Dict[str, 
             "created_at": contract.created_at.isoformat() if hasattr(contract, "created_at") and contract.created_at else None,
         },
         "deliverables": deliverables,
+        "milestones": milestones,
         "stats": stats,
         "previous_reports": previous_reports,
         "active_draft": active_draft,

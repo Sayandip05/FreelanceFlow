@@ -195,7 +195,7 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
             contract = Contract.objects.select_related(
                 "bid__project__client",
                 "bid__freelancer"
-            ).prefetch_related("deliverables").get(id=contract_id)
+            ).prefetch_related("deliverables", "milestones").get(id=contract_id)
         except Contract.DoesNotExist:
             return None
 
@@ -210,8 +210,9 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
             contract=contract
         ).aggregate(total=Sum("hours_worked"))["total"] or 0
 
-        # Deliverables list
+        # Deliverables & Milestones list
         deliverables = list(contract.deliverables.all())
+        milestones = list(contract.milestones.all())
 
         # Previous approved reports
         past_reports = list(AIReportDraft.objects.filter(
@@ -235,6 +236,17 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
                     "description": d.description[:150]
                 }
                 for d in deliverables
+            ],
+            "milestones": [
+                {
+                    "id": m.id,
+                    "title": m.title,
+                    "status": m.status,
+                    "amount": str(m.amount),
+                    "due_date": str(m.due_date) if m.due_date else None,
+                    "description": m.description[:150]
+                }
+                for m in milestones
             ],
             "recent_logs": [
                 {
@@ -290,6 +302,7 @@ PROJECT METRICS & SCOPE:
 - Project: {pg['project_title']}
 - Client: {pg['client_name']}
 - Total Hours Logged to Date: {pg['total_hours_logged']}h
+- Payment Milestones: {json.dumps(pg.get('milestones', []))}
 - Deliverables in Project: {json.dumps(pg['deliverables'])}
 
 SEMANTIC SCOPE GROUNDING (from Qdrant):

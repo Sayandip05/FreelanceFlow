@@ -208,7 +208,7 @@ def initialize_collection(contract_id: int) -> bool:
         contract = Contract.objects.select_related(
             "bid__project__client",
             "bid__freelancer"
-        ).prefetch_related("deliverables").get(id=contract_id)
+        ).prefetch_related("deliverables", "milestones").get(id=contract_id)
     except Contract.DoesNotExist:
         logger.error("Contract #%s not found for Qdrant init", contract_id)
         return False
@@ -267,6 +267,28 @@ def initialize_collection(contract_id: int) -> bool:
             "payload": {
                 "type": "required_skills",
                 "text": skills_text,
+                "contract_id": contract.id,
+            }
+        })
+        point_id += 1
+
+    # 2.5 Payment Milestones
+    for milestone in contract.milestones.all():
+        milestone_doc = (
+            f"Milestone: {milestone.title}\n"
+            f"Description/Scope: {milestone.description}\n"
+            f"Amount: ${milestone.amount}\n"
+            f"Status: {milestone.status}\n"
+            f"Due Date: {milestone.due_date}"
+        )
+        points.append({
+            "id": point_id,
+            "vector": GeminiEmbeddingService.get_embedding(milestone_doc),
+            "payload": {
+                "type": "payment_milestone",
+                "milestone_id": milestone.id,
+                "title": milestone.title,
+                "text": milestone_doc,
                 "contract_id": contract.id,
             }
         })

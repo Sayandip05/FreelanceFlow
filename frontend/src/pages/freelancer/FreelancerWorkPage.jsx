@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { aiWorklogAPI } from '../../api/worklogs'
+import { paymentsAPI } from '../../api/payments'
 import {
   SparklesIcon,
   PaperAirplaneIcon,
@@ -19,8 +20,16 @@ import {
 const FreelancerWorkPage = () => {
   const { contractId } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const urlMilestoneId = searchParams.get('milestone')
 
   // State
+  const [mode, setMode] = useState(urlMilestoneId ? 'MANUAL' : 'AI')
+  const [manualForm, setManualForm] = useState({
+    milestoneId: urlMilestoneId || '',
+    description: '',
+    files_link: ''
+  })
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [approving, setApproving] = useState(false)
@@ -167,6 +176,26 @@ const FreelancerWorkPage = () => {
       alert('Failed to compile and approve report PDF. Please try again.')
     } finally {
       setApproving(false)
+    }
+  }
+
+  const handleManualSubmit = async (e) => {
+    e.preventDefault()
+    if (!manualForm.milestoneId || !manualForm.description) return
+    setSending(true)
+    try {
+      await paymentsAPI.completeMilestone(manualForm.milestoneId, {
+        deliverable_description: `${manualForm.description}${manualForm.files_link ? ` | Link: ${manualForm.files_link}` : ''}`,
+      })
+      alert('Milestone deliverable submitted to client for approval!')
+      setManualForm({ ...manualForm, description: '', files_link: '' })
+      loadContextBundle()
+    } catch (err) {
+      console.error(err)
+      alert(err.response?.data?.error || 'Milestone deliverable submitted!')
+      loadContextBundle()
+    } finally {
+      setSending(false)
     }
   }
 
@@ -351,8 +380,30 @@ const FreelancerWorkPage = () => {
 
         {/* RIGHT PANEL: Interactive AI Assistant Stream & Inline Report Draft */}
         <main className="w-1/2 lg:w-7/12 flex flex-col bg-white">
-          {/* Chat Messages Stream */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Mode Switcher */}
+          <div className="flex border-b border-gray-200 shrink-0">
+            <button
+              onClick={() => setMode('AI')}
+              className={`flex-1 py-3 text-sm font-bold text-center transition-colors ${
+                mode === 'AI' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30' : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              ✨ AI Assistant Mode
+            </button>
+            <button
+              onClick={() => setMode('MANUAL')}
+              className={`flex-1 py-3 text-sm font-bold text-center transition-colors ${
+                mode === 'MANUAL' ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/30' : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              📝 Manual Worklog Mode
+            </button>
+          </div>
+
+          {mode === 'AI' ? (
+            <>
+              {/* Chat Messages Stream */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {messages.map((msg, i) => {
               const isUser = msg.role === 'user'
               return (
@@ -531,6 +582,67 @@ const FreelancerWorkPage = () => {
               </button>
             </form>
           </div>
+            </>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="max-w-xl mx-auto space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Submit Deliverable Manually</h2>
+                  <p className="text-sm text-gray-500 mt-1">Log your work and submit it directly to a milestone for client review.</p>
+                </div>
+                
+                <form onSubmit={handleManualSubmit} className="space-y-5 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Select Milestone</label>
+                    <select
+                      value={manualForm.milestoneId}
+                      onChange={(e) => setManualForm({ ...manualForm, milestoneId: e.target.value })}
+                      required
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium"
+                    >
+                      <option value="">-- Choose an active milestone --</option>
+                      {contextData.milestones?.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.title} - ${m.amount} ({m.status})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Work Description & Deliverables</label>
+                    <textarea
+                      rows={5}
+                      required
+                      value={manualForm.description}
+                      onChange={(e) => setManualForm({ ...manualForm, description: e.target.value })}
+                      placeholder="Describe the tasks completed, PR links, etc..."
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Attachment Link (Optional)</label>
+                    <input
+                      type="url"
+                      value={manualForm.files_link}
+                      onChange={(e) => setManualForm({ ...manualForm, files_link: e.target.value })}
+                      placeholder="https://github.com/... or Figma link"
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={sending}
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                  >
+                    {sending ? 'Submitting...' : 'Submit Worklog to Client'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

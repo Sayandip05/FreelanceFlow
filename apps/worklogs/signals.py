@@ -7,6 +7,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from apps.bidding.models import Contract
 from apps.worklogs.models import WorkLog, Deliverable
+from apps.payments.models import PaymentMilestone
 
 logger = logging.getLogger(__name__)
 
@@ -56,3 +57,17 @@ def on_deliverable_saved(sender, instance, created, **kwargs):
         )
     except Exception as e:
         logger.warning("Failed to push deliverable update event: %s", e)
+
+
+@receiver(post_save, sender=PaymentMilestone)
+def on_payment_milestone_saved(sender, instance, created, **kwargs):
+    """
+    When a milestone is created or updated, re-sync the Qdrant collection to keep 
+    the AI Assistant grounded with the latest milestone scope/status.
+    """
+    try:
+        from apps.worklogs.tasks import initialize_qdrant_collection_task
+        initialize_qdrant_collection_task.delay(instance.contract_id)
+        logger.info("Enqueued Qdrant vectorization for Contract #%s due to milestone update", instance.contract_id)
+    except Exception as e:
+        logger.warning("Could not enqueue Qdrant task for Contract #%s: %s", instance.contract_id, e)
