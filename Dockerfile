@@ -7,10 +7,6 @@ WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
-    # weasyprint build deps
-    libglib2.0-dev \
-    libpango1.0-dev \
-    libcairo2-dev \
     libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -18,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY requirements/base.txt /tmp/requirements.txt
+COPY requirements/production.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r /tmp/requirements.txt
 
@@ -30,12 +26,6 @@ FROM python:3.12-slim AS production
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
-    # weasyprint runtime deps (Pango, Cairo, GObject)
-    libglib2.0-0 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libcairo2 \
-    libffi8 \
     fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 

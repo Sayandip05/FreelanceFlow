@@ -54,22 +54,20 @@ services:
       start_period: 40s
 
   # ──────────────────────────────────────────
-  # Django dev server  (hot-reload via volume)
+  # Django production server (Gunicorn)
   # ──────────────────────────────────────────
   web:
     build: .
     profiles: [app]
     container_name: freelanceflow_web
-    command: python manage.py runserver 0.0.0.0:8000
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
-      - /app/venv
+      - media_data:/app/media
     env_file:
       - .env
     environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.local
+      - DJANGO_SETTINGS_MODULE=config.settings.production
       - PYTHONUNBUFFERED=1
       - ELASTICSEARCH_URL=http://elastic:9200
     networks:
@@ -98,12 +96,11 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - .:/app
-      - /app/venv
+      - media_data:/app/media
     env_file:
       - .env
     environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.local
+      - DJANGO_SETTINGS_MODULE=config.settings.production
       - PYTHONUNBUFFERED=1
       - ELASTICSEARCH_URL=http://elastic:9200
     networks:
@@ -130,12 +127,11 @@ services:
       -l info
       --max-tasks-per-child=1000
     volumes:
-      - .:/app
-      - /app/venv
+      - media_data:/app/media
     env_file:
       - .env
     environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.local
+      - DJANGO_SETTINGS_MODULE=config.settings.production
       - PYTHONUNBUFFERED=1
       - ELASTICSEARCH_URL=http://elastic:9200
     networks:
@@ -164,13 +160,10 @@ services:
       celery -A config beat
       -l info
       --scheduler django_celery_beat.schedulers:DatabaseScheduler
-    volumes:
-      - .:/app
-      - /app/venv
     env_file:
       - .env
     environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.local
+      - DJANGO_SETTINGS_MODULE=config.settings.production
       - PYTHONUNBUFFERED=1
     networks:
       - freelanceflow_network
@@ -191,13 +184,10 @@ services:
     command: celery -A config flower --port=5555
     ports:
       - "5555:5555"
-    volumes:
-      - .:/app
-      - /app/venv
     env_file:
       - .env
     environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.local
+      - DJANGO_SETTINGS_MODULE=config.settings.production
       - PYTHONUNBUFFERED=1
     networks:
       - freelanceflow_network
@@ -207,6 +197,30 @@ services:
     restart: unless-stopped
     stop_grace_period: 20s
     stop_signal: SIGTERM
+    
+  # ──────────────────────────────────────────
+  # Caddy (HTTPS & Reverse Proxy)
+  # ──────────────────────────────────────────
+  caddy:
+    image: caddy:latest
+    profiles: [app]
+    container_name: freelanceflow_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      # Using a volume directly from the built web image is tricky, 
+      # but media files are shared. Caddy will proxy static requests 
+      # to Django unless static files are explicitly shared via volume.
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - freelanceflow_network
+    depends_on:
+      web:
+        condition: service_healthy
 
 # ──────────────────────────────────────────
 # Shared network
@@ -220,4 +234,10 @@ networks:
 # ──────────────────────────────────────────
 volumes:
   elastic_data:
+    driver: local
+  media_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local

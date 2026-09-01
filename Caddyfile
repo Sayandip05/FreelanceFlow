@@ -1,0 +1,22 @@
+# ============================================
+# Caddyfile for EC2 Deployment
+# ============================================
+# Caddy will automatically generate and renew SSL certs
+# Ensure your EC2 security group allows inbound traffic on port 80 and 443
+# ============================================
+
+freelanceflow.backend.debabrata.site {
+    
+    # Enable automatic HTTPS
+    tls debabratadey8080@gmail.com
+
+    # Reverse proxy WebSockets to Daphne
+    handle /ws/* {
+        reverse_proxy daphne:8001
+    }
+
+    # Reverse proxy all other requests to Django (Gunicorn)
+    handle {
+        reverse_proxy web:8000
+    }
+}
