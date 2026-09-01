@@ -765,6 +765,8 @@ def generate_transaction_receipt_pdf(tx_id: int, tx_type: str, user_id: int) -> 
     """
     from apps.payments.models import ClientDeposit, Payment, WithdrawalRequest
     from django.contrib.auth import get_user_model
+    import datetime
+    
     User = get_user_model()
     
     try:
