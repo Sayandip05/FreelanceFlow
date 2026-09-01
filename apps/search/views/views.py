@@ -145,7 +145,7 @@ class SearchView(APIView):
             search = ProjectDocument.search()
             if query:
                 search = search.query(
-                    Q("multi_match", query=query, fields=["title^3", "description", "skills"])
+                    Q("multi_match", query=query, fields=["title^3", "description", "skills"], type="phrase_prefix")
                 )
             if skills:
                 skill_list = [s.strip() for s in skills.split(",")]
@@ -182,7 +182,7 @@ class SearchView(APIView):
             search = FreelancerDocument.search()
             if query:
                 search = search.query(
-                    Q("multi_match", query=query, fields=["full_name^2", "bio", "skills"])
+                    Q("multi_match", query=query, fields=["full_name^2", "bio", "skills"], type="phrase_prefix")
                 )
             if skills:
                 skill_list = [s.strip().lower() for s in skills.split(",")]
@@ -248,7 +248,7 @@ class ProjectSearchView(APIView):
         
         if query:
             search = search.query(
-                Q("multi_match", query=query, fields=["title^3", "description"])
+                Q("multi_match", query=query, fields=["title^3", "description"], type="phrase_prefix")
             )
         
         if skills:
@@ -309,7 +309,7 @@ class FreelancerSearchView(APIView):
         
         if query:
             search = search.query(
-                Q("multi_match", query=query, fields=["full_name^2", "bio", "skills"])
+                Q("multi_match", query=query, fields=["full_name^2", "bio", "skills"], type="phrase_prefix")
             )
         
         if skills:
