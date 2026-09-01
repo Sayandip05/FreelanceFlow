@@ -13,6 +13,7 @@ from apps.projects.services import (
     create_project,
     update_project,
     close_project,
+    delete_project,
 )
 from apps.projects.selectors import (
     get_project_by_id,
@@ -22,7 +23,7 @@ from apps.projects.selectors import (
 from apps.projects.permissions import IsProjectOwner
 from apps.users.permissions import IsClient
 from apps.bidding.serializers import BidListSerializer
-from core.exceptions import ValidationError
+from core.exceptions import ValidationError, PermissionDeniedError
 class ProjectViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Project CRUD operations.
@@ -130,14 +131,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project = self.get_object()
         
         try:
-            close_project(project, request.user)
+            delete_project(project, request.user)
             return Response(
-                {"message": "Project closed successfully."},
+                {"message": "Project deleted successfully."},
                 status=status.HTTP_200_OK,
             )
-        except ValidationError as e:
+        except (ValidationError, PermissionDeniedError) as e:
             return Response(
-                {"error": e.message, "code": e.code, "field": e.field},
+                {"error": getattr(e, "message", str(e)), "code": getattr(e, "code", "error"), "field": getattr(e, "field", None)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
     

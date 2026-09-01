@@ -1,4 +1,4 @@
-﻿import api from './axiosConfig'
+import api from './axiosConfig'
 
 export const projectsAPI = {
   // Get all projects (with optional filters)
@@ -24,6 +24,7 @@ export const projectsAPI = {
 
   // Close/delete project (owner only)
   closeProject: (id) => api.delete(`/projects/${id}/`),
+  deleteProject: (id) => api.delete(`/projects/${id}/`),
 
   // Get client's projects
   getMyProjects: () => api.get('/projects/my_projects/'),

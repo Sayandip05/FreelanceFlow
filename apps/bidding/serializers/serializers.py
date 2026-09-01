@@ -64,9 +64,9 @@ class BidCreateSerializer(serializers.ModelSerializer):
         return value
     
     def validate_cover_letter(self, value):
-        if len(value.strip()) < 50:
+        if len(value.strip()) < 20:
             raise serializers.ValidationError(
-                "Cover letter must be at least 50 characters."
+                "Please provide a short pitch (at least 20 characters) on why you're interested in this project."
             )
         # Sanitize cover letter to prevent XSS
         return sanitize_html(value, allow_basic_formatting=True)

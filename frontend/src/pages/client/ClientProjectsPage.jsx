@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Briefcase, FileText, CreditCard, MessageSquare, Star,
-  Search, Plus, Filter, ChevronDown, ExternalLink
+  Search, Plus, Filter, ChevronDown, ExternalLink, Trash2, AlertTriangle, Loader2
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 
@@ -73,6 +73,67 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
   )
 }
 
+const DeleteProjectModal = ({ project, onClose, onDeleted }) => {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleDelete = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      await projectsAPI.deleteProject(project.id)
+      onDeleted(project.id)
+    } catch (err) {
+      const msg = err.response?.data?.error || err.response?.data?.detail || 'Failed to delete project. Projects with active contracts cannot be deleted.'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
+        <div className="flex items-center gap-3 text-red-600">
+          <div className="p-2.5 bg-red-100 rounded-xl">
+            <AlertTriangle className="w-6 h-6 text-red-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Delete Project</h2>
+            <p className="text-xs text-gray-500">This action cannot be undone.</p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+            {error}
+          </div>
+        )}
+
+        <p className="text-sm text-gray-600">
+          Are you sure you want to permanently delete <strong className="text-gray-900 font-semibold">"{project.title}"</strong>?
+          Any pending proposals on this project will also be removed.
+        </p>
+
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={onClose} disabled={loading} className="btn-secondary flex-1">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={loading}
+            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            {loading ? 'Deleting...' : 'Delete Project'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const ClientProjectsPage = () => {
   const navigate = useNavigate()
   const [projects, setProjects] = useState([])
@@ -80,6 +141,7 @@ const ClientProjectsPage = () => {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [showModal, setShowModal] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState(null)
 
   useEffect(() => {
     fetchProjects()
@@ -111,6 +173,18 @@ const ClientProjectsPage = () => {
           onCreated={(proj) => { setProjects(prev => [proj, ...prev]); setShowModal(false) }}
         />
       )}
+
+      {projectToDelete && (
+        <DeleteProjectModal
+          project={projectToDelete}
+          onClose={() => setProjectToDelete(null)}
+          onDeleted={(deletedId) => {
+            setProjects(prev => prev.filter(p => p.id !== deletedId))
+            setProjectToDelete(null)
+          }}
+        />
+      )}
+
       <div>
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -156,20 +230,37 @@ const ClientProjectsPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filtered.map(project => (
-              <div key={project.id} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900 flex-1 pr-3">{project.title}</h3>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap ${STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-600'}`}>
-                    {project.status}
-                  </span>
+              <div key={project.id} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900 flex-1 pr-3">{project.title}</h3>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap ${STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {project.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{project.description}</p>
                 </div>
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{project.description}</p>
-                <div className="flex items-center justify-between">
+                
+                <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                   <span className="text-sm font-semibold text-gray-900">${project.budget?.toLocaleString()}</span>
-                  <button onClick={() => navigate(`/client/projects/${project.id}`)}
-                    className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-                    View <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {(project.status === 'OPEN' || project.status === 'CANCELLED') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setProjectToDelete(project)
+                        }}
+                        title="Delete project"
+                        className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button onClick={() => navigate(`/client/projects/${project.id}`)}
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                      View <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
