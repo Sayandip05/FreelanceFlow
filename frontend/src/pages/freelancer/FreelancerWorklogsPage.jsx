@@ -59,87 +59,89 @@ const FreelancerWorklogsPage = () => {
       {/* ── Top Header ────────────────────────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2.5">
-          <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
-            <SparklesIcon className="w-5 h-5" />
+          <span className="p-2 rounded-xl bg-gray-100 text-gray-800 border border-gray-200">
+            <SparklesIcon className="w-5 h-5 text-gray-700" />
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-            Work & AI Assistant
+            Work Logs & Deliverables
           </h1>
         </div>
         <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-          Track milestones, chat with your AI project assistant, and auto-generate client-ready deliverables.
+          Track milestones, log deliverables manually or with your AI assistant, and compile client reports.
         </p>
       </div>
 
       {/* ── Key Metrics Cards ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+        {/* Active Projects */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex items-center gap-4">
+          <div className="p-3 bg-gray-100 rounded-xl text-gray-700 border border-gray-200">
             <BriefcaseIcon className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Active Projects</p>
-            <p className="text-2xl font-black text-gray-900">{totalActive}</p>
-            <p className="text-xs text-indigo-600 font-medium mt-0.5">Contracts ready for AI assistant</p>
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Active Projects</span>
+            <div className="text-2xl font-black text-gray-900 mt-0.5">{totalActive}</div>
+            <span className="text-xs text-gray-600 font-medium">Contracts ready for work log</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+        {/* Total Contract Value */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex items-center gap-4">
+          <div className="p-3 bg-emerald-50 rounded-xl text-emerald-700 border border-emerald-200">
             <CurrencyDollarIcon className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Contract Value</p>
-            <p className="text-2xl font-black text-gray-900">${totalBudget.toLocaleString()}</p>
-            <p className="text-xs text-emerald-600 font-medium mt-0.5">Across active engagements</p>
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Contract Value</span>
+            <div className="text-2xl font-black text-emerald-700 mt-0.5">${totalBudget.toLocaleString()}</div>
+            <span className="text-xs text-emerald-600 font-medium">Across active engagements</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-900 shrink-0">
-            <CheckCircleIcon className="w-6 h-6 text-gray-900" />
+        {/* Completed Projects */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex items-center gap-4">
+          <div className="p-3 bg-gray-100 rounded-xl text-gray-700 border border-gray-200">
+            <CheckCircleIcon className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Completed Projects</p>
-            <p className="text-2xl font-black text-gray-900">{completedContracts.length}</p>
-            <p className="text-xs text-gray-600 font-medium mt-0.5">Finished milestones & reports</p>
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Completed Projects</span>
+            <div className="text-2xl font-black text-gray-900 mt-0.5">{completedContracts.length}</div>
+            <span className="text-xs text-gray-500 font-medium">Finished milestones & reports</span>
           </div>
         </div>
       </div>
 
-      {/* ── Toolbar: Search & Filter Tabs ─────────────────────────────────── */}
-      <div className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
+      {/* ── Search & Filter Controls ────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-96">
           <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
+            placeholder="Search contracts or clients..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search contracts or clients..."
-            className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all shadow-2xs"
           />
         </div>
 
-        {/* Status Pills */}
-        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
+        {/* Status Filters */}
+        <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl text-xs font-bold text-gray-600 w-full sm:w-auto overflow-x-auto">
           {[
-            { id: 'ALL', label: 'All Projects', count: contracts.length },
-            { id: 'ACTIVE', label: 'Active', count: activeContracts.length },
-            { id: 'COMPLETED', label: 'Completed', count: completedContracts.length },
+            { key: 'ALL', label: 'All Projects', count: contracts.length },
+            { key: 'ACTIVE', label: 'Active', count: activeContracts.length },
+            { key: 'COMPLETED', label: 'Completed', count: completedContracts.length },
           ].map(tab => (
             <button
-              key={tab.id}
-              onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                statusFilter === tab.id
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                statusFilter === tab.key
                   ? 'bg-white text-gray-900 shadow-xs'
-                  : 'text-gray-500 hover:text-gray-900'
+                  : 'hover:text-gray-900'
               }`}
             >
               {tab.label}
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                statusFilter === tab.id ? 'bg-gray-100 text-gray-700' : 'bg-gray-200/70 text-gray-500'
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                statusFilter === tab.key ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'
               }`}>
                 {tab.count}
               </span>
@@ -151,18 +153,18 @@ const FreelancerWorklogsPage = () => {
       {/* ── Contracts Grid ────────────────────────────────────────────────── */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredContracts.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-3xl border border-gray-200/80 p-8 shadow-sm">
+        <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 p-8 shadow-sm">
           <BriefcaseIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <h3 className="text-base font-bold text-gray-900">No active work contracts found</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
-            When a client accepts your bid or hires you on a project, your AI worklog workspace will appear here.
+            When a client accepts your bid or hires you on a project, your worklog workspace will appear here.
           </p>
           <button
             onClick={() => navigate('/freelancer/browse')}
-            className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+            className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-sm transition-all"
           >
             Browse Open Projects <ArrowRightIcon className="w-3.5 h-3.5" />
           </button>
@@ -180,7 +182,7 @@ const FreelancerWorklogsPage = () => {
             return (
               <div
                 key={contract.id}
-                className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300 flex flex-col justify-between group"
+                className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300 flex flex-col justify-between group"
               >
                 <div>
                   {/* Top Status & Badge */}
@@ -198,11 +200,11 @@ const FreelancerWorklogsPage = () => {
                   </div>
 
                   {/* Title & Description */}
-                  <h3 className="text-base font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-emerald-700 transition-colors line-clamp-1">
                     {projectTitle}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
-                    {contract.project?.description || contract.description || 'Active milestone workspace with AI tracking enabled.'}
+                    {contract.project?.description || contract.description || 'Active milestone workspace with progress tracking enabled.'}
                   </p>
 
                   {/* Client and Rate Details */}
@@ -224,7 +226,7 @@ const FreelancerWorklogsPage = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500">Contract Budget:</span>
-                      <span className="font-bold text-indigo-600 text-sm">
+                      <span className="font-bold text-gray-900 text-sm">
                         ${parseFloat(amount).toLocaleString()}
                       </span>
                     </div>
@@ -235,10 +237,10 @@ const FreelancerWorklogsPage = () => {
                 <div className="mt-6 pt-4 border-t border-gray-100">
                   <button
                     onClick={() => navigate(`/freelancer/contracts/${contract.id}/work`)}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-600/20 transition-all group-hover:scale-[1.02] active:scale-95"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gray-900 hover:bg-black text-white text-sm font-bold shadow-sm transition-all group-hover:bg-emerald-700 active:scale-98"
                   >
-                    <SparklesIcon className="w-4 h-4 text-indigo-200" />
-                    Open AI Assistant
+                    <SparklesIcon className="w-4 h-4 text-emerald-400" />
+                    Log Work (AI & Manual)
                     <ArrowRightIcon className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
                   </button>
                 </div>
