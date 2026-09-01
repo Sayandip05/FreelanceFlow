@@ -70,8 +70,8 @@ const LandingPage = () => {
       </div>
 
       {/* Hero Section */}
-      <section className="px-3 sm:px-6 lg:px-8 py-3 sm:py-6 max-w-[1560px] mx-auto">
-        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-900 min-h-[480px] sm:min-h-[580px] lg:min-h-[640px] flex flex-col justify-center px-5 sm:px-10 md:px-14 lg:px-20 py-8 sm:py-14 lg:py-20 shadow-2xl">
+      <section className="px-2 sm:px-3 lg:px-4 py-2 sm:py-4 w-full max-w-[1760px] mx-auto">
+        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-900 min-h-[480px] sm:min-h-[580px] lg:min-h-[640px] flex flex-col justify-center px-6 sm:px-12 md:px-16 lg:px-24 py-8 sm:py-14 lg:py-20 shadow-2xl">
           {/* Background Video */}
           <div className="absolute inset-0">
             <video
@@ -95,8 +95,8 @@ const LandingPage = () => {
             </h1>
             <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-200 mb-5 sm:mb-8 font-normal sm:font-medium max-w-2xl leading-relaxed">
               {activeHeroTab === 'hire'
-                ? 'Access skilled freelancers ready to help you build and scale — without the full-time commitment'
-                : 'Join thousands of freelancers earning on their own terms — no office, no fixed hours, just real work'}
+                ? 'Access skilled freelancers ready to help you build and scale without the full-time commitment'
+                : 'Join thousands of freelancers earning on their own terms, no office, no fixed hours, just real work'}
             </p>
             
             {/* Toggle */}
@@ -134,8 +134,8 @@ const LandingPage = () => {
             {/* Pills */}
             <div className="flex flex-wrap gap-2 sm:gap-3">
               {['Web design', 'AI development', 'Video editing', 'Google Ads'].map(pill => (
-                <a key={pill} href="#" className="px-3 sm:px-4.5 py-1 sm:py-1.5 rounded-full border border-white/30 text-white text-xs sm:text-sm hover:bg-white/20 hover:border-white/50 transition-all flex items-center gap-1 backdrop-blur-sm font-medium">
-                  {pill} <ArrowRight className="w-3 h-3" />
+                <a key={pill} href="#" className="px-3.5 sm:px-4.5 py-1 sm:py-1.5 rounded-full border border-white/30 text-white text-xs sm:text-sm hover:bg-white/20 hover:border-white/50 transition-all backdrop-blur-sm font-medium">
+                  {pill}
                 </a>
               ))}
             </div>
@@ -262,7 +262,7 @@ const LandingPage = () => {
             <div className="bg-white rounded-3xl p-8 lg:p-10 border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col">
               <h3 className="text-3xl font-bold text-gray-900 mb-2">Basic</h3>
               <p className="text-sm text-gray-500 mb-6 font-medium">For occasional hiring and one-off projects</p>
-              <p className="text-gray-700 mb-8 font-medium leading-relaxed">Hire skilled freelancers fast — without long-term commitments or extra overhead.</p>
+              <p className="text-gray-700 mb-8 font-medium leading-relaxed">Hire skilled freelancers fast without long-term commitments or extra overhead.</p>
               
               <div className="h-px bg-gray-200 w-full mb-8"></div>
               
