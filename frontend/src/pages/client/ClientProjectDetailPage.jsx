@@ -314,12 +314,6 @@ const ClientProjectDetailPage = () => {
                           >
                             <XCircle className="w-4 h-4" /> Reject
                           </button>
-                          <button
-                            onClick={() => navigate(`/client/messages?freelancer=${bid.freelancer?.id}`)}
-                            className="flex items-center gap-1.5 px-4 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors ml-auto"
-                          >
-                            <MessageSquare className="w-4 h-4" /> Message
-                          </button>
                         </div>
                       )}
                       {bid.status !== 'PENDING' && (
