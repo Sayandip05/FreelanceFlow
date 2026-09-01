@@ -32,7 +32,8 @@ class PaymentsUser(HttpUser):
     def on_start(self):
         resp = self.client.post(
             "/api/users/login/",
-            json={"email": "client@loadtest.com", "password": "LoadTest@123"},
+            json={"email": "client001@loadtest.internal", "password": "LoadTest@123"},
+            headers={"X-Benchmark-Profile": "true"},
             name="/api/users/login/ [setup]",
         )
         if resp.status_code == 200:
@@ -67,11 +68,14 @@ class PaymentsUser(HttpUser):
 
     @task(4)
     def get_escrow_status(self):
-        self.client.get(
-            "/api/payments/escrow/",
-            headers=self._auth_headers(),
-            name="GET /api/payments/escrow/",
-        )
+        if self.contract_ids:
+            pk = random.choice(self.contract_ids)
+            self.client.post(
+                "/api/payments/escrow/",
+                json={"contract_id": pk},
+                headers=self._auth_headers(),
+                name="POST /api/payments/escrow/",
+            )
 
     @task(3)
     def get_upcoming_milestones(self):

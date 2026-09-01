@@ -43,7 +43,8 @@ class BiddingUser(HttpUser):
     def on_start(self):
         resp = self.client.post(
             "/api/users/login/",
-            json={"email": "freelancer@loadtest.com", "password": "LoadTest@123"},
+            json={"email": "freelancer001@loadtest.internal", "password": "LoadTest@123"},
+            headers={"X-Benchmark-Profile": "true"},
             name="/api/users/login/ [setup]",
         )
         if resp.status_code == 200:
@@ -157,7 +158,7 @@ class BiddingUser(HttpUser):
                 json={
                     "project": pk,
                     "amount": random.randint(100, 3000),
-                    "proposal": f"Load test proposal {random_string(6)}. I have experience with this.",
+                    "cover_letter": f"Load test proposal {random_string(6)}. I have experience with this.",
                     "delivery_days": random.randint(7, 30),
                 },
                 headers=self._auth_headers(),

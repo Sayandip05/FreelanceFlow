@@ -38,7 +38,10 @@ class UsersUser(HttpUser):
     # ── Helpers ──────────────────────────────────────────────────────────────
 
     def _auth_headers(self):
-        return {"Authorization": f"Bearer {self.access_token}"} if self.access_token else {}
+        headers = {"X-Benchmark-Profile": "true"}
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        return headers
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -60,6 +63,7 @@ class UsersUser(HttpUser):
                 "first_name": "Load",
                 "last_name": "Tester",
             },
+            headers={"X-Benchmark-Profile": "true"},
             name="/api/users/register/ [setup]",
         )
 
@@ -67,6 +71,7 @@ class UsersUser(HttpUser):
         resp = self.client.post(
             "/api/users/login/",
             json={"email": email, "password": password},
+            headers={"X-Benchmark-Profile": "true"},
             name="/api/users/login/ [setup]",
         )
         if resp.status_code == 200:

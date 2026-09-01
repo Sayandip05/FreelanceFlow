@@ -87,7 +87,10 @@ class _AuthMixin:
     refresh_token = None
 
     def _h(self):
-        return {"Authorization": f"Bearer {self.access_token}"} if self.access_token else {}
+        headers = {"X-Benchmark-Profile": "true"}
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        return headers
 
     def _login(self, credentials):
         import time
@@ -308,7 +311,7 @@ class FreelancerUser(_AuthMixin, HttpUser):
                 json={
                     "project": pk,
                     "amount": random.randint(100, 3000),
-                    "proposal": f"Load test proposal {random_string()}. Experienced developer.",
+                    "cover_letter": f"Load test proposal {random_string()}. Experienced developer.",
                     "delivery_days": random.randint(7, 30),
                 },
                 headers=self._h(),
@@ -428,7 +431,14 @@ class ClientUser(_AuthMixin, HttpUser):
 
     @task(3)
     def get_escrow_status(self):
-        self.client.get("/api/payments/escrow/", headers=self._h(), name="GET /api/payments/escrow/")
+        if self.contract_ids:
+            pk = random.choice(self.contract_ids)
+            self.client.post(
+                "/api/payments/escrow/",
+                json={"contract_id": pk},
+                headers=self._h(),
+                name="POST /api/payments/escrow/",
+            )
 
     @task(3)
     def get_upcoming_milestones(self):

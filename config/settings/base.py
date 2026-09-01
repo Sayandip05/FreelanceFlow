@@ -141,7 +141,14 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DATABASES = {"default": env.db_url("DATABASE_URL", default="sqlite:///db.sqlite3")}
+DATABASES = {
+    "default": env.db_url("DATABASE_URL", default="sqlite:///db.sqlite3")
+}
+# Enable Persistent Database Connections (Built-in Connection Pooling)
+# Keep database connections open for up to 10 minutes (600 seconds) to avoid TCP overhead
+DATABASES["default"]["CONN_MAX_AGE"] = 600
+# Verify connection health before recycling it (guards against dropped/stale DB sockets)
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -31,13 +31,17 @@ class ProjectsUser(HttpUser):
     project_ids = []
 
     def _auth_headers(self):
-        return {"Authorization": f"Bearer {self.access_token}"} if self.access_token else {}
+        headers = {"X-Benchmark-Profile": "true"}
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        return headers
 
     def on_start(self):
         """Log in as a pre-seeded client user."""
         resp = self.client.post(
             "/api/users/login/",
-            json={"email": "client@loadtest.com", "password": "LoadTest@123"},
+            json={"email": "client001@loadtest.internal", "password": "LoadTest@123"},
+            headers={"X-Benchmark-Profile": "true"},
             name="/api/users/login/ [setup]",
         )
         if resp.status_code == 200:
