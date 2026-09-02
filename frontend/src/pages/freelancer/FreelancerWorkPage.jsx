@@ -17,13 +17,22 @@ import {
   ArrowRightIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline'
+import { useAuth } from '../../context/AuthContext'
 import { WorkPageSkeleton } from '../../components/common/Skeleton'
 
 const FreelancerWorkPage = () => {
   const { contractId } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { user } = useAuth()
   const urlMilestoneId = searchParams.get('milestone')
+
+  // Automatically redirect client users to the client contract management page
+  useEffect(() => {
+    if (user?.role === 'CLIENT' && contractId) {
+      navigate(`/client/contracts/${contractId}`, { replace: true })
+    }
+  }, [user, contractId, navigate])
 
   // State
   const [mode, setMode] = useState(urlMilestoneId ? 'MANUAL' : 'AI')
@@ -88,6 +97,18 @@ const FreelancerWorkPage = () => {
           client_name: c.client?.first_name ? `${c.client.first_name} ${c.client.last_name || ''}`.trim() : (c.client?.email || 'Client'),
           rate: c.agreed_amount || c.total_amount || 0,
           status: c.status || 'ACTIVE',
+        }
+      }
+
+      // Fallback contract object if network returned empty
+      if (!data.contract) {
+        data.contract = {
+          id: contractId,
+          title: `Contract #${contractId}`,
+          description: '',
+          client_name: 'Client',
+          rate: 0,
+          status: 'ACTIVE',
         }
       }
 
