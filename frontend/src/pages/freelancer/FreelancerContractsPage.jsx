@@ -208,16 +208,16 @@ export default function FreelancerContractsPage() {
               return (
                 <div
                   key={contract.id}
-                  className="bg-white rounded-3xl border border-gray-200/90 hover:border-primary-300 hover:shadow-lg transition-all duration-300 p-6 flex flex-col justify-between group shadow-sm"
+                  className="bg-white rounded-3xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-300 p-6 flex flex-col justify-between group shadow-sm"
                 >
                   <div>
                     {/* Top row: Status & Contract # */}
                     <div className="flex items-center justify-between gap-3 mb-3.5">
                       <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${contract.is_active
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'bg-gray-100 text-gray-700 border border-gray-200'
                         }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${contract.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${contract.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
                         {contract.is_active ? 'Active Contract' : 'Completed'}
                       </span>
                       <span className="text-xs font-semibold text-gray-400">
@@ -225,10 +225,10 @@ export default function FreelancerContractsPage() {
                       </span>
                     </div>
 
-                    {/* Project Title */}
+                    {/* Project Title (Stays Black/Grey on hover, no blue reflection) */}
                     <h3
                       onClick={() => navigate(`/freelancer/contracts/${contract.id}`)}
-                      className="text-base font-bold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1 cursor-pointer"
+                      className="text-base font-bold text-gray-900 hover:text-gray-700 transition-colors line-clamp-1 cursor-pointer"
                     >
                       {project.title || `Contract #${contract.id}`}
                     </h3>
@@ -238,7 +238,7 @@ export default function FreelancerContractsPage() {
                       {project.description || 'Active milestone workspace with progress and deliverable tracking.'}
                     </p>
 
-                    {/* Client Info Bar */}
+                    {/* Client Info Bar (Grey initials badge, no email) */}
                     <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2.5 min-w-0">
                         {client.profile_photo ? (
@@ -248,19 +248,18 @@ export default function FreelancerContractsPage() {
                             className="w-7 h-7 rounded-full object-cover border border-gray-200 shrink-0"
                           />
                         ) : (
-                          <div className="w-7 h-7 rounded-full bg-primary-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-700 border border-gray-200 text-[10px] font-bold flex items-center justify-center shrink-0">
                             {initials}
                           </div>
                         )}
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-gray-800 truncate">{clientName}</p>
-                          <p className="text-[10px] text-gray-400 truncate">{client.email}</p>
                         </div>
                       </div>
 
                       <button
                         onClick={() => navigate(`/freelancer/messages?client=${client.id}`)}
-                        className="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors shrink-0"
+                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
                         title="Message Client"
                       >
                         <MessageSquare className="w-4 h-4" />
@@ -280,7 +279,7 @@ export default function FreelancerContractsPage() {
                     </div>
                   </div>
 
-                  {/* Action Button at bottom */}
+                  {/* Action Button at bottom (Blue button) */}
                   <div className="mt-5 pt-3 border-t border-gray-100">
                     <button
                       onClick={() => navigate(`/freelancer/contracts/${contract.id}`)}

@@ -173,11 +173,11 @@ export default function AuthPage() {
         {/* Visual Background */}
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1400&auto=format&fit=crop"
+            src="/images/sign up banner.jpg"
             alt="FreelanceFlow Visual"
             className="w-full h-full object-cover scale-105"
             onError={(e) => {
-              e.target.src = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1400&auto=format&fit=crop"
+              e.target.src = "/images/home image.png"
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40" />

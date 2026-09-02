@@ -42,7 +42,7 @@ export function LoginPage() {
 
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop"
+            src="/images/sign up banner.jpg"
             alt="Brand Visual"
             className="w-full h-full object-cover"
           />
