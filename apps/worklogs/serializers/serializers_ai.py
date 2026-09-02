@@ -70,6 +70,7 @@ class AIContextDeliverableSerializer(serializers.ModelSerializer):
 class AIContextBundleSerializer(serializers.Serializer):
     contract = serializers.DictField()
     deliverables = AIContextDeliverableSerializer(many=True)
+    milestones = serializers.ListField(child=serializers.DictField(), required=False, default=list)
     stats = serializers.DictField()
     previous_reports = serializers.ListField()
     active_draft = AIDraftSerializer(allow_null=True)
