@@ -12,6 +12,19 @@ SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
+# Allow all CORS origins in local / ngrok development
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://*.ngrok-free.dev",
+    "https://*.ngrok-free.app",
+    "https://*.debabrata.site",
+]
+
 # ── Elasticsearch (local dev) ─────────────────────────────────────────────────
 # Disable automatic ES index syncing on model saves so the app runs fully
 # without a local Elasticsearch instance. The custom search signals in
