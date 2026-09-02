@@ -14,6 +14,7 @@ import json
 import logging
 import hashlib
 import math
+import re
 from typing import List, Dict, Any, Optional
 import requests
 from django.conf import settings
@@ -25,6 +26,24 @@ logger = logging.getLogger(__name__)
 
 # Vector dimension for Google Gemini gemini-embedding-001
 EMBEDDING_DIM = 3072
+
+
+def sanitize_sensitive_data(text: str) -> str:
+    """
+    Strips credit card numbers, bank account patterns, private keys, and API tokens
+    before embedding into Qdrant vector memory.
+    """
+    if not text:
+        return ""
+    # Credit Card pattern
+    text = re.sub(r"\b(?:\d[ -]*?){13,19}\b", "[REDACTED_CARD]", text)
+    # API tokens, Razorpay keys, bearer tokens
+    text = re.sub(r"(?:rzp_[a-zA-Z0-9_]+|Bearer\s+[a-zA-Z0-9_\-\.]+|sk-[a-zA-Z0-9]{20,})", "[REDACTED_TOKEN]", text)
+    # Private Key blocks
+    text = re.sub(r"-----BEGIN[ A-Z_-]+PRIVATE KEY-----[\s\S]+?-----END[ A-Z_-]+PRIVATE KEY-----", "[REDACTED_KEY]", text)
+    # Passwords / secrets
+    text = re.sub(r"(?:password|passwd|secret)\s*[:=]\s*\S+", "[REDACTED_SECRET]", text, flags=re.IGNORECASE)
+    return text
 
 
 class GeminiEmbeddingService:
@@ -240,7 +259,7 @@ def initialize_collection(contract_id: int) -> bool:
     point_id = 1
 
     # 1. Project Overview & Scope
-    project_doc = (
+    project_doc = sanitize_sensitive_data(
         f"Project Title: {project.title}\n"
         f"Description: {project.description}\n"
         f"Category: {getattr(project, 'category', 'General')}\n"
@@ -260,7 +279,7 @@ def initialize_collection(contract_id: int) -> bool:
 
     # 2. Required Skills & Guidelines
     if getattr(project, "skills", None):
-        skills_text = f"Required Skills and Expertise: {project.skills}"
+        skills_text = sanitize_sensitive_data(f"Required Skills and Expertise: {project.skills}")
         points.append({
             "id": point_id,
             "vector": GeminiEmbeddingService.get_embedding(skills_text),
@@ -274,7 +293,7 @@ def initialize_collection(contract_id: int) -> bool:
 
     # 2.5 Payment Milestones
     for milestone in contract.milestones.all():
-        milestone_doc = (
+        milestone_doc = sanitize_sensitive_data(
             f"Milestone: {milestone.title}\n"
             f"Description/Scope: {milestone.description}\n"
             f"Amount: ${milestone.amount}\n"
@@ -296,7 +315,7 @@ def initialize_collection(contract_id: int) -> bool:
 
     # 3. Deliverables / Milestones Requirements
     for deliverable in contract.deliverables.all():
-        deliv_doc = (
+        deliv_doc = sanitize_sensitive_data(
             f"Deliverable Item: {deliverable.title}\n"
             f"Requirements & Goal: {deliverable.description}\n"
             f"Current Status: {deliverable.status}"

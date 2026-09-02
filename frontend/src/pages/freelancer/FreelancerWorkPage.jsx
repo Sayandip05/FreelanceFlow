@@ -519,10 +519,8 @@ const FreelancerWorkPage = () => {
                   </button>
                 ) : (
                   [
-                    'Draft my weekly progress report',
-                    'Summarize completed deliverables',
-                    'Log 8 hours on sprint tasks',
-                    'What requirements are pending?',
+                    'draft my progress report',
+                    'what is my timeline of my progress report',
                   ].map((prompt, i) => (
                     <button
                       key={i}
@@ -564,21 +562,21 @@ const FreelancerWorkPage = () => {
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="max-w-xl mx-auto space-y-6">
+            <div className="flex-1 overflow-y-auto p-6 md:p-10">
+              <div className="max-w-3xl mx-auto space-y-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Submit Deliverable Manually</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">Submit Deliverable Manually</h2>
                   <p className="text-sm text-gray-500 mt-1">Log your work and submit it directly to a milestone for client review.</p>
                 </div>
                 
-                <form onSubmit={handleManualSubmit} className="space-y-5 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <form onSubmit={handleManualSubmit} className="space-y-6">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Select Milestone</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Select Milestone</label>
                     <select
                       value={manualForm.milestoneId}
                       onChange={(e) => setManualForm({ ...manualForm, milestoneId: e.target.value })}
                       required
-                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium"
+                      className="w-full p-3.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium shadow-xs"
                     >
                       <option value="">-- Choose an active milestone --</option>
                       {contextData.milestones?.map((m) => (
@@ -590,32 +588,32 @@ const FreelancerWorkPage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Work Description & Deliverables</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Work Description & Deliverables</label>
                     <textarea
-                      rows={5}
+                      rows={6}
                       required
                       value={manualForm.description}
                       onChange={(e) => setManualForm({ ...manualForm, description: e.target.value })}
-                      placeholder="Describe the tasks completed, PR links, etc..."
-                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                      placeholder="Describe the tasks completed, PR links, deliverables summary..."
+                      className="w-full p-3.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm leading-relaxed shadow-xs"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Attachment Link (Optional)</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Attachment Link (Optional)</label>
                     <input
                       type="url"
                       value={manualForm.files_link}
                       onChange={(e) => setManualForm({ ...manualForm, files_link: e.target.value })}
                       placeholder="https://github.com/... or Figma link"
-                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                      className="w-full p-3.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm shadow-xs"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={sending}
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 active:scale-98"
+                    className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
                   >
                     {sending ? 'Submitting...' : 'Submit Worklog to Client'}
                   </button>
