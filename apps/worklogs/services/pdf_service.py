@@ -173,17 +173,17 @@ def generate_weekly_report_pdf(report_id: int) -> str:
             class ReportPDF(FPDF):
                 def header(self):
                     self.set_font("Helvetica", "B", 13)
-                    self.set_text_color(30, 64, 175)  # Deep Blue
+                    self.set_text_color(15, 23, 42)  # Solid Black
                     self.cell(0, 7, "FREELANCEFLOW PROGRESS REPORT", border=0, ln=1, align="L")
                     self.set_font("Helvetica", "", 9)
-                    self.set_text_color(100, 116, 139)  # Slate
+                    self.set_text_color(71, 85, 105)  # Slate
                     self.cell(0, 5, "Verified Contract Progress & Delivery Summary", border=0, ln=1, align="L")
                     self.ln(2)
                     y_line = self.get_y()
-                    self.set_draw_color(203, 213, 225)
+                    self.set_draw_color(226, 232, 240)
                     self.set_line_width(0.4)
                     self.line(15, y_line, 195, y_line)
-                    self.ln(5)
+                    self.ln(4)
 
                 def footer(self):
                     self.set_y(-18)
@@ -193,11 +193,10 @@ def generate_weekly_report_pdf(report_id: int) -> str:
                     self.set_y(-14)
                     self.set_font("Helvetica", "I", 8)
                     self.set_text_color(100, 116, 139)
-                    self.cell(0, 5, f"* Note: Compiled by FreelanceFlow AI Worklog Assistant • Verified by Freelancer (Page {self.page_no()})", border=0, align="C")
-
+                    self.cell(0, 5, f"* Note: Compiled by FreelanceFlow AI • Verified by Freelancer (Page {self.page_no()})", border=0, align="C")
 
             pdf = ReportPDF()
-            pdf.set_auto_page_break(auto=True, margin=22)
+            pdf.set_auto_page_break(auto=True, margin=20)
             pdf.set_margins(15, 15, 15)
             pdf.add_page()
             
@@ -205,16 +204,16 @@ def generate_weekly_report_pdf(report_id: int) -> str:
             freelancer = report.contract.bid.freelancer
             client = project.client
 
-            # Metadata Info Card
+            # Metadata Info Card (Solid Black & Gray tones)
             pdf.set_fill_color(248, 250, 252)
             pdf.set_draw_color(226, 232, 240)
             pdf.set_line_width(0.3)
             
             # Card Top Row: Project Title
-            pdf.set_font("Helvetica", "B", 9.5)
+            pdf.set_font("Helvetica", "B", 9)
             pdf.set_text_color(71, 85, 105)
             pdf.cell(32, 7, "Project Title:", border="LT", ln=0, fill=True)
-            pdf.set_font("Helvetica", "B", 9.5)
+            pdf.set_font("Helvetica", "B", 9)
             pdf.set_text_color(15, 23, 42)
             pdf.cell(148, 7, clean_pdf_text(project.title), border="TR", ln=1, fill=True)
 
@@ -245,19 +244,63 @@ def generate_weekly_report_pdf(report_id: int) -> str:
             pdf.set_text_color(71, 85, 105)
             pdf.cell(32, 6, "Hours Billed:", border="B", ln=0, fill=True)
             pdf.set_font("Helvetica", "B", 9)
-            pdf.set_text_color(30, 64, 175)  # Deep Blue
+            pdf.set_text_color(15, 23, 42)
             pdf.cell(58, 6, f"{report.total_hours} hrs", border="RB", ln=1, fill=True)
 
             pdf.ln(5)
 
-            # Section 1: Executive / AI Progress Summary
+            # ── Section 1: Executive Progress Summary (Solid Black Heading) ──
+            pdf.set_x(15)
             pdf.set_font("Helvetica", "B", 10.5)
-            pdf.set_text_color(30, 64, 175)  # Deep Blue
+            pdf.set_text_color(15, 23, 42)  # Solid Black
             pdf.cell(0, 6, "1. Executive Progress Summary", ln=1)
-            pdf.set_draw_color(203, 213, 225)
-            pdf.set_line_width(0.4)
+            pdf.set_draw_color(226, 232, 240)
+            pdf.set_line_width(0.3)
             y_s1 = pdf.get_y()
             pdf.line(15, y_s1, 195, y_s1)
+            pdf.ln(3)
+
+            pdf.set_x(15)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(51, 65, 85)
+            
+            # Clean up markdown headers/bullets in summary
+            summary_raw = report.ai_summary or ""
+            for line in summary_raw.splitlines():
+                line = line.strip()
+                if not line:
+                    pdf.ln(2)
+                    continue
+                if line.startswith("## ") or line.startswith("### "):
+                    pdf.ln(2)
+                    pdf.set_x(15)
+                    pdf.set_font("Helvetica", "B", 9.5)
+                    pdf.set_text_color(15, 23, 42)
+                    pdf.cell(0, 5, clean_pdf_text(line.lstrip("#").strip()), ln=1)
+                    pdf.set_font("Helvetica", "", 9)
+                    pdf.set_text_color(51, 65, 85)
+                elif line.startswith("- ") or line.startswith("* "):
+                    pdf.set_x(15)
+                    pdf.cell(5, 5, "-", ln=0, align="R")
+                    pdf.multi_cell(175, 4.5, clean_pdf_text(line[2:].strip()))
+                    pdf.ln(1)
+                else:
+                    pdf.set_x(15)
+                    pdf.multi_cell(180, 5, clean_pdf_text(line))
+                    pdf.ln(1)
+
+            pdf.ln(4)
+
+            # ── Section 2: Logged Daily Work Details (Solid Black Heading) ──
+            pdf.set_x(15)
+            pdf.set_font("Helvetica", "B", 10.5)
+            pdf.set_text_color(15, 23, 42)  # Solid Black
+            pdf.cell(0, 6, "2. Logged Daily Work & Milestone Contributions", ln=1)
+            pdf.set_draw_color(226, 232, 240)
+            pdf.set_line_width(0.3)
+            y_s2 = pdf.get_y()
+            pdf.line(15, y_s2, 195, y_s2)
+            pdf.ln(3)
             pdf.ln(3)
 
             pdf.set_font("Helvetica", "", 9.5)
