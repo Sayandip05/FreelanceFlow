@@ -61,25 +61,41 @@ const FreelancerWorkPage = () => {
     }
   }, [messages.length, sending])
 
+  const [milestonesList, setMilestonesList] = useState([])
+
   const loadContextBundle = async () => {
     setLoading(true)
     setErrorMsg('')
     try {
-      const res = await aiWorklogAPI.getContext(contractId)
-      const data = res.data
-      setContextData(data)
+      const [res, milestonesRes] = await Promise.allSettled([
+        aiWorklogAPI.getContext(contractId),
+        paymentsAPI.getMilestones(contractId),
+      ])
 
-      if (data.active_draft) {
-        setActiveDraft(data.active_draft)
-        if (data.active_draft.pdf_url) {
-          setPdfUrl(data.active_draft.pdf_url)
+      let data = {}
+      if (res.status === 'fulfilled') {
+        data = res.value.data
+        setContextData(data)
+
+        if (data.active_draft) {
+          setActiveDraft(data.active_draft)
+          if (data.active_draft.pdf_url) {
+            setPdfUrl(data.active_draft.pdf_url)
+          }
         }
-      }
 
-      if (data.conversation) {
-        setConversationId(data.conversation.id)
-        if (data.conversation.messages && data.conversation.messages.length > 0) {
-          setMessages(data.conversation.messages)
+        if (data.conversation) {
+          setConversationId(data.conversation.id)
+          if (data.conversation.messages && data.conversation.messages.length > 0) {
+            setMessages(data.conversation.messages)
+          } else {
+            setMessages([
+              {
+                role: 'assistant',
+                content: `Hello! I'm your AI Worklog Assistant for **${data.contract?.title || 'this project'}**. Tell me what you worked on today, or click a quick prompt below to draft your report.`,
+              },
+            ])
+          }
         } else {
           setMessages([
             {
@@ -88,13 +104,12 @@ const FreelancerWorkPage = () => {
             },
           ])
         }
-      } else {
-        setMessages([
-          {
-            role: 'assistant',
-            content: `Hello! I'm your AI Worklog Assistant for **${data.contract?.title || 'this project'}**. Tell me what you worked on today, or click a quick prompt below to draft your report.`,
-          },
-        ])
+      }
+
+      if (milestonesRes.status === 'fulfilled' && Array.isArray(milestonesRes.value.data)) {
+        setMilestonesList(milestonesRes.value.data)
+      } else if (data.milestones) {
+        setMilestonesList(data.milestones)
       }
     } catch (err) {
       console.error('Error loading AI context bundle:', err)
@@ -105,6 +120,7 @@ const FreelancerWorkPage = () => {
   }
 
   const { contract, deliverables = [], previous_reports = [], qdrant_status = {} } = contextData || {}
+  const milestones = milestonesList.length > 0 ? milestonesList : (contextData?.milestones || [])
   const hasApprovedReport = Boolean(pdfUrl || activeDraft?.status === 'APPROVED' || (previous_reports && previous_reports.length > 0))
 
   const handleSendMessage = async (textToSend = null) => {
@@ -620,9 +636,9 @@ const FreelancerWorkPage = () => {
                       className="w-full p-3.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium shadow-xs"
                     >
                       <option value="">-- Choose an active milestone --</option>
-                      {contextData.milestones?.map((m) => (
+                      {milestones.map((m) => (
                         <option key={m.id} value={m.id}>
-                          {m.title} - ${m.amount} ({m.status})
+                          {m.title} - ${m.amount} ({m.status ? m.status.replace(/_/g, ' ') : 'PENDING'})
                         </option>
                       ))}
                     </select>

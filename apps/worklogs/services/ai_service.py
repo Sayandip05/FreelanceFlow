@@ -723,12 +723,20 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 pdf.set_text_color(15, 23, 42)
                 pdf.cell(148, 7, clean_pdf_text(project.title), border="TR", ln=1, fill=True)
 
-            pdf.set_font("Helvetica", "B", 9)
-            pdf.set_text_color(71, 85, 105)
-            pdf.cell(32, 6, "Freelancer:", border=0, ln=0, fill=True)
-            pdf.set_font("Helvetica", "", 9)
-            pdf.set_text_color(15, 23, 42)
-            pdf.cell(58, 6, clean_pdf_text(freelancer.get_full_name() or freelancer.email), border="R", ln=1, fill=True)
+                # Card Middle Row: Client & Freelancer
+                pdf.set_font("Helvetica", "B", 9)
+                pdf.set_text_color(71, 85, 105)
+                pdf.cell(32, 6, "Client:", border="L", ln=0, fill=True)
+                pdf.set_font("Helvetica", "", 9)
+                pdf.set_text_color(15, 23, 42)
+                pdf.cell(58, 6, clean_pdf_text(client.get_full_name() or client.email), border=0, ln=0, fill=True)
+
+                pdf.set_font("Helvetica", "B", 9)
+                pdf.set_text_color(71, 85, 105)
+                pdf.cell(32, 6, "Freelancer:", border=0, ln=0, fill=True)
+                pdf.set_font("Helvetica", "", 9)
+                pdf.set_text_color(15, 23, 42)
+                pdf.cell(58, 6, clean_pdf_text(freelancer.get_full_name() or freelancer.email), border="R", ln=1, fill=True)
 
                 # Card Bottom Row: Hours & Date
                 pdf.set_font("Helvetica", "B", 9)
