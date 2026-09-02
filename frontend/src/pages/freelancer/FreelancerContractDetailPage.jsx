@@ -210,14 +210,11 @@ export default function FreelancerContractDetailPage() {
       await paymentsAPI.completeMilestone(selectedMilestone.id, {
         deliverable_description: `${submitForm.deliverable_description}${submitForm.files_link ? ` | Link: ${submitForm.files_link}` : ''}`,
       })
-
-      alert('Milestone deliverable submitted to client for approval!')
       setShowSubmitModal(false)
       setSubmitForm({ deliverable_description: '', files_link: '' })
       loadContractData()
     } catch (e) {
       console.error('Submit deliverable error:', e)
-      alert(e.response?.data?.error || 'Milestone marked as submitted for client review!')
       setShowSubmitModal(false)
       loadContractData()
     } finally {
@@ -231,12 +228,10 @@ export default function FreelancerContractDetailPage() {
     setActionLoading(true)
     try {
       await paymentsAPI.raiseDispute(contractId, disputeForm.reason, disputeForm.description)
-      alert('Dispute submitted. FreelanceFlow support will mediate within 24 hours.')
       setShowDisputeModal(false)
       loadContractData()
     } catch (e) {
       console.error(e)
-      alert('Dispute initiated. FreelanceFlow support has been alerted.')
       setShowDisputeModal(false)
       loadContractData()
     } finally {
@@ -249,11 +244,9 @@ export default function FreelancerContractDetailPage() {
     setActionLoading(true)
     try {
       await contractsAPI.acceptProposal(contractId)
-      alert('Contract proposal accepted successfully!')
       loadContractData()
     } catch (e) {
       console.error(e)
-      alert(e.response?.data?.error || 'Failed to accept contract.')
     } finally {
       setActionLoading(false)
     }
@@ -264,11 +257,9 @@ export default function FreelancerContractDetailPage() {
     setActionLoading(true)
     try {
       await contractsAPI.declineProposal(contractId)
-      alert('Contract proposal declined and deleted.')
       navigate('/freelancer/contracts')
     } catch (e) {
       console.error(e)
-      alert(e.response?.data?.error || 'Failed to decline contract.')
     } finally {
       setActionLoading(false)
     }
