@@ -84,7 +84,6 @@ export default function FreelancerProjectDetailPage() {
         msg = `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}: ${text}`
       }
       setBidError(msg)
-    }
     } finally {
       setSubmitting(false)
     }
