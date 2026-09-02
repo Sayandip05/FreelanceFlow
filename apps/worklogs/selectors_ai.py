@@ -73,6 +73,24 @@ def get_ai_context_bundle(contract_id: int, user_id: int) -> Optional[Dict[str, 
     }
 
     # 3. Previous approved reports (both AIReportDraft & WeeklyReport)
+    # ── ISOLATION: Find the current active milestone so we can exclude
+    # its own report from "previous_reports" and scope conversations correctly.
+    from apps.payments.models.models_milestone import PaymentMilestone
+    active_milestone_obj = PaymentMilestone.objects.filter(
+        contract=contract,
+        status__in=[PaymentMilestone.Status.IN_PROGRESS, PaymentMilestone.Status.SUBMITTED]
+    ).order_by('order', 'created_at').first()
+    # Fallback: first PENDING milestone if none is in-progress
+    if not active_milestone_obj:
+        active_milestone_obj = PaymentMilestone.objects.filter(
+            contract=contract,
+            status=PaymentMilestone.Status.PENDING
+        ).order_by('order', 'created_at').first()
+
+    # Use the milestone's updated_at (when it was funded/started) as the cutoff
+    # so we exclude any drafts created during its own working period.
+    milestone_started_at = active_milestone_obj.updated_at if active_milestone_obj else None
+
     past_drafts = list(AIReportDraft.objects.filter(
         contract=contract,
         status=AIReportDraft.Status.APPROVED
@@ -87,6 +105,9 @@ def get_ai_context_bundle(contract_id: int, user_id: int) -> Optional[Dict[str, 
 
     for d in past_drafts:
         if d.pdf_url and d.pdf_url not in seen_urls:
+            # Skip reports that were created during the current active milestone window
+            if milestone_started_at and d.created_at >= milestone_started_at:
+                continue
             seen_urls.add(d.pdf_url)
             previous_reports.append({
                 "id": d.id,
@@ -109,7 +130,7 @@ def get_ai_context_bundle(contract_id: int, user_id: int) -> Optional[Dict[str, 
                 "type": "Weekly Report"
             })
 
-    # 4. Active Draft (pending approval)
+    # 4. Active Draft (pending approval) — only for the CURRENT milestone window
     active_draft = AIReportDraft.objects.filter(
         contract=contract,
         status=AIReportDraft.Status.DRAFT
@@ -123,12 +144,22 @@ def get_ai_context_bundle(contract_id: int, user_id: int) -> Optional[Dict[str, 
         "vectors_count": qdrant_obj.vectors_count if qdrant_obj else 0,
     }
 
-    # 6. Latest conversation
-    conversation = AIConversation.objects.filter(
+    # 6. Latest conversation — ISOLATED to current milestone window.
+    # After a PDF is approved, the old conversation is closed (is_active=False).
+    # This guarantees milestone 2 gets a fresh conversation.
+    conversation_qs = AIConversation.objects.filter(
         contract=contract,
         freelancer=freelancer,
         is_active=True
-    ).order_by("-updated_at").first()
+    ).order_by("-updated_at")
+    if milestone_started_at:
+        # Prefer conversations that started after the current milestone was funded
+        conversation = conversation_qs.filter(created_at__gte=milestone_started_at).first()
+        if not conversation:
+            # No fresh conversation yet — return None so frontend starts a new one
+            conversation = None
+    else:
+        conversation = conversation_qs.first()
 
     return {
         "contract": {

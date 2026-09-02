@@ -842,6 +842,16 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         draft.pdf_url = sas_url
         draft.save(update_fields=["status", "approved_at", "pdf_url", "updated_at"])
 
+        # ── ISOLATION FIX: Close the conversation so the next milestone
+        # gets a fresh chat session and doesn't inherit this milestone's history.
+        try:
+            conv = draft.conversation
+            if conv and conv.is_active:
+                conv.is_active = False
+                conv.save(update_fields=["is_active", "updated_at"])
+        except Exception as ce:
+            logger.warning("Failed to close AI conversation after approval: %s", ce)
+
         # Also mirror to WeeklyReport for backward compatibility
         week_start = date.today() - timedelta(days=date.today().weekday())
         weekly_report, created = WeeklyReport.objects.update_or_create(
@@ -885,17 +895,20 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         except Exception as me:
             logger.warning("Failed to auto-submit active milestone on AI draft approval: %s", me)
 
-        # Mirror to Deliverable model for client milestone page matching
+        # Mirror to Deliverable model — use valid fields only (Deliverable has no milestone_id column)
         try:
             from apps.worklogs.models import Deliverable
             Deliverable.objects.update_or_create(
                 contract=contract,
-                milestone_id=active_milestone.id if active_milestone else None,
+                freelancer=freelancer,
+                title=draft.title,
                 defaults={
-                    "title": draft.title,
                     "description": draft.section_summary,
+                    "ai_generated_report": draft.section_summary,
                     "pdf_url": sas_url,
                     "status": Deliverable.Status.SUBMITTED,
+                    "submitted_at": timezone.now(),
+                    "hours_logged": draft.hours_worked,
                 }
             )
         except Exception as de:

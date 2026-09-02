@@ -579,7 +579,7 @@ export default function FreelancerContractDetailPage() {
                       <td className="py-4 px-4 text-right whitespace-nowrap">
                         {isFunded && (
                           <button
-                            onClick={() => navigate('/freelancer/worklogs')}
+                            onClick={() => navigate(`/freelancer/contracts/${contractId}/work?milestone=${m.id}`)}
                             className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
                           >
                             <FileText className="w-3.5 h-3.5" /> Log Work / Submit Deliverable
@@ -598,11 +598,25 @@ export default function FreelancerContractDetailPage() {
                           </span>
                         )}
 
-                        {isPaid && (
-                          <span className="text-xs font-bold text-emerald-600">
-                            Payment Received ✓
-                          </span>
-                        )}
+                        {isPaid && (() => {
+                          const pdfLink = m.deliverable_description?.includes('| Link:')
+                            ? m.deliverable_description.split('| Link:')[1]?.trim()
+                            : null
+                          return pdfLink ? (
+                            <a
+                              href={pdfLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 transition-all"
+                            >
+                              <Download className="w-3.5 h-3.5" /> Download PDF
+                            </a>
+                          ) : (
+                            <span className="text-xs font-bold text-emerald-600">
+                              Payment Received ✓
+                            </span>
+                          )
+                        })()}
                       </td>
                     </tr>
                   )

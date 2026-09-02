@@ -137,6 +137,7 @@ class DeliverableSerializer(serializers.ModelSerializer):
             'description',
             'ai_generated_report',
             'attached_files',
+            'pdf_url',
             'status',
             'hours_logged',
             'submitted_at',
