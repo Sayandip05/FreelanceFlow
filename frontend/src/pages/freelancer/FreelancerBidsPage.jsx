@@ -61,16 +61,16 @@ const FreelancerBidsPage = () => {
           <h1 className="text-2xl font-bold text-gray-900">My Bids</h1>
           <p className="text-gray-600 mt-1">Track all your submitted proposals</p>
         </div>
-        <button onClick={() => navigate('/freelancer/browse')} className="btn-primary flex items-center gap-2 rounded-none">
+        <button onClick={() => navigate('/freelancer/browse')} className="btn-primary flex items-center gap-2 rounded-xl">
           <Search className="w-4 h-4" /> Browse Projects
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-none p-1 mb-6 w-fit">
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 w-fit">
         {tabs.map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-none text-sm font-medium transition-all ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}>
             {tab === 'ALL' ? 'All' : tab.charAt(0) + tab.slice(1).toLowerCase()} ({counts[tab]})
           </button>
@@ -117,25 +117,30 @@ const FreelancerBidsPage = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2.5 py-1 rounded-none font-medium flex items-center gap-1 ${config.color}`}>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${config.color}`}>
                       <StatusIcon className="w-3.5 h-3.5" /> {config.label}
                     </span>
                     <span className="text-lg font-bold text-gray-900">${bid.amount}</span>
                   </div>
                 </div>
+
+                {/* Full Uncut Description */}
                 {bid.cover_letter && (
-                  <p className="text-sm text-gray-600 bg-gray-50 rounded-none p-3 mb-4 line-clamp-2">{bid.cover_letter}</p>
+                  <div className="text-sm text-gray-700 bg-gray-50/80 border border-gray-100 rounded-xl p-4 mb-4 leading-relaxed whitespace-pre-line">
+                    {bid.cover_letter}
+                  </div>
                 )}
+
                 <div className="flex items-center gap-3">
                   {bid.status === 'ACCEPTED' && (
                     <button onClick={() => navigate(`/freelancer/contracts/${bid.contract_id}`)}
-                      className="btn-primary text-sm px-4 py-2 rounded-none">
+                      className="btn-primary text-sm px-4 py-2 rounded-xl">
                       View Contract →
                     </button>
                   )}
                   {bid.status === 'PENDING' && (
                     <button onClick={() => handleWithdraw(bid.id)}
-                      className="text-sm text-red-600 hover:text-red-700 font-medium px-3 py-1.5 rounded-none hover:bg-red-50 transition-colors">
+                      className="text-sm text-red-600 hover:text-red-700 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
                       Withdraw Bid
                     </button>
                   )}

@@ -405,14 +405,7 @@ const FreelancerMessagesPage = () => {
         {/* Fixed Top Header (Never scrolls) */}
         <div className="p-4 border-b border-gray-100 flex-shrink-0 bg-white z-10">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-gray-900">Messages</h2>
-              {conversations.length > 0 && (
-                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
-                  {conversations.length}
-                </span>
-              )}
-            </div>
+            <h2 className="text-lg font-bold text-gray-900">Messages</h2>
           </div>
 
           {/* Search Box */}

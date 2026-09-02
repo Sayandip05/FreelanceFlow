@@ -17,10 +17,10 @@ import {
   X
 } from 'lucide-react';
 import SocialProofRating from '../components/ui/demo';
+import ImageAutoSlider from '../components/ui/image-auto-slider';
 
 const LandingPage = () => {
   const [activeHeroTab, setActiveHeroTab] = useState('hire');
-  const [activeHowItWorksTab, setActiveHowItWorksTab] = useState('hiring');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -150,7 +150,7 @@ const LandingPage = () => {
 
       {/* Find freelancers for every type of work */}
       <section className="px-4 lg:px-8 py-20 max-w-[1440px] mx-auto">
-        <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-10 tracking-tight">Find freelancers for every type of work</h2>
+        <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-10 tracking-tight text-center">Find freelancers for every type of work</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
           {[
             { icon: Cpu, label: 'AI Services' },
@@ -173,78 +173,13 @@ const LandingPage = () => {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="px-4 lg:px-8 py-20 max-w-[1440px] mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">How it works</h2>
-          
-          {/* Toggle */}
-          <div className="flex bg-white border border-gray-200 rounded-full p-1.5 w-fit shadow-sm">
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveHowItWorksTab('hiring');
-                setActiveHeroTab('hire');
-              }}
-              className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHowItWorksTab === 'hiring' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              For hiring
-            </button>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveHowItWorksTab('work');
-                setActiveHeroTab('work');
-              }}
-              className={`px-6 py-2 rounded-full font-medium text-sm transition-all ${activeHowItWorksTab === 'work' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
-            >
-              For finding work
-            </button>
-          </div>
+      <section id="how-it-works" className="py-20 overflow-hidden bg-gray-50/50 border-y border-gray-100">
+        <div className="px-4 lg:px-8 max-w-[1440px] mx-auto mb-8 text-center">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">How it works</h2>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-10">
-          {/* Card 1 */}
-          <a href="/login" className="group cursor-pointer block">
-            <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/3] bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
-              <img 
-                src={activeHowItWorksTab === 'hiring' ? '/images/for%20hiring%201.png' : '/images/for%20getting%20project%201.png'} 
-                alt="Step 1" 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              />
-            </div>
-            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-              {activeHowItWorksTab === 'hiring' ? 'Post your project for free' : 'Create your profile and showcase your skills'}
-            </h3>
-          </a>
-          
-          {/* Card 2 */}
-          <a href="/login" className="group cursor-pointer block">
-            <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/3] bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
-              <img 
-                src={activeHowItWorksTab === 'hiring' ? '/images/for%20hiring%202.png' : '/images/for%20getting%20project%20%202.png'} 
-                alt="Step 2" 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              />
-            </div>
-            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-              {activeHowItWorksTab === 'hiring' ? 'Review proposals from skilled freelancers' : 'Browse projects and submit proposals'}
-            </h3>
-          </a>
-          
-          {/* Card 3 */}
-          <a href="/login" className="group cursor-pointer block">
-            <div className="rounded-3xl overflow-hidden mb-6 relative aspect-[4/3] bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
-              <img 
-                src={activeHowItWorksTab === 'hiring' ? '/images/for%20hiring%203.png' : '/images/for%20getting%20project%203.png'} 
-                alt="Step 3" 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              />
-            </div>
-            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-              {activeHowItWorksTab === 'hiring' ? 'Pay securely only when work is approved' : 'Get paid reliably as milestones are completed'}
-            </h3>
-          </a>
-        </div>
+        {/* Auto Slider with all 6 Images */}
+        <ImageAutoSlider />
       </section>
 
       {/* Pricing (Choose how you want to hire) */}
