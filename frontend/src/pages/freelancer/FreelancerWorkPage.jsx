@@ -402,7 +402,38 @@ const FreelancerWorkPage = () => {
     const targetDraftId = draftIdToApprove || activeDraft?.id
     setApproving(true)
     try {
-      await aiWorklogAPI.approveDraft(contractId, targetDraftId)
+      const res = await aiWorklogAPI.approveDraft(contractId, targetDraftId)
+      const data = res.data || {}
+      const compiledPdf = data.pdf_url
+
+      if (compiledPdf && activeMilestoneId) {
+        updateWS({
+          pdfUrl: compiledPdf,
+          activeDraft: { ...(activeDraft || {}), status: 'APPROVED', pdf_url: compiledPdf }
+        })
+        setWorkspaceMap(prev => ({
+          ...prev,
+          [activeMilestoneId]: {
+            ...prev[activeMilestoneId],
+            pdfUrl: compiledPdf,
+            activeDraft: { ...(prev[activeMilestoneId]?.activeDraft || {}), status: 'APPROVED', pdf_url: compiledPdf },
+            messages: [
+              ...(prev[activeMilestoneId]?.messages || []),
+              {
+                role: 'assistant',
+                content: `🎉 **Report Approved & Submitted!** Your official client worklog report has been generated and submitted to the client.`,
+                pdf_url: compiledPdf,
+                timestamp: new Date().toISOString(),
+              }
+            ]
+          }
+        }))
+        setApproving(false)
+        await loadContextBundle()
+        return
+      }
+
+      // Fallback polling if pdf_url wasn't in direct response
       let attempts = 0
       const pollInterval = setInterval(async () => {
         attempts += 1
@@ -427,7 +458,7 @@ const FreelancerWorkPage = () => {
       }, 1500)
     } catch (err) {
       console.error(err)
-      alert('Failed to approve report PDF. Please try again.')
+      alert('Failed to approve report: ' + (err.response?.data?.error || err.message))
       setApproving(false)
     }
   }
@@ -1047,18 +1078,75 @@ const FreelancerWorkPage = () => {
             )}
           </div>
 
-          {/* Sidebar Footer Metrics */}
-          <div className="p-4 border-t border-gray-100 space-y-2 bg-gray-50/60 shrink-0">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-gray-500 font-medium">Contract Total:</span>
-              <span className="font-black text-gray-900">${parseFloat(contract?.rate || 0).toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-gray-500 font-medium">Total Released:</span>
-              <span className="font-black text-emerald-600">
-                ${milestonesList.filter(m => isApproved(m)).reduce((sum, m) => sum + parseFloat(m.amount || 0), 0).toLocaleString()}
+          {/* ── Generated PDF Download Section (Lower Portion of Sidebar) ── */}
+          <div className="p-3.5 border-t border-gray-200 bg-gray-50/70 shrink-0 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                <DocumentTextIcon className="w-3.5 h-3.5 text-blue-600" />
+                Worklog PDF Downloads
               </span>
+              {pdfUrl && (
+                <span className="text-[10px] font-bold px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
+                  Active Ready
+                </span>
+              )}
             </div>
+
+            {/* Active Milestone PDF if available */}
+            {pdfUrl ? (
+              <div className="bg-white rounded-xl p-3 border border-gray-200 shadow-2xs space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-gray-900 truncate">
+                      {activeMilestone?.title || 'Milestone Report'}
+                    </p>
+                    <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+                      <CheckCircleIcon className="w-3 h-3" /> Official PDF Generated
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all active:scale-98 cursor-pointer"
+                >
+                  <ArrowDownTrayIcon className="w-3.5 h-3.5" />
+                  Download Worklog PDF
+                </a>
+              </div>
+            ) : previous_reports?.length > 0 ? (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-0.5">
+                {previous_reports.map((rpt, idx) => (
+                  <div
+                    key={rpt.id || idx}
+                    className="p-2.5 rounded-xl bg-white border border-gray-200 shadow-2xs flex items-center justify-between gap-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-gray-900 truncate">{rpt.title}</p>
+                      <p className="text-[10px] text-gray-500">
+                        {rpt.hours_worked}h • {new Date(rpt.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {rpt.pdf_url && (
+                      <a
+                        href={rpt.pdf_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white transition-all text-[10px] font-bold flex items-center gap-1 shrink-0 border border-blue-200"
+                      >
+                        <ArrowDownTrayIcon className="w-3 h-3" /> PDF
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 bg-white rounded-xl border border-dashed border-gray-200 text-center">
+                <p className="text-[11px] text-gray-500 font-medium">No PDF generated yet for this project.</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Approve an AI draft or complete a milestone to download official PDF.</p>
+              </div>
+            )}
           </div>
         </aside>
 

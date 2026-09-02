@@ -160,19 +160,65 @@ class AIApproveDraftView(views.APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        # Run async agent with action="approve" using Celery queue
-        from apps.worklogs.tasks import compile_ai_draft_pdf_task
-        compile_ai_draft_pdf_task.delay(
-            contract_id=contract_id,
-            freelancer_id=request.user.id,
-            draft_id=draft_id,
-        )
+        # Run agent with action="approve" synchronously for instant reliability
+        from apps.worklogs.services.ai_service import run_ai_worklog_agent
+        from asgiref.sync import async_to_sync
 
-        return Response({
-            "success": True,
-            "message": "PDF generation queued. You will be notified when it's ready.",
-            "draft_id": draft_id,
-        }, status=status.HTTP_202_ACCEPTED)
+        try:
+            agent_result = async_to_sync(run_ai_worklog_agent)(
+                contract_id=contract_id,
+                freelancer_id=request.user.id,
+                user_message="Approve and generate official PDF report",
+                action="approve",
+                draft_id=draft_id,
+            )
+
+            # Notify via WebSocket if push is available
+            try:
+                from apps.payments.consumers import push_contract_event
+                push_contract_event(
+                    contract_id=contract_id,
+                    event_type="ai_draft_pdf_ready",
+                    payload={
+                        "draft_id": agent_result.get("draft_id"),
+                        "pdf_url": agent_result.get("pdf_url"),
+                        "reply": agent_result.get("reply"),
+                    }
+                )
+            except Exception as wse:
+                logger.warning("Failed to push ai_draft_pdf_ready WebSocket event: %s", wse)
+
+            if agent_result.get("error"):
+                return Response({
+                    "error": agent_result["error"],
+                    "code": "compilation_failed",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({
+                "success": True,
+                "message": "Report approved and compiled into official PDF.",
+                "draft_id": agent_result.get("draft_id") or draft_id,
+                "pdf_url": agent_result.get("pdf_url"),
+                "status": "APPROVED",
+            }, status=status.HTTP_200_OK)
+
+        except Exception as exc:
+            logger.error("Synchronous PDF generation error for draft %s: %s", draft_id, exc)
+            # Fallback to queuing via celery if synchronous throws
+            try:
+                from apps.worklogs.tasks import compile_ai_draft_pdf_task
+                compile_ai_draft_pdf_task.delay(
+                    contract_id=contract_id,
+                    freelancer_id=request.user.id,
+                    draft_id=draft_id,
+                )
+            except Exception:
+                pass
+            return Response({
+                "success": True,
+                "message": "PDF generation queued. You will be notified when it is ready.",
+                "draft_id": draft_id,
+            }, status=status.HTTP_202_ACCEPTED)
 
 
 class AIHistoryView(views.APIView):
