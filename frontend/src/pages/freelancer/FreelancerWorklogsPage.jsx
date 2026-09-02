@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { contractsAPI } from '../../api/bids'
+import { Skeleton } from '../../components/common/Skeleton'
 import {
   SparklesIcon,
   BriefcaseIcon,
@@ -150,8 +151,20 @@ const FreelancerWorklogsPage = () => {
 
       {/* ── Contracts Grid ────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white rounded-3xl border border-gray-150 p-6 space-y-4 shadow-xs">
+              <div className="flex justify-between items-start">
+                <Skeleton className="h-6 w-3/4 rounded-xl" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
+                <Skeleton className="h-5 w-24 rounded-md" />
+                <Skeleton className="h-9 w-28 rounded-xl" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredContracts.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 p-8 shadow-sm">

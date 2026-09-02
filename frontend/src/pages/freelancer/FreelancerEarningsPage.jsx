@@ -7,6 +7,7 @@ import { Search, FileText, Briefcase, DollarSign,
 import { paymentsAPI } from '../../api/payments'
 import { usersAPI } from '../../api/auth'
 import { useNotifications } from '../../context/NotificationContext'
+import { DashboardSkeleton } from '../../components/common/Skeleton'
 
 const FreelancerEarningsPage = () => {
   const { notifications } = useNotifications() || { notifications: [] }
@@ -140,6 +141,14 @@ const FreelancerEarningsPage = () => {
     acc[month] = (acc[month] || 0) + net
     return acc
   }, {})
+
+  if (loading) {
+    return (
+      <div className="flex-1 p-8">
+        <DashboardSkeleton />
+      </div>
+    )
+  }
 
   return (
       <div className="flex-1 p-8">

@@ -14,6 +14,7 @@ import api from '../../api/axiosConfig'
 import { useNotifications } from '../../context/NotificationContext'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatDate } from '../../utils/formatDate'
+import { DetailPageSkeleton } from '../../components/common/Skeleton'
 
 export default function ClientContractDetailPage() {
   const { contractId } = useParams()
@@ -559,11 +560,8 @@ support@freelanceflow.com
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-semibold text-gray-500">Loading contract & escrow details...</p>
-        </div>
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
+        <DetailPageSkeleton />
       </div>
     )
   }
@@ -832,9 +830,10 @@ support@freelanceflow.com
                         {m.description && (
                           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{m.description}</p>
                         )}
-                        {m.deliverable_description && (
-                          <div className="mt-2 p-2 bg-indigo-50/60 rounded-lg text-xs text-indigo-900 border border-indigo-100">
-                            <span className="font-bold">Submitted Deliverable: </span>{m.deliverable_description}
+                        {m.client_feedback && (
+                          <div className="mt-2 p-2 bg-amber-50 rounded-xl text-xs text-amber-900 border border-amber-200 flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                            <span className="font-semibold">Revision Requested: {m.client_feedback}</span>
                           </div>
                         )}
                       </td>
@@ -852,45 +851,43 @@ support@freelanceflow.com
 
                       <td className="py-4 px-4 whitespace-nowrap">
                         {isPaid && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Released
                           </span>
                         )}
                         {isSubmitted && (
-                          <div className="space-y-1">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                          <div className="flex flex-col items-start gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
                               <Clock className="w-3.5 h-3.5 text-amber-600" /> Worklog Submitted
                             </span>
                             {milestoneWorkPdf && (
-                              <div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (setPdfReadyUrl) {
-                                      setPdfReadyUrl({
-                                        url: milestoneWorkPdf,
-                                        title: `${m.title} - Worklog Document`,
-                                        body: 'Click download to view the verified worklog PDF.'
-                                      })
-                                    } else {
-                                      window.open(milestoneWorkPdf, '_blank')
-                                    }
-                                  }}
-                                  className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 hover:underline"
-                                >
-                                  <Download className="w-3 h-3" /> Download PDF
-                                </button>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (setPdfReadyUrl) {
+                                    setPdfReadyUrl({
+                                      url: milestoneWorkPdf,
+                                      title: `${m.title} - Worklog Document`,
+                                      body: 'Click download to view the verified worklog PDF.'
+                                    })
+                                  } else {
+                                    window.open(milestoneWorkPdf, '_blank')
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                              >
+                                <Download className="w-3 h-3 text-emerald-600" /> Download PDF
+                              </button>
                             )}
                           </div>
                         )}
                         {isFunded && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                             <Lock className="w-3.5 h-3.5 text-indigo-600" /> Funded in Escrow
                           </span>
                         )}
                         {isPending && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
                             Pending Escrow Deposit
                           </span>
                         )}
@@ -901,31 +898,31 @@ support@freelanceflow.com
                           <button
                             onClick={() => triggerFundMilestone(m)}
                             disabled={actionLoading}
-                            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
                           >
                             <CreditCard className="w-3.5 h-3.5" /> Fund Escrow
                           </button>
                         )}
 
                         {isSubmitted && (
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-2.5">
                             <button
                               onClick={() => {
                                 setSelectedMilestone(m)
                                 setShowReviewModal(true)
                               }}
-                              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                              className="w-24 h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
                             >
-                              <Check className="w-3.5 h-3.5" /> Approve
+                              <Check className="w-3.5 h-3.5 stroke-[2.5]" /> Approve
                             </button>
                             <button
                               onClick={() => {
                                 setSelectedMilestone(m)
                                 setShowReviewModal(true)
                               }}
-                              className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                              className="w-24 h-9 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
                             >
-                              <X className="w-3.5 h-3.5" /> Reject
+                              <X className="w-3.5 h-3.5 stroke-[2.5]" /> Reject
                             </button>
                           </div>
                         )}

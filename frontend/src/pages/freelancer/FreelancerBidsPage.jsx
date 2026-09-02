@@ -5,6 +5,7 @@ import {
   MessageSquare, Clock, CheckCircle, XCircle, AlertCircle
 } from 'lucide-react'
 import { bidsAPI } from '../../api/bids'
+import { Skeleton } from '../../components/common/Skeleton'
 
 const STATUS_CONFIG = {
   PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -79,7 +80,21 @@ const FreelancerBidsPage = () => {
       {/* Bids */}
       {loading ? (
         <div className="space-y-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-gray-100 rounded-none animate-pulse" />)}
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-150 p-6 space-y-3 shadow-xs">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1.5 flex-1 max-w-md">
+                  <Skeleton className="h-5 w-64 rounded-lg" />
+                  <Skeleton className="h-3.5 w-36 rounded-md" />
+                </div>
+                <div className="flex gap-3 items-center">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-16 rounded-md" />
+                </div>
+              </div>
+              <Skeleton className="h-10 w-full rounded-xl" />
+            </div>
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-none border border-gray-100">

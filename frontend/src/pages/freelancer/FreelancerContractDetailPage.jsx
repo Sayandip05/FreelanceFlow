@@ -12,6 +12,7 @@ import { paymentsAPI } from '../../api/payments'
 import { deliverableAPI, uploadAPI } from '../../api/worklogs'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatDate } from '../../utils/formatDate'
+import { DetailPageSkeleton } from '../../components/common/Skeleton'
 
 export default function FreelancerContractDetailPage() {
   const { contractId } = useParams()
@@ -267,11 +268,8 @@ export default function FreelancerContractDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-primary-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-semibold text-gray-500">Loading contract & escrow details...</p>
-        </div>
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
+        <DetailPageSkeleton />
       </div>
     )
   }

@@ -4,6 +4,7 @@ import { Briefcase, FileText, CreditCard, MessageSquare, Star,
   Search, Plus, Filter, ChevronDown, ExternalLink, Trash2, AlertTriangle, Loader2
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
+import { Skeleton } from '../../components/common/Skeleton'
 
 const STATUS_COLORS = {
   OPEN: 'bg-green-100 text-green-700',
@@ -224,7 +225,19 @@ const ClientProjectsPage = () => {
         {/* Projects Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-44 bg-gray-100 rounded-2xl animate-pulse" />)}
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 space-y-3 shadow-xs">
+                <div className="flex justify-between items-start">
+                  <Skeleton className="h-5 w-48 rounded-lg" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <div className="flex justify-between items-center pt-2">
+                  <Skeleton className="h-4 w-28 rounded-md" />
+                  <Skeleton className="h-4 w-20 rounded-md" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">

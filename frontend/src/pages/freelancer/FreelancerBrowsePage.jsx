@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, DollarSign, Clock, Tag, ArrowRight, ShieldCheck, CheckCircle, Sparkles } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 import { bidsAPI } from '../../api/bids'
+import { Skeleton } from '../../components/common/Skeleton'
 
 /* ── FreelanceFlow Auto-Scrolling Banner Carousel ───────────────────────── */
 const FREELANCER_SLIDES = [
@@ -142,8 +143,22 @@ export default function FreelancerBrowsePage() {
       {/* Results */}
       {loading ? (
         <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-36 bg-gray-100 rounded-2xl animate-pulse" />
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-3xl border border-gray-100 p-6 space-y-4 shadow-xs">
+              <div className="flex justify-between items-start">
+                <div className="space-y-2 flex-1 max-w-lg">
+                  <Skeleton className="h-6 w-3/4 rounded-xl" />
+                  <Skeleton className="h-4 w-1/2 rounded-lg" />
+                </div>
+                <Skeleton className="h-8 w-28 rounded-xl" />
+              </div>
+              <Skeleton className="h-12 w-full rounded-xl" />
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-16 rounded-lg" />
+                <Skeleton className="h-6 w-20 rounded-lg" />
+                <Skeleton className="h-6 w-24 rounded-lg" />
+              </div>
+            </div>
           ))}
         </div>
       ) : projects.length === 0 ? (

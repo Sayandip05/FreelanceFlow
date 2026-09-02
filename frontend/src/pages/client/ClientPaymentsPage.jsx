@@ -5,6 +5,7 @@ import {
   Wallet, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle, Shield
 } from 'lucide-react'
 import { paymentsAPI } from '../../api/payments'
+import { DashboardSkeleton } from '../../components/common/Skeleton'
 
 const STATUS_CONFIG = {
   ESCROWED: { label: 'In Escrow', color: 'bg-blue-100 text-blue-700', icon: Shield },
@@ -36,9 +37,16 @@ const ClientPaymentsPage = () => {
   const totalSpent = payments.filter(p => p.status === 'RELEASED').reduce((s, p) => s + parseFloat(p.total_amount || 0), 0)
   const totalCount = payments.length
 
-  return (
-          
+  if (loading) {
+    return (
       <div className="flex-1 p-8">
+        <DashboardSkeleton />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex-1 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
           <p className="text-gray-600 mt-1">Manage escrow and payment history</p>

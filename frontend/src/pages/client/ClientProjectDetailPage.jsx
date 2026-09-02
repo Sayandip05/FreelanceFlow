@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 import { bidsAPI } from '../../api/bids'
+import { DetailPageSkeleton } from '../../components/common/Skeleton'
 import { formatCurrency } from '../../utils/formatCurrency'
 
 const ClientProjectDetailPage = () => {
@@ -118,8 +119,8 @@ const ClientProjectDetailPage = () => {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="w-10 h-10 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <DetailPageSkeleton />
     </div>
   )
 

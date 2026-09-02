@@ -5,6 +5,7 @@ import { Briefcase, FileText, CreditCard, MessageSquare, Star,
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 import { paymentsAPI } from '../../api/payments'
+import { DashboardSkeleton } from '../../components/common/Skeleton'
 
 const StatCard = ({ icon: Icon, label, value, color, bg }) => (
   <div className="bg-white rounded-2xl border border-gray-100 p-6 flex items-center gap-4">
@@ -47,6 +48,14 @@ const ClientOverviewPage = () => {
   const pendingPayments = payments.filter(p => p.status === 'ESCROWED').length
 
   const recentProjects = projects.slice(0, 4)
+
+  if (loading) {
+    return (
+      <div className="flex-1 p-8">
+        <DashboardSkeleton />
+      </div>
+    )
+  }
 
   return (
           
