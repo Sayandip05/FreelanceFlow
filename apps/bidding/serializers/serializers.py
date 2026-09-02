@@ -57,6 +57,13 @@ class BidCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bid
         fields = ['project', 'amount', 'cover_letter']
+
+    def to_internal_value(self, data):
+        # Handle cases where project is passed as a dict { id: 5 } or scalar
+        if isinstance(data, dict) and isinstance(data.get('project'), dict):
+            data = data.copy()
+            data['project'] = data['project'].get('id') or data['project'].get('pk')
+        return super().to_internal_value(data)
     
     def validate_amount(self, value):
         if value <= 0:

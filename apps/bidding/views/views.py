@@ -82,7 +82,11 @@ class BidViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
     
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        if isinstance(data.get('project'), dict):
+            data['project'] = data['project'].get('id') or data['project'].get('pk')
+
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         
         try:

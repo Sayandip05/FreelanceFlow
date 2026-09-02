@@ -12,12 +12,14 @@ export const bidsAPI = {
   getBid: (id) => api.get(`/bidding/bids/${id}/`),
 
   // Submit bid (freelancer only)
-  submitBid: (projectId, amount, coverLetter) =>
-    api.post('/bidding/bids/', {
-      project: projectId,
+  submitBid: (projectId, amount, coverLetter) => {
+    const id = typeof projectId === 'object' && projectId !== null ? (projectId.id || projectId.pk) : parseInt(projectId, 10) || projectId;
+    return api.post('/bidding/bids/', {
+      project: id,
       amount: amount,
       cover_letter: coverLetter
-    }),
+    });
+  },
 
   // Accept bid (client only)
   acceptBid: (bidId, milestoneData = {}) => 
