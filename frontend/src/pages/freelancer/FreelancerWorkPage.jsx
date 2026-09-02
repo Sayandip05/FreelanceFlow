@@ -305,7 +305,7 @@ const FreelancerWorkPage = () => {
         attempts += 1
         try {
           const freshData = await loadContextBundle()
-          if (freshData?.reports?.length > 0 || attempts >= 4) {
+          if (freshData?.previous_reports?.length > 0 || attempts >= 4) {
             clearInterval(pollInterval)
             setApproving(false)
           }
@@ -555,7 +555,7 @@ const FreelancerWorkPage = () => {
                             <div className="pt-2">
                               {msg.draft_data.status === 'APPROVED' || hasApprovedReport ? (
                                 <a
-                                  href={pdfUrl || reports[0]?.pdf_url || '#'}
+                                  href={pdfUrl || previous_reports[0]?.pdf_url || '#'}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all"
