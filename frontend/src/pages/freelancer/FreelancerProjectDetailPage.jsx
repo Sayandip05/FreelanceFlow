@@ -14,6 +14,7 @@ export default function FreelancerProjectDetailPage() {
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showFullOverview, setShowFullOverview] = useState(false)
 
   // Proposal Form State
   const [bidForm, setBidForm] = useState({ amount: '', cover_letter: '' })
@@ -142,11 +143,26 @@ export default function FreelancerProjectDetailPage() {
           </div>
         </div>
 
-        {/* Short Summary Preview */}
-        {project.short_description && (
-          <div className="bg-primary-50/50 border border-primary-100 rounded-xl p-4 mb-6">
-            <p className="text-xs font-semibold text-primary-800 uppercase tracking-wider mb-1">Short Preview</p>
-            <p className="text-sm text-primary-950 font-medium leading-relaxed">{project.short_description}</p>
+        {/* Short Summary Preview with More toggle */}
+        {project.description && (
+          <div className="bg-primary-50/50 border border-primary-100 rounded-xl p-4 sm:p-5 mb-6 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-primary-800 uppercase tracking-wider">
+                {showFullOverview ? 'Full Client Project Description' : 'Project Summary'}
+              </p>
+              {(project.description.length > 140 || project.description !== project.short_description) && (
+                <button
+                  type="button"
+                  onClick={() => setShowFullOverview(prev => !prev)}
+                  className="text-xs font-bold text-primary-700 hover:text-primary-900 bg-primary-100/80 hover:bg-primary-200/80 px-3 py-1 rounded-lg transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+                >
+                  {showFullOverview ? 'Show Less' : 'More...'}
+                </button>
+              )}
+            </div>
+            <p className="text-sm text-primary-950 font-medium leading-relaxed whitespace-pre-line">
+              {showFullOverview ? project.description : (project.short_description || project.description)}
+            </p>
           </div>
         )}
 
@@ -176,10 +192,10 @@ export default function FreelancerProjectDetailPage() {
           {/* Detailed Paragraph */}
           <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-primary-600" /> Detailed Project Description
+              <Briefcase className="w-5 h-5 text-primary-600" /> Full Project Description
             </h2>
             <div className="text-gray-700 text-base leading-relaxed whitespace-pre-line bg-gray-50/50 rounded-xl p-5 border border-gray-100">
-              {project.description}
+              {project.description || project.short_description || 'No detailed description provided by client.'}
             </div>
           </div>
 

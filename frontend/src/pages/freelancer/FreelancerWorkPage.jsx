@@ -14,6 +14,7 @@ import {
   BriefcaseIcon,
   ExclamationCircleIcon,
   ArrowPathIcon,
+  ArrowRightIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline'
 
@@ -41,7 +42,7 @@ const FreelancerWorkPage = () => {
   const [pdfUrl, setPdfUrl] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
 
-  const chatEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
 
   useEffect(() => {
     if (contractId) {
@@ -49,9 +50,15 @@ const FreelancerWorkPage = () => {
     }
   }, [contractId])
 
+  // Internal scroll only within messages container (prevent jumping window)
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, sending])
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
+  }, [messages.length, sending])
 
   const loadContextBundle = async () => {
     setLoading(true)
@@ -73,7 +80,6 @@ const FreelancerWorkPage = () => {
         if (data.conversation.messages && data.conversation.messages.length > 0) {
           setMessages(data.conversation.messages)
         } else {
-          // Default initial greeting
           setMessages([
             {
               role: 'assistant',
@@ -97,9 +103,30 @@ const FreelancerWorkPage = () => {
     }
   }
 
+  const { contract, deliverables = [], previous_reports = [], qdrant_status = {} } = contextData || {}
+  const hasApprovedReport = Boolean(pdfUrl || activeDraft?.status === 'APPROVED' || (previous_reports && previous_reports.length > 0))
+
   const handleSendMessage = async (textToSend = null) => {
     const text = textToSend || inputValue
     if (!text || !text.trim() || sending) return
+
+    // If an AI worklog report is already generated and user is trying to generate again, redirect to manual
+    if (hasApprovedReport && (text.toLowerCase().includes('draft') || text.toLowerCase().includes('report') || text.toLowerCase().includes('compile'))) {
+      const userMsg = {
+        role: 'user',
+        content: text.trim(),
+        timestamp: new Date().toISOString(),
+      }
+      const assistantMsg = {
+        role: 'assistant',
+        content: `An official AI worklog report has already been created and approved for this contract. For additional progress submissions or milestone deliverables, please switch to **Manual Worklog Mode**.`,
+        timestamp: new Date().toISOString(),
+        show_manual_action: true,
+      }
+      setMessages(prev => [...prev, userMsg, assistantMsg])
+      if (!textToSend) setInputValue('')
+      return
+    }
 
     const userMsg = {
       role: 'user',
@@ -151,8 +178,7 @@ const FreelancerWorkPage = () => {
     }
   }
 
-  // Listen for ai_draft_pdf_ready from WebSocket (assumes global WS is listening, 
-  // but we can add a specific listener here since we are inside FreelancerWorkPage)
+  // WebSocket for AI PDF compilation updates
   useEffect(() => {
     if (!contractId) return
 
@@ -171,7 +197,7 @@ const FreelancerWorkPage = () => {
       try {
         const data = JSON.parse(event.data)
         if (data.type === 'ai_draft_pdf_ready') {
-          const { draft_id, pdf_url } = data.payload
+          const { pdf_url } = data.payload
           setPdfUrl(pdf_url)
           setApproving(false)
           setActiveDraft((prev) => (prev ? { ...prev, status: 'APPROVED', pdf_url } : null))
@@ -202,8 +228,7 @@ const FreelancerWorkPage = () => {
     const targetDraftId = draftIdToApprove || activeDraft?.id
     setApproving(true)
     try {
-      const res = await aiWorklogAPI.approveDraft(contractId, targetDraftId)
-      // Request accepted, now wait for WebSocket event ai_draft_pdf_ready
+      await aiWorklogAPI.approveDraft(contractId, targetDraftId)
     } catch (err) {
       console.error('Error approving report draft:', err)
       alert('Failed to approve report PDF. Please try again.')
@@ -258,11 +283,9 @@ const FreelancerWorkPage = () => {
     )
   }
 
-  const { contract, deliverables = [], stats = {}, previous_reports = [], qdrant_status = {} } = contextData
-
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col h-screen overflow-hidden">
-      {/* Top Navbar */}
+      {/* ── Top Header ────────────────────────────────────────── */}
       <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-xs">
         <div className="flex items-center gap-4">
           <button
@@ -270,7 +293,7 @@ const FreelancerWorkPage = () => {
             className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1.5 text-xs font-bold"
           >
             <ArrowLeftIcon className="w-4 h-4" />
-            Back to Hub
+            Back to Worklogs
           </button>
           <div className="h-5 w-px bg-gray-200"></div>
           <div>
@@ -295,326 +318,262 @@ const FreelancerWorkPage = () => {
         </div>
       </header>
 
-      {/* Main Split Layout */}
+      {/* ── Main Layout: Expanded Workspace on Left + Clear Deliverables/Reports Sidebar on Right ── */}
       <div className="flex-1 flex overflow-hidden">
-        {/* LEFT PANEL: Context, Deliverables, Stats & Past Reports */}
-        <aside className="w-1/2 lg:w-5/12 border-r border-gray-200 bg-gray-50/70 p-6 overflow-y-auto space-y-6">
-          {/* Contract Overview Box */}
-          <div className="rounded-2xl bg-white border border-gray-200 p-5 space-y-3 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Contract Scope & Budget</span>
-              <span className="text-sm font-black text-blue-600">${parseFloat(contract.rate || 0).toLocaleString()}</span>
-            </div>
-            <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">{contract.description}</p>
-            <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-              <span>Client: <strong className="text-gray-800">{contract.client_name}</strong></span>
-              <span>Status: <strong className="text-blue-600 font-bold">{contract.status}</strong></span>
-            </div>
-          </div>
-
-          {/* Quick Metrics Cards */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl bg-white border border-gray-200 p-4 shadow-2xs">
-              <div className="flex items-center gap-2 text-gray-600 text-xs font-semibold uppercase tracking-wider">
-                <ClockIcon className="w-4 h-4 text-gray-500" />
-                Hours Logged
-              </div>
-              <p className="text-2xl font-black text-gray-900 mt-1">{stats.total_hours_logged || 0} hrs</p>
-            </div>
-            <div className="rounded-2xl bg-blue-50/60 border border-blue-100 p-4 shadow-2xs">
-              <div className="flex items-center gap-2 text-blue-700 text-xs font-semibold uppercase tracking-wider">
-                <CheckCircleIcon className="w-4 h-4 text-blue-600" />
-                Deliverables Done
-              </div>
-              <p className="text-2xl font-black text-blue-700 mt-1">
-                {stats.approved_deliverables || 0} / {stats.total_deliverables || 0}
-              </p>
-            </div>
-          </div>
-
-          {/* Deliverables Checklist */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Assigned Deliverables ({deliverables.length})
-              </h3>
-            </div>
-            {deliverables.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">No discrete deliverables registered yet.</p>
-            ) : (
-              <div className="space-y-2.5">
-                {deliverables.map((d) => (
-                  <div
-                    key={d.id}
-                    className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-2xs hover:border-blue-200 transition-all flex items-start justify-between gap-3"
-                  >
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">{d.title}</h4>
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{d.description}</p>
-                    </div>
-                    <span
-                      className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-md shrink-0 ${
-                        d.status === 'APPROVED'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : d.status === 'SUBMITTED'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
-                      }`}
-                    >
-                      {d.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Past Approved Reports & PDF Downloads */}
-          <div className="space-y-3 pt-4 border-t border-gray-200">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Previous Compiled Reports ({previous_reports.length})
-            </h3>
-            {previous_reports.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">No approved reports generated yet for this contract.</p>
-            ) : (
-              <div className="space-y-2">
-                {previous_reports.map((rpt, idx) => (
-                  <div
-                    key={rpt.id || idx}
-                    className="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <DocumentTextIcon className="w-5 h-5 text-blue-600 shrink-0" />
-                      <div>
-                        <p className="text-xs font-bold text-gray-900 line-clamp-1">{rpt.title}</p>
-                        <p className="text-[10px] text-gray-500">
-                          {rpt.hours_worked}h logged • {new Date(rpt.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    {rpt.pdf_url && (
-                      <a
-                        href={rpt.pdf_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white transition-all text-xs font-bold flex items-center gap-1 shrink-0 border border-blue-200"
-                      >
-                        <ArrowDownTrayIcon className="w-3.5 h-3.5" />
-                        PDF
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </aside>
-
-        {/* RIGHT PANEL: Interactive AI Assistant Stream & Inline Report Draft */}
-        <main className="w-1/2 lg:w-7/12 flex flex-col bg-white">
-          {/* Mode Switcher - Theme Primary Blue */}
-          <div className="flex border-b border-gray-200 shrink-0 bg-gray-50/50">
+        
+        {/* ── MAIN WORKSPACE (AI Assistant / Manual Form) ── */}
+        <main className="flex-1 flex flex-col bg-white border-r border-gray-200 overflow-hidden">
+          {/* Mode Switcher */}
+          <div className="flex border-b border-gray-200 shrink-0 bg-gray-50/70">
             <button
               onClick={() => setMode('AI')}
-              className={`flex-1 py-3 text-sm font-bold text-center transition-all ${
-                mode === 'AI' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
+              className={`flex-1 py-3.5 text-sm font-bold text-center transition-all flex items-center justify-center gap-2 ${
+                mode === 'AI' ? 'text-blue-600 border-b-2 border-blue-600 bg-white shadow-2xs' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
+              <SparklesIcon className="w-4 h-4 text-blue-600" />
               AI Assistant Mode
             </button>
             <button
               onClick={() => setMode('MANUAL')}
-              className={`flex-1 py-3 text-sm font-bold text-center transition-all ${
-                mode === 'MANUAL' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30 shadow-2xs' : 'text-gray-500 hover:text-gray-900'
+              className={`flex-1 py-3.5 text-sm font-bold text-center transition-all flex items-center justify-center gap-2 ${
+                mode === 'MANUAL' ? 'text-blue-600 border-b-2 border-blue-600 bg-white shadow-2xs' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
+              <DocumentTextIcon className="w-4 h-4 text-blue-600" />
               Manual Worklog Mode
             </button>
           </div>
 
           {mode === 'AI' ? (
-            <>
-              {/* Chat Messages Stream */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {messages.map((msg, i) => {
-              const isUser = msg.role === 'user'
-              return (
-                <div key={i} className={`flex gap-3.5 ${isUser ? 'justify-end' : 'justify-start'}`}>
-                  {!isUser && (
-                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                      <SparklesIcon className="w-4 h-4 text-blue-100" />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Once Generated Alert: If an AI report is already created, show Go to Manual banner */}
+              {hasApprovedReport && (
+                <div className="mx-6 mt-4 p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs shrink-0">
+                      <CheckCircleIcon className="w-5 h-5" />
                     </div>
-                  )}
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">AI Worklog Report Already Compiled</p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        An official AI worklog report has already been created for this project. To log additional updates or submit discrete milestone tasks, please use Manual Worklog Mode.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setMode('MANUAL')}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all whitespace-nowrap active:scale-95 flex items-center gap-1.5"
+                  >
+                    Go to Manual Mode <ArrowRightIcon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
-                  <div className={`max-w-[85%] space-y-3 ${isUser ? 'items-end' : 'items-start'}`}>
-                    <div
-                      className={`rounded-2xl p-4 text-sm leading-relaxed ${
-                        isUser
-                          ? 'bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-600/20'
-                          : 'bg-gray-50 border border-gray-200 text-gray-800 rounded-bl-none shadow-2xs'
-                      }`}
-                    >
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
-
-                      {/* Direct PDF Link if available */}
-                      {msg.pdf_url && (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <a
-                            href={msg.pdf_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all"
-                          >
-                            <ArrowDownTrayIcon className="w-4 h-4" />
-                            Download Official PDF Report
-                          </a>
+              {/* Chat Messages Stream */}
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"
+              >
+                {messages.map((msg, i) => {
+                  const isUser = msg.role === 'user'
+                  return (
+                    <div key={i} className={`flex gap-3.5 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                      {!isUser && (
+                        <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                          <SparklesIcon className="w-4 h-4 text-blue-100" />
                         </div>
                       )}
-                    </div>
 
-                    {/* Inline Structured Draft Card */}
-                    {msg.has_draft && msg.draft_data && (
-                      <div className="rounded-2xl bg-white border-2 border-blue-100 p-5 shadow-lg space-y-4">
-                        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                          <div className="flex items-center gap-2">
-                            <DocumentTextIcon className="w-5 h-5 text-blue-600" />
-                            <h4 className="text-sm font-bold text-gray-900">{msg.draft_data.title}</h4>
-                          </div>
-                          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
-                            {msg.draft_data.hours_worked || 0} Hours
-                          </span>
-                        </div>
+                      <div className={`max-w-[85%] sm:max-w-[75%] space-y-3 ${isUser ? 'items-end' : 'items-start'}`}>
+                        <div
+                          className={`rounded-2xl p-4 text-sm leading-relaxed ${
+                            isUser
+                              ? 'bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-600/20'
+                              : 'bg-gray-50 border border-gray-200 text-gray-800 rounded-bl-none shadow-2xs'
+                          }`}
+                        >
+                          <div className="whitespace-pre-wrap">{msg.content}</div>
 
-                        {/* Section 1: Executive Summary */}
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                            1. Executive Summary
-                          </p>
-                          <p className="text-xs text-gray-700 bg-gray-50 p-3.5 rounded-xl border border-gray-200 leading-relaxed">
-                            {msg.draft_data.section_summary}
-                          </p>
-                        </div>
-
-                        {/* Section 2: Deliverables Completed */}
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                            2. Deliverables Completed
-                          </p>
-                          <div className="space-y-1.5">
-                            {msg.draft_data.section_deliverables?.map((item, idx) => (
-                              <div
-                                key={idx}
-                                className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs flex items-center justify-between"
+                          {/* Direct PDF Link if available */}
+                          {msg.pdf_url && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <a
+                                href={msg.pdf_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all"
                               >
-                                <span className="font-semibold text-gray-900">{item.title}</span>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                                  {item.status || 'COMPLETED'}
-                                </span>
+                                <ArrowDownTrayIcon className="w-4 h-4" />
+                                Download Official PDF Report
+                              </a>
+                            </div>
+                          )}
+
+                          {/* Go to manual action suggestion button */}
+                          {msg.show_manual_action && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <button
+                                onClick={() => setMode('MANUAL')}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all"
+                              >
+                                Go to Manual Worklog Mode <ArrowRightIcon className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Inline Structured Draft Card */}
+                        {msg.has_draft && msg.draft_data && (
+                          <div className="rounded-2xl bg-white border-2 border-blue-100 p-5 shadow-lg space-y-4">
+                            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                              <div className="flex items-center gap-2">
+                                <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+                                <h4 className="text-sm font-bold text-gray-900">{msg.draft_data.title}</h4>
                               </div>
-                            ))}
+                              <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
+                                {msg.draft_data.hours_worked || 0} Hours
+                              </span>
+                            </div>
+
+                            {/* Section 1: Executive Summary */}
+                            <div className="space-y-1">
+                              <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                                1. Executive Summary
+                              </p>
+                              <p className="text-xs text-gray-700 bg-gray-50 p-3.5 rounded-xl border border-gray-200 leading-relaxed">
+                                {msg.draft_data.section_summary}
+                              </p>
+                            </div>
+
+                            {/* Section 2: Deliverables Completed */}
+                            <div className="space-y-1">
+                              <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                                2. Deliverables Completed
+                              </p>
+                              <div className="space-y-1.5">
+                                {msg.draft_data.section_deliverables?.map((item, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs flex items-center justify-between"
+                                  >
+                                    <span className="font-semibold text-gray-900">{item.title}</span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                      {item.status || 'COMPLETED'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Section 3: Next Steps & Priorities */}
+                            <div className="space-y-1">
+                              <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                                3. Next Steps & Blockers
+                              </p>
+                              <p className="text-xs text-gray-700 bg-gray-50 p-3.5 rounded-xl border border-gray-200 leading-relaxed">
+                                {msg.draft_data.section_next_steps}
+                              </p>
+                            </div>
+
+                            {/* Approve Draft Button */}
+                            <div className="pt-2">
+                              <button
+                                onClick={() => handleApproveDraft(msg.draft_id)}
+                                disabled={approving}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all disabled:opacity-50 active:scale-98"
+                              >
+                                {approving ? (
+                                  <>
+                                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                                    Compiling WeasyPrint PDF & Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircleIcon className="w-4 h-4" />
+                                    Approve Draft & Generate Official PDF
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-
-                        {/* Section 3: Next Steps & Priorities */}
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                            3. Next Steps & Blockers
-                          </p>
-                          <p className="text-xs text-gray-700 bg-gray-50 p-3.5 rounded-xl border border-gray-200 leading-relaxed">
-                            {msg.draft_data.section_next_steps}
-                          </p>
-                        </div>
-
-                        {/* Approve Draft Button */}
-                        <div className="pt-2">
-                          <button
-                            onClick={() => handleApproveDraft(msg.draft_id)}
-                            disabled={approving}
-                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all disabled:opacity-50 active:scale-98"
-                          >
-                            {approving ? (
-                              <>
-                                <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                                Compiling WeasyPrint PDF & Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircleIcon className="w-4 h-4" />
-                                Approve Draft & Generate Official PDF
-                              </>
-                            )}
-                          </button>
-                        </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  )
+                })}
+
+                {sending && (
+                  <div className="flex gap-3 items-center">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
+                      <SparklesIcon className="w-4 h-4 text-white animate-spin" />
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-2xl rounded-bl-none px-4 py-3 text-xs text-gray-600 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce"></span>
+                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:0.2s]"></span>
+                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:0.4s]"></span>
+                      <span className="ml-1 font-medium">Querying Qdrant context & synthesizing...</span>
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-
-            {sending && (
-              <div className="flex gap-3 items-center">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
-                  <SparklesIcon className="w-4 h-4 text-white animate-spin" />
-                </div>
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl rounded-bl-none px-4 py-3 text-xs text-gray-600 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce"></span>
-                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:0.2s]"></span>
-                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:0.4s]"></span>
-                  <span className="ml-1 font-medium">Querying Qdrant context & synthesizing...</span>
-                </div>
+                )}
               </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
 
-          {/* Quick Action Suggestion Chips */}
-          <div className="px-6 py-2 bg-gray-50 border-t border-gray-200 flex items-center gap-2 overflow-x-auto scrollbar-none">
-            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider shrink-0">Quick Prompts:</span>
-            {[
-              'Draft my weekly progress report',
-              'Summarize completed deliverables',
-              'Log 8 hours on sprint tasks',
-              'What requirements are pending?',
-            ].map((prompt, i) => (
-              <button
-                key={i}
-                onClick={() => handleSendMessage(prompt)}
-                disabled={sending}
-                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-600 text-xs font-semibold whitespace-nowrap transition-colors border border-gray-200 shadow-2xs shrink-0"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
+              {/* Quick Action Suggestion Chips */}
+              <div className="px-6 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
+                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider shrink-0">Quick Prompts:</span>
+                {hasApprovedReport ? (
+                  <button
+                    onClick={() => setMode('MANUAL')}
+                    className="px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold whitespace-nowrap transition-colors border border-blue-200 shadow-2xs shrink-0 flex items-center gap-1"
+                  >
+                    Go to Manual Worklog <ArrowRightIcon className="w-3 h-3" />
+                  </button>
+                ) : (
+                  [
+                    'Draft my weekly progress report',
+                    'Summarize completed deliverables',
+                    'Log 8 hours on sprint tasks',
+                    'What requirements are pending?',
+                  ].map((prompt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSendMessage(prompt)}
+                      disabled={sending}
+                      className="px-3.5 py-1.5 rounded-full bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-600 text-xs font-semibold whitespace-nowrap transition-colors border border-gray-200 shadow-2xs shrink-0"
+                    >
+                      {prompt}
+                    </button>
+                  ))
+                )}
+              </div>
 
-          {/* Chat Input Bar */}
-          <div className="p-4 bg-white border-t border-gray-200">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                handleSendMessage()
-              }}
-              className="flex items-center gap-3"
-            >
-              <input
-                type="text"
-                placeholder="Describe your work, request changes, or ask the AI to draft a report..."
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                disabled={sending}
-                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-colors"
-              />
-              <button
-                type="submit"
-                disabled={!inputValue.trim() || sending}
-                className="p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl shadow-md shadow-blue-600/20 transition-all shrink-0 active:scale-95"
-              >
-                <PaperAirplaneIcon className="w-5 h-5" />
-              </button>
-            </form>
-          </div>
-            </>
+              {/* Chat Input Bar */}
+              <div className="p-4 bg-white border-t border-gray-200 shrink-0">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    handleSendMessage()
+                  }}
+                  className="flex items-center gap-3"
+                >
+                  <input
+                    type="text"
+                    placeholder={hasApprovedReport ? "Ask questions about project context or switch to Manual Mode to log work..." : "Describe your work, request changes, or ask the AI to draft a report..."}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    disabled={sending}
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!inputValue.trim() || sending}
+                    className="p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl shadow-md shadow-blue-600/20 transition-all shrink-0 active:scale-95"
+                  >
+                    <PaperAirplaneIcon className="w-5 h-5" />
+                  </button>
+                </form>
+              </div>
+            </div>
           ) : (
             <div className="flex-1 overflow-y-auto p-8">
               <div className="max-w-xl mx-auto space-y-6">
@@ -677,56 +636,145 @@ const FreelancerWorkPage = () => {
           )}
         </main>
 
-        {/* RIGHT NARROW PANEL: Actions & Downloads */}
-        <aside className="w-72 bg-gray-50 p-6 flex flex-col items-center border-l border-gray-200 shrink-0">
-          <div className="w-full space-y-6">
-            <div>
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-                Current Deliverable
-              </h3>
-              
-              {pdfUrl ? (
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col items-center text-center space-y-3">
-                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-sm">
-                    <CheckCircleIcon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">PDF Ready</p>
-                    <p className="text-xs text-gray-600 mt-1">Your deliverable has been compiled and is ready for the client.</p>
-                  </div>
-                  <a
-                    href={pdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all mt-2"
+        {/* ── RIGHT PANEL: Consolidated Deliverable Downloads, Previous Reports & Contract Scope ── */}
+        <aside className="w-80 lg:w-96 bg-gray-50/70 p-6 flex flex-col gap-6 overflow-y-auto shrink-0">
+          
+          {/* Current Deliverable Status */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+              Current Deliverable
+            </h3>
+            
+            {pdfUrl ? (
+              <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-sm">
+                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-sm">
+                  <CheckCircleIcon className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">PDF Ready</p>
+                  <p className="text-xs text-gray-600 mt-1">Your deliverable has been compiled and is ready for the client.</p>
+                </div>
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all mt-2"
+                >
+                  <ArrowDownTrayIcon className="w-4 h-4" />
+                  Download PDF
+                </a>
+              </div>
+            ) : activeDraft ? (
+              <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-sm">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 shadow-sm">
+                  <DocumentTextIcon className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Draft Pending</p>
+                  <p className="text-xs text-gray-600 mt-1">Review the draft in the chat and approve it to generate the PDF.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-5 bg-white border border-gray-200 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-xs">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
+                  <ClockIcon className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">No Draft Yet</p>
+                  <p className="text-xs text-gray-500 mt-1">Chat with the AI or use the manual form to create your deliverable.</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Report Downloads & History (Shifted from Left to Right Side) */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              Previous Compiled Reports ({previous_reports.length})
+            </h3>
+            {previous_reports.length === 0 ? (
+              <p className="text-xs text-gray-400 italic bg-white p-3.5 rounded-xl border border-gray-200 text-center">
+                No approved reports generated yet.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {previous_reports.map((rpt, idx) => (
+                  <div
+                    key={rpt.id || idx}
+                    className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-2xs flex items-center justify-between gap-3"
                   >
-                    <ArrowDownTrayIcon className="w-4 h-4" />
-                    Download PDF
-                  </a>
-                </div>
-              ) : activeDraft ? (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col items-center text-center space-y-3">
-                   <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 shadow-sm">
-                    <DocumentTextIcon className="w-6 h-6" />
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <DocumentTextIcon className="w-5 h-5 text-blue-600 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-gray-900 truncate">{rpt.title}</p>
+                        <p className="text-[10px] text-gray-500">
+                          {rpt.hours_worked}h logged • {new Date(rpt.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    {rpt.pdf_url && (
+                      <a
+                        href={rpt.pdf_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white transition-all text-xs font-bold flex items-center gap-1 shrink-0 border border-blue-200"
+                      >
+                        <ArrowDownTrayIcon className="w-3.5 h-3.5" />
+                        PDF
+                      </a>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">Draft Pending</p>
-                    <p className="text-xs text-gray-600 mt-1">Review the draft in the chat and approve it to generate the PDF.</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 bg-white border border-gray-200 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-xs">
-                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
-                    <ClockIcon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">No Draft Yet</p>
-                    <p className="text-xs text-gray-500 mt-1">Chat with the AI or use the manual form to create your deliverable.</p>
-                  </div>
-                </div>
-              )}
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Contract Overview Box */}
+          <div className="rounded-2xl bg-white border border-gray-200 p-5 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Contract Budget</span>
+              <span className="text-sm font-black text-blue-600">${parseFloat(contract.rate || 0).toLocaleString()}</span>
+            </div>
+            <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">{contract.description}</p>
+            <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+              <span>Client: <strong className="text-gray-800">{contract.client_name}</strong></span>
+              <span>Status: <strong className="text-blue-600 font-bold">{contract.status}</strong></span>
             </div>
           </div>
+
+          {/* Deliverables Overview Checklist */}
+          {deliverables.length > 0 && (
+            <div className="space-y-2.5">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Assigned Deliverables ({deliverables.length})
+              </h3>
+              <div className="space-y-2">
+                {deliverables.map((d) => (
+                  <div
+                    key={d.id}
+                    className="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs flex items-center justify-between gap-2"
+                  >
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-gray-900 truncate">{d.title}</h4>
+                      <p className="text-[10px] text-gray-500 truncate">{d.description}</p>
+                    </div>
+                    <span
+                      className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded shrink-0 ${
+                        d.status === 'APPROVED'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : d.status === 'SUBMITTED'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      }`}
+                    >
+                      {d.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </aside>
       </div>
     </div>
