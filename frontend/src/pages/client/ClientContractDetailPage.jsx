@@ -144,10 +144,10 @@ export default function ClientContractDetailPage() {
         const milestoneEvents = [
           'milestone_funded', 'milestone_submitted',
           'milestone_approved', 'milestone_rejected',
-          'worklog_update',
+          'worklog_update', 'ai_draft_pdf_ready',
         ]
         if (milestoneEvents.includes(data.type)) {
-          loadContractData()
+          loadContractData(false)
         }
       } catch {}
     }
@@ -159,8 +159,8 @@ export default function ClientContractDetailPage() {
     }
   }, [contractId])
 
-  const loadContractData = async () => {
-    setLoading(true)
+  const loadContractData = async (isInitial = true) => {
+    if (isInitial) setLoading(true)
     try {
       const [contractRes, milestonesRes, deliverablesRes, reportsRes] = await Promise.allSettled([
         contractsAPI.getContractDetail(contractId),
@@ -188,7 +188,7 @@ export default function ClientContractDetailPage() {
     } catch (e) {
       console.error('Error loading contract data:', e)
     } finally {
-      setLoading(false)
+      if (isInitial) setLoading(false)
     }
   }
 
@@ -816,8 +816,9 @@ support@freelanceflow.com
                   const isPending = m.status === 'PENDING'
 
                   // Check if there is an associated deliverable for this specific milestone
+                  const linkMatch = m.deliverable_description ? m.deliverable_description.match(/https?:\/\/[^\s|]+/)?.[0] : null
                   const matchingDeliverable = deliverables.find(d => d.milestone_id === m.id && d.pdf_url)
-                  const milestoneWorkPdf = matchingDeliverable?.pdf_url || (isSubmitted ? (deliverables.find(d => d.pdf_url)?.pdf_url || reports.find(r => r.pdf_url)?.pdf_url) : null)
+                  const milestoneWorkPdf = linkMatch || matchingDeliverable?.pdf_url || (isSubmitted ? (deliverables.find(d => d.pdf_url)?.pdf_url || reports.find(r => r.pdf_url)?.pdf_url) : null)
 
                   return (
                     <tr key={m.id} className="hover:bg-gray-50/80 transition-colors">

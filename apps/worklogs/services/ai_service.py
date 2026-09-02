@@ -572,182 +572,175 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         </html>
         """
 
-        # Generate PDF bytes via WeasyPrint or FPDF2 fallback
-        pdf_bytes = None
+        # Generate clean, professional PDF bytes via high-speed FPDF2
         try:
-            from weasyprint import HTML
-            pdf_bytes = HTML(string=html_content).write_pdf()
-        except Exception as e:
-            logger.warning("WeasyPrint error, falling back to fpdf2: %s", e)
-            try:
-                from fpdf import FPDF
-                
-                def clean_pdf_text(text) -> str:
-                    if not text:
-                        return ""
-                    text_str = str(text)
-                    replacements = {
-                        "\u2011": "-",  # Non-breaking hyphen
-                        "\u2013": "-",  # En dash
-                        "\u2014": "--", # Em dash
-                        "\u2018": "'",  # Smart left single quote
-                        "\u2019": "'",  # Smart right single quote
-                        "\u201c": '"',  # Smart left double quote
-                        "\u201d": '"',  # Smart right double quote
-                        "\u2022": "*",  # Bullet point
-                        "\u2026": "...",# Ellipsis
-                        "\u2027": "-",  # Hyphenation point
-                        "\u2010": "-",  # Hyphen
-                    }
-                    for k, v in replacements.items():
-                        text_str = text_str.replace(k, v)
-                    return text_str.encode("latin-1", errors="replace").decode("latin-1")
-                
-                class ReportPDF(FPDF):
-                    def header(self):
-                        self.set_font("Helvetica", "B", 13)
-                        self.set_text_color(30, 64, 175)  # Deep Blue
-                        self.cell(0, 7, "FREELANCEFLOW PROGRESS REPORT", border=0, ln=1, align="L")
-                        self.set_font("Helvetica", "", 9)
-                        self.set_text_color(100, 116, 139)  # Slate
-                        self.cell(0, 5, "Verified Contract Progress & Delivery Summary", border=0, ln=1, align="L")
-                        self.ln(2)
-                        y_line = self.get_y()
-                        self.set_draw_color(203, 213, 225)
-                        self.set_line_width(0.4)
-                        self.line(15, y_line, 195, y_line)
-                        self.ln(5)
+            from fpdf import FPDF
+            
+            def clean_pdf_text(text) -> str:
+                if not text:
+                    return ""
+                text_str = str(text)
+                replacements = {
+                    "\u2011": "-",  # Non-breaking hyphen
+                    "\u2013": "-",  # En dash
+                    "\u2014": "--", # Em dash
+                    "\u2018": "'",  # Smart left single quote
+                    "\u2019": "'",  # Smart right single quote
+                    "\u201c": '"',  # Smart left double quote
+                    "\u201d": '"',  # Smart right double quote
+                    "\u2022": "*",  # Bullet point
+                    "\u2026": "...",# Ellipsis
+                    "\u2027": "-",  # Hyphenation point
+                    "\u2010": "-",  # Hyphen
+                }
+                for k, v in replacements.items():
+                    text_str = text_str.replace(k, v)
+                return text_str.encode("latin-1", errors="replace").decode("latin-1")
+            
+            class ReportPDF(FPDF):
+                def header(self):
+                    self.set_font("Helvetica", "B", 13)
+                    self.set_text_color(30, 64, 175)  # Deep Blue
+                    self.cell(0, 7, "FREELANCEFLOW PROGRESS REPORT", border=0, ln=1, align="L")
+                    self.set_font("Helvetica", "", 9)
+                    self.set_text_color(100, 116, 139)  # Slate
+                    self.cell(0, 5, "Verified Contract Progress & Delivery Summary", border=0, ln=1, align="L")
+                    self.ln(2)
+                    y_line = self.get_y()
+                    self.set_draw_color(203, 213, 225)
+                    self.set_line_width(0.4)
+                    self.line(15, y_line, 195, y_line)
+                    self.ln(5)
 
-                    def footer(self):
-                        self.set_y(-18)
-                        self.set_draw_color(226, 232, 240)
-                        self.set_line_width(0.3)
-                        self.line(15, self.get_y(), 195, self.get_y())
-                        self.set_y(-14)
-                        self.set_font("Helvetica", "I", 8)
-                        self.set_text_color(100, 116, 139)
-                        self.cell(0, 5, f"* Note: Compiled by FreelanceFlow AI Worklog Assistant • Verified by Freelancer (Page {self.page_no()})", border=0, align="C")
+                def footer(self):
+                    self.set_y(-18)
+                    self.set_draw_color(226, 232, 240)
+                    self.set_line_width(0.3)
+                    self.line(15, self.get_y(), 195, self.get_y())
+                    self.set_y(-14)
+                    self.set_font("Helvetica", "I", 8)
+                    self.set_text_color(100, 116, 139)
+                    self.cell(0, 5, f"* Note: Compiled by FreelanceFlow AI Worklog Assistant • Verified by Freelancer (Page {self.page_no()})", border=0, align="C")
 
+            pdf = ReportPDF()
+            pdf.set_auto_page_break(auto=True, margin=22)
+            pdf.set_margins(15, 15, 15)
+            pdf.add_page()
 
-                pdf = ReportPDF()
-                pdf.set_auto_page_break(auto=True, margin=22)
-                pdf.set_margins(15, 15, 15)
-                pdf.add_page()
+            # Metadata Info Card
+            pdf.set_fill_color(248, 250, 252)
+            pdf.set_draw_color(226, 232, 240)
+            pdf.set_line_width(0.3)
 
-                # Metadata Info Card
-                pdf.set_fill_color(248, 250, 252)
-                pdf.set_draw_color(226, 232, 240)
-                pdf.set_line_width(0.3)
+            # Card Top Row: Project Title
+            pdf.set_font("Helvetica", "B", 9.5)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 7, "Project Title:", border="LT", ln=0, fill=True)
+            pdf.set_font("Helvetica", "B", 9.5)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(148, 7, clean_pdf_text(project.title), border="TR", ln=1, fill=True)
 
-                # Card Top Row: Project Title
-                pdf.set_font("Helvetica", "B", 9.5)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 7, "Project Title:", border="LT", ln=0, fill=True)
-                pdf.set_font("Helvetica", "B", 9.5)
-                pdf.set_text_color(15, 23, 42)
-                pdf.cell(148, 7, clean_pdf_text(project.title), border="TR", ln=1, fill=True)
+            # Card Middle Row: Client & Freelancer
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Client:", border="L", ln=0, fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(58, 6, clean_pdf_text(client.get_full_name() or client.email), border=0, ln=0, fill=True)
 
-                # Card Middle Row: Client & Freelancer
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 6, "Client:", border="L", ln=0, fill=True)
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(15, 23, 42)
-                pdf.cell(58, 6, clean_pdf_text(client.get_full_name() or client.email), border=0, ln=0, fill=True)
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Freelancer:", border=0, ln=0, fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(58, 6, clean_pdf_text(freelancer.get_full_name() or freelancer.email), border="R", ln=1, fill=True)
 
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 6, "Freelancer:", border=0, ln=0, fill=True)
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(15, 23, 42)
-                pdf.cell(58, 6, clean_pdf_text(freelancer.get_full_name() or freelancer.email), border="R", ln=1, fill=True)
+            # Card Bottom Row: Hours & Date
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Hours Logged:", border="LB", ln=0, fill=True)
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(30, 64, 175)  # Deep blue
+            pdf.cell(58, 6, f"{draft.hours_worked} hrs", border="B", ln=0, fill=True)
 
-                # Card Bottom Row: Hours & Date
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 6, "Hours Logged:", border="LB", ln=0, fill=True)
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(30, 64, 175)  # Deep blue
-                pdf.cell(58, 6, f"{draft.hours_worked} hrs", border="B", ln=0, fill=True)
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(71, 85, 105)
+            pdf.cell(32, 6, "Date Generated:", border="B", ln=0, fill=True)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(58, 6, timezone.now().strftime('%B %d, %Y'), border="RB", ln=1, fill=True)
 
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 6, "Date Generated:", border="B", ln=0, fill=True)
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(15, 23, 42)
-                pdf.cell(58, 6, timezone.now().strftime('%B %d, %Y'), border="RB", ln=1, fill=True)
+            pdf.ln(5)
 
-                pdf.ln(5)
+            # Section 1: Executive Summary
+            pdf.set_font("Helvetica", "B", 10.5)
+            pdf.set_text_color(30, 64, 175)  # Deep Blue
+            pdf.cell(0, 6, "1. Executive Summary", ln=1)
+            pdf.set_draw_color(203, 213, 225)
+            pdf.set_line_width(0.4)
+            y_s1 = pdf.get_y()
+            pdf.line(15, y_s1, 195, y_s1)
+            pdf.ln(3)
 
-                # Section 1: Executive Summary
-                pdf.set_font("Helvetica", "B", 10.5)
-                pdf.set_text_color(30, 64, 175)  # Deep Blue
-                pdf.cell(0, 6, "1. Executive Summary", ln=1)
-                pdf.set_draw_color(203, 213, 225)
-                pdf.set_line_width(0.4)
-                y_s1 = pdf.get_y()
-                pdf.line(15, y_s1, 195, y_s1)
-                pdf.ln(3)
+            pdf.set_font("Helvetica", "", 9.5)
+            pdf.set_text_color(30, 41, 59)
+            pdf.multi_cell(180, 5.5, clean_pdf_text(draft.section_summary))
+            pdf.ln(4)
 
-                pdf.set_font("Helvetica", "", 9.5)
-                pdf.set_text_color(30, 41, 59)
-                pdf.multi_cell(180, 5.5, clean_pdf_text(draft.section_summary))
-                pdf.ln(4)
+            # Section 2: Deliverables Completed
+            pdf.set_font("Helvetica", "B", 10.5)
+            pdf.set_text_color(30, 64, 175)  # Deep Blue
+            pdf.cell(0, 6, "2. Deliverables & Milestones Completed", ln=1)
+            pdf.set_draw_color(203, 213, 225)
+            pdf.set_line_width(0.4)
+            y_s2 = pdf.get_y()
+            pdf.line(15, y_s2, 195, y_s2)
+            pdf.ln(3)
 
-                # Section 2: Deliverables Completed
-                pdf.set_font("Helvetica", "B", 10.5)
-                pdf.set_text_color(30, 64, 175)  # Deep Blue
-                pdf.cell(0, 6, "2. Deliverables & Milestones Completed", ln=1)
-                pdf.set_draw_color(203, 213, 225)
-                pdf.set_line_width(0.4)
-                y_s2 = pdf.get_y()
-                pdf.line(15, y_s2, 195, y_s2)
-                pdf.ln(3)
+            if not draft.section_deliverables:
+                pdf.set_font("Helvetica", "I", 9)
+                pdf.set_text_color(100, 116, 139)
+                pdf.cell(0, 6, "No discrete deliverables listed for this period.", ln=1)
+            else:
+                for d in draft.section_deliverables:
+                    if isinstance(d, dict):
+                        d_title = clean_pdf_text(d.get('title', 'Deliverable'))
+                        d_status = clean_pdf_text(d.get('status', 'COMPLETED'))
+                        d_desc = clean_pdf_text(d.get('description', ''))
 
-                if not draft.section_deliverables:
-                    pdf.set_font("Helvetica", "I", 9)
-                    pdf.set_text_color(100, 116, 139)
-                    pdf.cell(0, 6, "No discrete deliverables listed for this period.", ln=1)
-                else:
-                    for d in draft.section_deliverables:
-                        if isinstance(d, dict):
-                            d_title = clean_pdf_text(d.get('title', 'Deliverable'))
-                            d_status = clean_pdf_text(d.get('status', 'COMPLETED'))
-                            d_desc = clean_pdf_text(d.get('description', ''))
+                        # Deliverable header line: title and badge
+                        pdf.set_font("Helvetica", "B", 9.5)
+                        pdf.set_text_color(15, 23, 42)
+                        pdf.cell(0, 5.5, f"* {d_title}  [{d_status}]", ln=1)
 
-                            # Deliverable header line: title and badge
-                            pdf.set_font("Helvetica", "B", 9.5)
-                            pdf.set_text_color(15, 23, 42)
-                            pdf.cell(0, 5.5, f"* {d_title}  [{d_status}]", ln=1)
+                        # Description on indented line below
+                        if d_desc:
+                            pdf.set_font("Helvetica", "", 9)
+                            pdf.set_text_color(71, 85, 105)
+                            pdf.set_x(20)
+                            pdf.multi_cell(170, 5, d_desc)
+                        pdf.ln(2)
 
-                            # Description on indented line below
-                            if d_desc:
-                                pdf.set_font("Helvetica", "", 9)
-                                pdf.set_text_color(71, 85, 105)
-                                pdf.set_x(20)
-                                pdf.multi_cell(170, 5, d_desc)
-                            pdf.ln(2)
+            pdf.ln(3)
 
-                pdf.ln(3)
+            # Section 3: Next Steps & Priorities
+            pdf.set_font("Helvetica", "B", 10.5)
+            pdf.set_text_color(30, 64, 175)  # Deep Blue
+            pdf.cell(0, 6, "3. Next Steps & Upcoming Priorities", ln=1)
+            pdf.set_draw_color(203, 213, 225)
+            pdf.set_line_width(0.4)
+            y_s3 = pdf.get_y()
+            pdf.line(15, y_s3, 195, y_s3)
+            pdf.ln(3)
 
-                # Section 3: Next Steps & Priorities
-                pdf.set_font("Helvetica", "B", 10.5)
-                pdf.set_text_color(30, 64, 175)  # Deep Blue
-                pdf.cell(0, 6, "3. Next Steps & Upcoming Priorities", ln=1)
-                pdf.set_draw_color(203, 213, 225)
-                pdf.set_line_width(0.4)
-                y_s3 = pdf.get_y()
-                pdf.line(15, y_s3, 195, y_s3)
-                pdf.ln(3)
+            pdf.set_font("Helvetica", "", 9.5)
+            pdf.set_text_color(30, 41, 59)
+            pdf.multi_cell(180, 5.5, clean_pdf_text(draft.section_next_steps))
 
-                pdf.set_font("Helvetica", "", 9.5)
-                pdf.set_text_color(30, 41, 59)
-                pdf.multi_cell(180, 5.5, clean_pdf_text(draft.section_next_steps))
-
-                pdf_bytes = bytes(pdf.output())
-            except Exception as e_fallback:
-                logger.error("fpdf2 fallback generation failed: %s", e_fallback)
-                pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
+            pdf_bytes = bytes(pdf.output())
+        except Exception as e_fallback:
+            logger.error("fpdf2 fallback generation failed: %s", e_fallback)
+            pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
 
 
         blob_name = f"reports/{contract.id}/report_{draft.id}_{timezone.now().strftime('%Y%m%d')}.pdf"
