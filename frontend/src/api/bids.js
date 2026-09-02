@@ -12,13 +12,23 @@ export const bidsAPI = {
   getBid: (id) => api.get(`/bidding/bids/${id}/`),
 
   // Submit bid (freelancer only)
-  submitBid: (projectId, amount, coverLetter) => {
-    const id = typeof projectId === 'object' && projectId !== null ? (projectId.id || projectId.pk) : parseInt(projectId, 10) || projectId;
-    return api.post('/bidding/bids/', {
-      project: id,
-      amount: amount,
-      cover_letter: coverLetter
-    });
+  submitBid: (arg1, amount, coverLetter) => {
+    let payload = {}
+    if (typeof arg1 === 'object' && arg1 !== null && ('project' in arg1 || 'amount' in arg1)) {
+      payload = {
+        project: typeof arg1.project === 'object' ? (arg1.project?.id || arg1.project?.pk) : parseInt(arg1.project, 10) || arg1.project,
+        amount: arg1.amount,
+        cover_letter: arg1.cover_letter || arg1.coverLetter
+      }
+    } else {
+      const pId = typeof arg1 === 'object' && arg1 !== null ? (arg1.id || arg1.pk) : parseInt(arg1, 10) || arg1
+      payload = {
+        project: pId,
+        amount: amount,
+        cover_letter: coverLetter
+      }
+    }
+    return api.post('/bidding/bids/', payload)
   },
 
   // Accept bid (client only)

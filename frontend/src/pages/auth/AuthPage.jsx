@@ -173,28 +173,13 @@ export default function AuthPage() {
         {/* Visual Background */}
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1400&auto=format&fit=crop"
+            src="/images/sign up banner.jpg"
             alt="FreelanceFlow Visual"
-            className="w-full h-full object-cover scale-105"
+            className="w-full h-full object-cover object-top"
             onError={(e) => {
-              e.target.src = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1400&auto=format&fit=crop"
+              e.target.src = "/images/home image.png"
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-white/10" />
-        </div>
-
-        {/* Brand Overlay at bottom */}
-        <div className="absolute bottom-8 left-8 right-8 z-10 text-white">
-          <div className="flex items-center gap-2.5 mb-2">
-            <img src="/logo.png" alt="FreelanceFlow" className="w-8 h-8 object-contain" />
-            <span className="text-2xl font-black tracking-tight">
-              Freelance<span className="text-blue-400">Flow</span>
-            </span>
-          </div>
-          <p className="text-sm text-gray-300 max-w-md leading-relaxed">
-            The next-generation marketplace connecting global clients with elite talent, protected by milestone escrow and AI worklogs.
-          </p>
         </div>
       </div>
 

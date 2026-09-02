@@ -316,21 +316,6 @@ export default function FreelancerContractDetailPage() {
         >
           <ArrowLeft className="w-4 h-4" /> Back to My Contracts
         </button>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/freelancer/earnings')}
-            className="px-3.5 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors flex items-center gap-1.5"
-          >
-            <Wallet className="w-3.5 h-3.5 text-emerald-600" /> Withdraw Funds
-          </button>
-          <button
-            onClick={() => setShowDisputeModal(true)}
-            className="px-3.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition-colors flex items-center gap-1.5"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Raise Dispute
-          </button>
-        </div>
       </div>
 
       {/* ── Proposal Acceptance Banner ──────────────────────────────────── */}
@@ -388,9 +373,6 @@ export default function FreelancerContractDetailPage() {
                  contract.status === 'TERMINATED' ? 'Terminated' : 'Completed'}
               </span>
               <span className="text-xs font-semibold text-gray-400">Contract #{contract.id}</span>
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-lg border border-primary-100">
-                <ShieldCheck className="w-3.5 h-3.5" /> Razorpay Escrow Protected
-              </span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
@@ -434,7 +416,7 @@ export default function FreelancerContractDetailPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-primary-50/60 rounded-2xl p-4 border border-primary-100">
             <p className="text-[11px] font-bold text-primary-600 uppercase tracking-wider">Total Contract Budget</p>
-            <p className="text-2xl font-black text-primary-900 mt-1">{formatCurrency(totalBudget)}</p>
+            <p className="text-2xl font-black text-gray-900 mt-1">{formatCurrency(totalBudget)}</p>
           </div>
 
           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -444,12 +426,12 @@ export default function FreelancerContractDetailPage() {
 
           <div className="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-100">
             <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Earnings Released</p>
-            <p className="text-xl font-black text-emerald-800 mt-1">{formatCurrency(releasedAmount)}</p>
+            <p className="text-xl font-black text-gray-900 mt-1">{formatCurrency(releasedAmount)}</p>
           </div>
 
           <div className="bg-indigo-50/60 rounded-2xl p-4 border border-indigo-100">
             <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Secured in Escrow</p>
-            <p className="text-xl font-black text-indigo-900 mt-1">{formatCurrency(inEscrowAmount)}</p>
+            <p className="text-xl font-black text-gray-900 mt-1">{formatCurrency(inEscrowAmount)}</p>
           </div>
         </div>
 
