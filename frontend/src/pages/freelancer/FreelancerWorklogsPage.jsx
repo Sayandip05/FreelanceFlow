@@ -233,7 +233,7 @@ const FreelancerWorklogsPage = () => {
                 {/* Action Button */}
                 <div className="mt-6 pt-4 border-t border-gray-100">
                   <button
-                    onClick={() => navigate(`/freelancer/contracts/${contract.id}/work`)}
+                    onClick={() => navigate(`/freelancer/worklogs/${contract.id}`)}
                     className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-600/20 transition-all active:scale-98"
                   >
                     <SparklesIcon className="w-4 h-4 text-blue-200" />
