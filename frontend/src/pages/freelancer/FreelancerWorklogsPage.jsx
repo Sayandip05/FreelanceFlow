@@ -75,25 +75,25 @@ const FreelancerWorklogsPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {/* Active Projects */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-gray-100 rounded-xl text-gray-700 border border-gray-200">
+          <div className="p-3 bg-blue-50 rounded-xl text-blue-600 border border-blue-200">
             <BriefcaseIcon className="w-6 h-6" />
           </div>
           <div>
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Active Projects</span>
             <div className="text-2xl font-black text-gray-900 mt-0.5">{totalActive}</div>
-            <span className="text-xs text-gray-600 font-medium">Contracts ready for work log</span>
+            <span className="text-xs text-blue-600 font-medium">Contracts ready for work log</span>
           </div>
         </div>
 
         {/* Total Contract Value */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 rounded-xl text-emerald-700 border border-emerald-200">
+          <div className="p-3 bg-blue-50 rounded-xl text-blue-600 border border-blue-200">
             <CurrencyDollarIcon className="w-6 h-6" />
           </div>
           <div>
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Contract Value</span>
-            <div className="text-2xl font-black text-emerald-700 mt-0.5">${totalBudget.toLocaleString()}</div>
-            <span className="text-xs text-emerald-600 font-medium">Across active engagements</span>
+            <div className="text-2xl font-black text-blue-600 mt-0.5">${totalBudget.toLocaleString()}</div>
+            <span className="text-xs text-blue-600 font-medium">Across active engagements</span>
           </div>
         </div>
 
@@ -119,7 +119,7 @@ const FreelancerWorklogsPage = () => {
             placeholder="Search contracts or clients..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all shadow-2xs"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs"
           />
         </div>
 
@@ -133,16 +133,14 @@ const FreelancerWorklogsPage = () => {
             <button
               key={tab.key}
               onClick={() => setStatusFilter(tab.key)}
-              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                statusFilter === tab.key
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${statusFilter === tab.key
                   ? 'bg-white text-gray-900 shadow-xs'
                   : 'hover:text-gray-900'
-              }`}
+                }`}
             >
               {tab.label}
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                statusFilter === tab.key ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'
-              }`}>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${statusFilter === tab.key ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                }`}>
                 {tab.count}
               </span>
             </button>
@@ -153,7 +151,7 @@ const FreelancerWorklogsPage = () => {
       {/* ── Contracts Grid ────────────────────────────────────────────────── */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredContracts.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 p-8 shadow-sm">
@@ -164,7 +162,7 @@ const FreelancerWorklogsPage = () => {
           </p>
           <button
             onClick={() => navigate('/freelancer/browse')}
-            className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+            className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
           >
             Browse Open Projects <ArrowRightIcon className="w-3.5 h-3.5" />
           </button>
@@ -182,16 +180,15 @@ const FreelancerWorklogsPage = () => {
             return (
               <div
                 key={contract.id}
-                className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300 flex flex-col justify-between group"
+                className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300 flex flex-col justify-between group"
               >
                 <div>
                   {/* Top Status & Badge */}
                   <div className="flex items-center justify-between mb-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase ${
-                      isActive
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase ${isActive
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
                         : 'bg-gray-100 text-gray-600'
-                    }`}>
+                      }`}>
                       {contract.status || 'ACTIVE'}
                     </span>
                     <span className="text-[11px] text-gray-400 font-medium">
@@ -200,7 +197,7 @@ const FreelancerWorklogsPage = () => {
                   </div>
 
                   {/* Title & Description */}
-                  <h3 className="text-base font-bold text-gray-900 group-hover:text-emerald-700 transition-colors line-clamp-1">
+                  <h3 className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
                     {projectTitle}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
@@ -226,7 +223,7 @@ const FreelancerWorklogsPage = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500">Contract Budget:</span>
-                      <span className="font-bold text-gray-900 text-sm">
+                      <span className="font-bold text-blue-600 text-sm">
                         ${parseFloat(amount).toLocaleString()}
                       </span>
                     </div>
@@ -237,9 +234,9 @@ const FreelancerWorklogsPage = () => {
                 <div className="mt-6 pt-4 border-t border-gray-100">
                   <button
                     onClick={() => navigate(`/freelancer/contracts/${contract.id}/work`)}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gray-900 hover:bg-black text-white text-sm font-bold shadow-sm transition-all group-hover:bg-emerald-700 active:scale-98"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-600/20 transition-all active:scale-98"
                   >
-                    <SparklesIcon className="w-4 h-4 text-emerald-400" />
+                    <SparklesIcon className="w-4 h-4 text-blue-200" />
                     Log Work (AI & Manual)
                     <ArrowRightIcon className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
                   </button>

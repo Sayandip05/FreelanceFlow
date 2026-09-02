@@ -325,23 +325,6 @@ const FreelancerEarningsPage = () => {
                 </div>
               )}
             </div>
-
-            {/* Monthly Summary */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Monthly Summary</h3>
-              <div className="space-y-3">
-                {Object.entries(monthlyData).map(([month, total]) => (
-                  <div key={month} className="flex justify-between items-center text-sm font-semibold">
-                    <span className="text-gray-500">{month}</span>
-                    <span className="text-gray-900">${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                ))}
-                {Object.keys(monthlyData).length === 0 && (
-                  <p className="text-xs text-gray-400 font-medium">No monthly logs recorded</p>
-                )}
-              </div>
-            </div>
-
             {/* Withdrawal History */}
             <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 mb-4">Withdrawal History</h3>

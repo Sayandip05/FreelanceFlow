@@ -38,8 +38,8 @@ export default function FreelancerContractsPage() {
     const clientName = c.client
       ? `${c.client.first_name || ''} ${c.client.last_name || ''}`.trim()
       : c.bid?.project?.client
-      ? `${c.bid.project.client.first_name || ''} ${c.bid.project.client.last_name || ''}`.trim()
-      : ''
+        ? `${c.bid.project.client.first_name || ''} ${c.bid.project.client.last_name || ''}`.trim()
+        : ''
     const clientEmail = c.client?.email || c.bid?.project?.client?.email || ''
 
     const matchesSearch =
@@ -63,29 +63,10 @@ export default function FreelancerContractsPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* ── Page Header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-gray-900 via-primary-950 to-indigo-950 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold text-primary-200 border border-white/10">
-            <ShieldCheck className="w-3.5 h-3.5 text-primary-300" />
-            Razorpay Escrow Protected
-          </div>
-          <h1 className="text-3xl font-black tracking-tight">My Freelance Contracts</h1>
-          <p className="text-sm text-primary-200 max-w-xl">
-            Track your active client contracts, check escrow-funded milestone stages, submit deliverables, and track payments.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 relative z-10 flex-shrink-0">
-          <button
-            onClick={() => navigate('/freelancer/browse')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-gray-900 text-sm font-bold hover:bg-gray-50 transition-all shadow-md active:scale-95"
-          >
-            <Briefcase className="w-4 h-4 text-primary-600" /> Browse Projects
-          </button>
-        </div>
-
-        {/* Decorative background blur */}
-        <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-primary-500/20 rounded-full blur-3xl pointer-events-none" />
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+          My Freelance Contracts
+        </h1>
       </div>
 
       {/* ── Stats Summary Grid ──────────────────────────────────────────── */}
@@ -131,8 +112,8 @@ export default function FreelancerContractsPage() {
         </div>
       </div>
 
-      {/* ── Search & Filter Toolbar ─────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* ── Search & Filter Controls ────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -140,7 +121,7 @@ export default function FreelancerContractsPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by project title, client name..."
-            className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+            className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs"
           />
         </div>
 
@@ -154,11 +135,10 @@ export default function FreelancerContractsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                activeTab === tab.id
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-800'
-              }`}
+                }`}
             >
               {tab.label} ({tab.count})
             </button>
@@ -188,12 +168,6 @@ export default function FreelancerContractsPage() {
               ? 'Try modifying your search keywords to find your contracts.'
               : 'Submit proposals on open projects. Once a client accepts your bid, your contract will appear here.'}
           </p>
-          <button
-            onClick={() => navigate('/freelancer/browse')}
-            className="px-6 py-2.5 btn-primary text-sm font-bold inline-flex items-center gap-2"
-          >
-            <Briefcase className="w-4 h-4" /> Browse Projects
-          </button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -215,11 +189,10 @@ export default function FreelancerContractsPage() {
                   {/* Top row */}
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <div className="flex items-center gap-2.5">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
-                        contract.is_active
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${contract.is_active
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : 'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}>
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${contract.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
                         {contract.is_active ? 'Active Contract' : 'Completed'}
                       </span>

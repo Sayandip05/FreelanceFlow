@@ -109,12 +109,7 @@ export default function FreelancerBrowsePage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Home</h1>
-        <p className="text-gray-600 mt-1">Search and explore project opportunities</p>
-      </div>
-
-      {/* Auto-scrolling Announcement Banner Carousel right above Search Section */}
+      {/* Auto-scrolling Announcement Banner Carousel at top of Home */}
       <BannerCarousel />
 
       {/* Search & Filters */}
