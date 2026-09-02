@@ -60,8 +60,9 @@ const LoginPage = () => {
     try {
       const resp = await api.get(`/users/auth/google/?role=${role}`)
       window.location.href = resp.data.auth_url
-    } catch {
-      setError('Could not connect to Google. Please try again.')
+    } catch (err) {
+      console.error('Google Auth Init Error:', err)
+      setError(err.response?.data?.detail || err.response?.data?.error || 'Could not connect to Google. Please try again.')
       setGoogleLoading(false)
     }
   }

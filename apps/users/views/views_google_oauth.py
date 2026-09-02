@@ -34,8 +34,8 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 
 class OAuthRateThrottle(AnonRateThrottle):
-    """Rate throttle for OAuth initialization and callback endpoints (10 requests per minute)."""
-    rate = "10/minute"
+    """Rate throttle for OAuth initialization and callback endpoints (100 requests per minute)."""
+    rate = "100/minute"
 
 
 def _get_google_credentials():

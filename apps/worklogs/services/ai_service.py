@@ -772,6 +772,29 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
             }
         )
 
+        # Update active in-progress milestone to SUBMITTED
+        try:
+            from apps.payments.models.models_milestone import PaymentMilestone
+            active_milestone = PaymentMilestone.objects.filter(
+                contract=contract,
+                status=PaymentMilestone.Status.IN_PROGRESS
+            ).order_by('order', 'created_at').first()
+
+            if active_milestone:
+                active_milestone.status = PaymentMilestone.Status.SUBMITTED
+                active_milestone.deliverable_description = f"{draft.title} | Link: {sas_url}"
+                active_milestone.submitted_at = timezone.now()
+                active_milestone.save(update_fields=["status", "deliverable_description", "submitted_at", "updated_at"])
+
+                from apps.payments.consumers import push_contract_event
+                push_contract_event(
+                    contract.id,
+                    "milestone_submitted",
+                    {"milestone_id": active_milestone.id, "new_status": PaymentMilestone.Status.SUBMITTED},
+                )
+        except Exception as me:
+            logger.warning("Failed to auto-submit active milestone on AI draft approval: %s", me)
+
         from django.db import transaction
         from apps.worklogs.tasks import notify_client_new_report
         transaction.on_commit(

@@ -59,8 +59,9 @@ export default function FreelancerProjectDetailPage() {
     setSubmitting(true)
     setBidError('')
     try {
+      const pId = parseInt(projectId, 10) || projectId
       await bidsAPI.submitBid({
-        project: parseInt(projectId),
+        project: pId,
         amount: parseFloat(bidForm.amount),
         cover_letter: bidForm.cover_letter,
       })
@@ -71,9 +72,17 @@ export default function FreelancerProjectDetailPage() {
       let msg = 'Failed to submit proposal. Please try again.'
       if (typeof data === 'string') msg = data
       else if (data?.error) msg = data.error
+      else if (data?.detail) msg = data.detail
       else if (data?.non_field_errors) msg = data.non_field_errors[0]
-      else if (data?.amount) msg = `Amount error: ${data.amount[0]}`
-      else if (data?.cover_letter) msg = `Proposal error: ${data.cover_letter[0]}`
+      else if (data?.amount) msg = `Amount error: ${Array.isArray(data.amount) ? data.amount[0] : data.amount}`
+      else if (data?.cover_letter) msg = `Proposal error: ${Array.isArray(data.cover_letter) ? data.cover_letter[0] : data.cover_letter}`
+      else if (typeof data === 'object') {
+        const firstKey = Object.keys(data)[0]
+        const firstVal = data[firstKey]
+        const text = Array.isArray(firstVal) ? firstVal[0] : String(firstVal)
+        const fieldName = firstKey.replace('_', ' ')
+        msg = `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}: ${text}`
+      }
       setBidError(msg)
     } finally {
       setSubmitting(false)

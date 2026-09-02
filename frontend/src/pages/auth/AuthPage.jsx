@@ -80,8 +80,9 @@ export default function AuthPage() {
       } else {
         setGoogleLoading(false)
       }
-    } catch {
-      setError('Could not connect to Google. Please try again.')
+    } catch (err) {
+      console.error('Google Auth Init Error:', err)
+      setError(err.response?.data?.detail || err.response?.data?.error || 'Could not connect to Google. Please try again.')
       setGoogleLoading(false)
     }
   }
