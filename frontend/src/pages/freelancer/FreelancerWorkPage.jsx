@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { aiWorklogAPI } from '../../api/worklogs'
 import { paymentsAPI } from '../../api/payments'
+import { contractsAPI } from '../../api/bids'
 import {
   SparklesIcon,
   PaperAirplaneIcon,
@@ -147,6 +148,7 @@ const FreelancerWorkPage = () => {
       } else if (data.milestones) {
         setMilestonesList(data.milestones)
       }
+      return data
     } catch (err) {
       console.error('Error loading AI context bundle:', err)
       setErrorMsg('Failed to load contract context. Please make sure you have access.')

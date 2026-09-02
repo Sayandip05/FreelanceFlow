@@ -215,7 +215,7 @@ export default function ClientContractsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredContracts.map((contract) => {
+          {filteredContracts.map((contract, index) => {
             const project = contract.project || contract.bid?.project || {}
             const freelancer = contract.freelancer || contract.bid?.freelancer || {}
             const freelancerName = `${freelancer.first_name || ''} ${freelancer.last_name || ''}`.trim() || freelancer.email?.split('@')[0] || 'Freelancer'
@@ -223,6 +223,11 @@ export default function ClientContractsPage() {
             const budget = contract.agreed_amount || project.budget || 0
             const startDate = contract.start_date ? new Date(contract.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
             const deadline = project.deadline ? new Date(project.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible'
+
+            // Isolated user-scoped contract sequence number
+            const sortedAll = [...contracts].sort((a, b) => (a.id - b.id))
+            const userContractIndex = sortedAll.findIndex(c => c.id === contract.id)
+            const displayIndex = userContractIndex !== -1 ? userContractIndex + 1 : (index + 1)
 
             return (
               <div
@@ -242,7 +247,7 @@ export default function ClientContractsPage() {
                         {contract.is_active ? 'Active Contract' : 'Completed'}
                       </span>
                       <span className="text-xs font-medium text-gray-400">
-                        Contract #{contract.id}
+                        Contract #{displayIndex}
                       </span>
                     </div>
 

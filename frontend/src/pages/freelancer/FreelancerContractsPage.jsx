@@ -196,7 +196,7 @@ export default function FreelancerContractsPage() {
         <div className="space-y-8">
           {/* 3 boxes per line grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedContracts.map((contract) => {
+            {paginatedContracts.map((contract, index) => {
               const project = contract.project || contract.bid?.project || {}
               const client = contract.client || contract.bid?.project?.client || {}
               const clientName = `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email?.split('@')[0] || 'Client'
@@ -204,6 +204,11 @@ export default function FreelancerContractsPage() {
               const budget = contract.agreed_amount || project.budget || 0
               const startDate = contract.start_date ? new Date(contract.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
               const deadline = project.deadline ? new Date(project.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible'
+              
+              // Isolated user-scoped contract sequence number
+              const sortedAll = [...contracts].sort((a, b) => (a.id - b.id))
+              const userContractIndex = sortedAll.findIndex(c => c.id === contract.id)
+              const displayIndex = userContractIndex !== -1 ? userContractIndex + 1 : (index + 1)
 
               return (
                 <div
@@ -221,7 +226,7 @@ export default function FreelancerContractsPage() {
                         {contract.is_active ? 'Active Contract' : 'Completed'}
                       </span>
                       <span className="text-xs font-semibold text-gray-400">
-                        #{contract.id}
+                        #{displayIndex}
                       </span>
                     </div>
 
@@ -230,7 +235,7 @@ export default function FreelancerContractsPage() {
                       onClick={() => navigate(`/freelancer/contracts/${contract.id}`)}
                       className="text-base font-bold text-gray-900 hover:text-gray-700 transition-colors line-clamp-1 cursor-pointer"
                     >
-                      {project.title || `Contract #${contract.id}`}
+                      {project.title || `Contract #${displayIndex}`}
                     </h3>
 
                     {/* Description preview */}

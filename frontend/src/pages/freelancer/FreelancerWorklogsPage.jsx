@@ -182,13 +182,18 @@ const FreelancerWorklogsPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredContracts.map((contract) => {
+          {filteredContracts.map((contract, index) => {
             const projectTitle = contract.project?.title || contract.title || 'Untitled Project'
             const clientName = contract.client?.first_name
               ? `${contract.client.first_name} ${contract.client.last_name || ''}`.trim()
               : (contract.client?.email || 'Direct Client')
             const amount = contract.agreed_amount || contract.total_amount || 0
             const isActive = contract.status === 'ACTIVE'
+
+            // Isolated user-scoped contract sequence number
+            const sortedAll = [...contracts].sort((a, b) => (a.id - b.id))
+            const userContractIndex = sortedAll.findIndex(c => c.id === contract.id)
+            const displayIndex = userContractIndex !== -1 ? userContractIndex + 1 : (index + 1)
 
             return (
               <div
@@ -205,7 +210,7 @@ const FreelancerWorklogsPage = () => {
                       {contract.status || 'ACTIVE'}
                     </span>
                     <span className="text-[11px] text-gray-400 font-medium">
-                      #{contract.id}
+                      #{displayIndex}
                     </span>
                   </div>
 
