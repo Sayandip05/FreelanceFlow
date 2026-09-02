@@ -256,14 +256,6 @@ export default function FreelancerContractsPage() {
                           <p className="text-xs font-bold text-gray-800 truncate">{clientName}</p>
                         </div>
                       </div>
-
-                      <button
-                        onClick={() => navigate(`/freelancer/messages?client=${client.id}`)}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
-                        title="Message Client"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                      </button>
                     </div>
 
                     {/* Contract Budget & Deadline row */}
