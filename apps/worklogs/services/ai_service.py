@@ -830,13 +830,20 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
             }
         )
 
-        # Update active in-progress milestone to SUBMITTED
+        # Update active milestone to SUBMITTED
+        active_milestone = None
         try:
             from apps.payments.models.models_milestone import PaymentMilestone
             active_milestone = PaymentMilestone.objects.filter(
                 contract=contract,
                 status=PaymentMilestone.Status.IN_PROGRESS
             ).order_by('order', 'created_at').first()
+
+            if not active_milestone:
+                active_milestone = PaymentMilestone.objects.filter(
+                    contract=contract,
+                    status__in=[PaymentMilestone.Status.IN_PROGRESS, PaymentMilestone.Status.PENDING]
+                ).order_by('order', 'created_at').first()
 
             if active_milestone:
                 active_milestone.status = PaymentMilestone.Status.SUBMITTED
@@ -848,16 +855,32 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 push_contract_event(
                     contract.id,
                     "milestone_submitted",
-                    {"milestone_id": active_milestone.id, "new_status": PaymentMilestone.Status.SUBMITTED},
+                    {"milestone_id": active_milestone.id, "new_status": PaymentMilestone.Status.SUBMITTED, "pdf_url": sas_url},
                 )
         except Exception as me:
             logger.warning("Failed to auto-submit active milestone on AI draft approval: %s", me)
 
-        from django.db import transaction
+        # Mirror to Deliverable model for client milestone page matching
+        try:
+            from apps.worklogs.models import Deliverable
+            Deliverable.objects.update_or_create(
+                contract=contract,
+                milestone_id=active_milestone.id if active_milestone else None,
+                defaults={
+                    "title": draft.title,
+                    "description": draft.section_summary,
+                    "pdf_url": sas_url,
+                    "status": Deliverable.Status.SUBMITTED,
+                }
+            )
+        except Exception as de:
+            logger.warning("Failed to mirror AI deliverable to Deliverable model: %s", de)
+
         from apps.worklogs.tasks import notify_client_new_report
-        transaction.on_commit(
-            lambda: notify_client_new_report.delay(weekly_report.id)
-        )
+        try:
+            notify_client_new_report.delay(weekly_report.id)
+        except Exception as ne:
+            logger.warning("Failed to enqueue notify_client_new_report: %s", ne)
 
         return sas_url, None
 

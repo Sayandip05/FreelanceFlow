@@ -187,10 +187,21 @@ const FreelancerWorkPage = () => {
       localStorage.getItem('access_token') ||
       sessionStorage.getItem('access_token') ||
       ''
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host =
-      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
-    const wsUrl = `${protocol}//${host}/ws/contract/${contractId}/?token=${token}`
+    
+    // Resolve host: if VITE_API_URL is configured (e.g. ngrok/custom backend), use its hostname
+    let backendHost = 'localhost:8000'
+    const apiUrl = import.meta.env.VITE_API_URL || ''
+    if (apiUrl) {
+      try {
+        const parsed = new URL(apiUrl)
+        backendHost = parsed.host
+      } catch {}
+    } else if (window.location.hostname !== 'localhost') {
+      backendHost = window.location.host
+    }
+
+    const protocol = (apiUrl.startsWith('https') || window.location.protocol === 'https:') ? 'wss:' : 'ws:'
+    const wsUrl = `${protocol}//${backendHost}/ws/contract/${contractId}/?token=${token}`
 
     const ws = new WebSocket(wsUrl)
 
@@ -198,10 +209,10 @@ const FreelancerWorkPage = () => {
       try {
         const data = JSON.parse(event.data)
         if (data.type === 'ai_draft_pdf_ready') {
-          const { pdf_url } = data.payload
-          setPdfUrl(pdf_url)
+          const { pdf_url } = data.payload || {}
+          if (pdf_url) setPdfUrl(pdf_url)
           setApproving(false)
-          setActiveDraft((prev) => (prev ? { ...prev, status: 'APPROVED', pdf_url } : null))
+          setActiveDraft((prev) => (prev ? { ...prev, status: 'APPROVED', pdf_url: pdf_url || prev.pdf_url } : null))
           setMessages((prev) => [
             ...prev,
             {
@@ -213,7 +224,7 @@ const FreelancerWorkPage = () => {
           loadContextBundle()
         } else if (data.type === 'ai_draft_pdf_error') {
           setApproving(false)
-          alert('Failed to compile PDF: ' + data.payload.error)
+          alert('Failed to compile PDF: ' + (data.payload?.error || 'Unknown error'))
         }
       } catch {}
     }
@@ -230,6 +241,24 @@ const FreelancerWorkPage = () => {
     setApproving(true)
     try {
       await aiWorklogAPI.approveDraft(contractId, targetDraftId)
+      
+      // Fast polling fallback to ensure UI updates even if WebSocket is disconnected on Vercel
+      let attempts = 0
+      const pollInterval = setInterval(async () => {
+        attempts += 1
+        try {
+          const freshData = await loadContextBundle()
+          if (freshData?.reports?.length > 0 || attempts >= 4) {
+            clearInterval(pollInterval)
+            setApproving(false)
+          }
+        } catch {
+          if (attempts >= 4) {
+            clearInterval(pollInterval)
+            setApproving(false)
+          }
+        }
+      }, 1500)
     } catch (err) {
       console.error('Error approving report draft:', err)
       alert('Failed to approve report PDF. Please try again.')
@@ -467,23 +496,35 @@ const FreelancerWorkPage = () => {
 
                             {/* Approve Draft Button */}
                             <div className="pt-2">
-                              <button
-                                onClick={() => handleApproveDraft(msg.draft_id)}
-                                disabled={approving}
-                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all disabled:opacity-50 active:scale-98"
-                              >
-                                {approving ? (
-                                  <>
-                                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                                    Compiling WeasyPrint PDF & Uploading...
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircleIcon className="w-4 h-4" />
-                                    Approve Draft & Generate Official PDF
-                                  </>
-                                )}
-                              </button>
+                              {msg.draft_data.status === 'APPROVED' || hasApprovedReport ? (
+                                <a
+                                  href={pdfUrl || reports[0]?.pdf_url || '#'}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all"
+                                >
+                                  <CheckCircleIcon className="w-4 h-4" />
+                                  Report Approved & Submitted — View PDF
+                                </a>
+                              ) : (
+                                <button
+                                  onClick={() => handleApproveDraft(msg.draft_id)}
+                                  disabled={approving}
+                                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all disabled:opacity-50 active:scale-98"
+                                >
+                                  {approving ? (
+                                    <>
+                                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                                      Compiling PDF & Uploading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircleIcon className="w-4 h-4" />
+                                      Approve Draft & Generate Official PDF
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}
