@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Bell, Check, CheckCheck, MessageSquare, Briefcase,
-  DollarSign, Clock, Sparkles, X, ChevronRight, CheckCircle2
+  DollarSign, Clock, Sparkles, X, ChevronRight, CheckCircle2, Download
 } from 'lucide-react'
 import { useNotifications } from '../../context/NotificationContext'
 
@@ -63,15 +63,29 @@ const NotificationBell = () => {
 
     setOpen(false)
 
+    const pdfUrl = notif.data?.pdf_url || (notif.action_url && notif.action_url.startsWith('http') ? notif.action_url : null)
+
+    if (pdfUrl) {
+      if (setPdfReadyUrl) {
+        setPdfReadyUrl({
+          url: pdfUrl,
+          title: notif.title || 'Document Ready!',
+          body: notif.body || 'Your PDF document is ready for download.'
+        })
+      } else {
+        window.open(pdfUrl, '_blank')
+      }
+      return
+    }
+
     // Route based on notification type or action_url
-    if (notif.data?.pdf_url && setPdfReadyUrl) {
-      setPdfReadyUrl(notif.data.pdf_url)
-    } else if (notif.action_url) {
+    if (notif.action_url) {
       navigate(notif.action_url)
     } else if (notif.type === 'MESSAGE' || notif.notification_type === 'MESSAGE') {
       navigate('/messages')
-    } else if (notif.type?.includes('CONTRACT') || notif.notification_type?.includes('CONTRACT')) {
-      navigate('/contracts')
+    } else if (notif.type?.includes('CONTRACT') || notif.notification_type?.includes('CONTRACT') || notif.type === 'CLIENT_REPORT_READY' || notif.type === 'LOG_SUBMITTED') {
+      const contractId = notif.data?.contract_id
+      navigate(contractId ? `/client/contracts/${contractId}` : '/client/contracts')
     } else if (notif.type?.includes('PAYMENT') || notif.notification_type?.includes('PAYMENT')) {
       navigate('/earnings')
     } else if (notif.type?.includes('BID') || notif.notification_type?.includes('BID')) {
@@ -167,6 +181,7 @@ const NotificationBell = () => {
             ) : (
               safeNotifications.slice(0, 15).map(notif => {
                 const isUnread = !notif.is_read
+                const pdfUrl = notif.data?.pdf_url || (notif.action_url && notif.action_url.startsWith('http') ? notif.action_url : null)
                 return (
                   <div
                     key={notif.id}
@@ -190,6 +205,30 @@ const NotificationBell = () => {
                       <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
                         {notif.message || notif.content || notif.body || 'You have an update.'}
                       </p>
+                      {pdfUrl && (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!notif.is_read && markRead) markRead(notif.id);
+                              if (setPdfReadyUrl) {
+                                setPdfReadyUrl({
+                                  url: pdfUrl,
+                                  title: notif.title || 'Document Ready!',
+                                  body: notif.body || 'Your PDF document is ready for download.'
+                                });
+                              } else {
+                                window.open(pdfUrl, '_blank');
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold border border-emerald-200 transition-colors shadow-2xs"
+                          >
+                            <Download className="w-3 h-3" />
+                            Download PDF
+                          </button>
+                        </div>
+                      )}
                     </div>
                     {isUnread && (
                       <span className="w-2 h-2 rounded-full bg-primary-600 mt-2 flex-shrink-0" />

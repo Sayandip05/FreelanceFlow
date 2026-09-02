@@ -180,38 +180,49 @@ export function NotificationProvider({ children }) {
     <NotificationContext.Provider value={{ notifications, unreadCount, markRead, markAllRead, fetchNotifications, setPdfReadyUrl }}>
       {children}
       {/* PDF Ready Toast Overlay */}
-      {pdfReadyUrl && (
-        <div className="fixed bottom-4 right-4 bg-white border border-green-200 shadow-xl rounded-xl p-4 z-[9999] animate-in slide-in-from-bottom-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center text-green-600 flex-shrink-0">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            </div>
-            <div>
-              <p className="font-bold text-gray-900 text-sm">Receipt Ready!</p>
-              <p className="text-xs text-gray-500 mt-0.5">Your PDF has been generated.</p>
+      {pdfReadyUrl && (() => {
+        const toastUrl = typeof pdfReadyUrl === 'object' ? pdfReadyUrl?.url : pdfReadyUrl;
+        const toastTitle = typeof pdfReadyUrl === 'object' ? (pdfReadyUrl?.title || 'Document Ready!') : 'Receipt Ready!';
+        const toastBody = typeof pdfReadyUrl === 'object' ? (pdfReadyUrl?.body || 'Your PDF has been generated.') : 'Your PDF has been generated.';
+
+        if (!toastUrl) return null;
+
+        return (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+            <div className="bg-white border border-gray-100 shadow-2xl rounded-3xl p-6 max-w-md w-full animate-in zoom-in-95 duration-150 space-y-4 text-center">
+              <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 mx-auto border border-emerald-100 shadow-xs">
+                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-extrabold text-gray-900 text-lg">{toastTitle}</h3>
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{toastBody}</p>
+              </div>
+              <div className="pt-2 flex gap-3">
+                <button 
+                  onClick={() => setPdfReadyUrl(null)} 
+                  className="flex-1 py-2.5 px-4 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-colors"
+                >
+                  Dismiss
+                </button>
+                <a 
+                  href={toastUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  onClick={() => setPdfReadyUrl(null)}
+                  className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors text-center shadow-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download PDF
+                </a>
+              </div>
             </div>
           </div>
-          <div className="mt-3 flex gap-2">
-            <button 
-              onClick={() => setPdfReadyUrl(null)} 
-              className="flex-1 px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg transition-colors"
-            >
-              Dismiss
-            </button>
-            <a 
-              href={pdfReadyUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              onClick={() => setPdfReadyUrl(null)}
-              className="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-colors text-center"
-            >
-              Download
-            </a>
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </NotificationContext.Provider>
   )
 }

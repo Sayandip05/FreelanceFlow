@@ -271,6 +271,8 @@ def notify_client_new_report(report_id: int):
             client=client,
             project_title=project.title,
             report_id=report.id,
+            pdf_url=report.pdf_url,
+            contract_id=report.contract.id,
         )
 
         # 2. Dispatch Automated Email to Client with Azure Blob SAS link

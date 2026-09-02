@@ -176,12 +176,18 @@ def notify_report_upcoming(freelancer, project_title: str, due_date: str):
     )
 
 
-def notify_client_report_available(client, project_title: str, report_id: int):
+def notify_client_report_available(client, project_title: str, report_id: int, pdf_url: str = None, contract_id: int = None):
     """Notify client that a new progress report PDF is available.
     
     Fired by `notify_client_new_report` Celery task after the PDF
     has been successfully uploaded to Azure Blob Storage.
     """
+    data = {"report_id": report_id}
+    if pdf_url:
+        data["pdf_url"] = pdf_url
+    if contract_id:
+        data["contract_id"] = contract_id
+
     return create_notification(
         recipient=client,
         title=f"📄 New progress report ready for '{project_title}'",
@@ -190,4 +196,6 @@ def notify_client_report_available(client, project_title: str, report_id: int):
             f"You can download the PDF from your dashboard."
         ),
         notification_type=Notification.Type.CLIENT_REPORT_READY,
+        action_url=pdf_url or (f"/client/contracts/{contract_id}" if contract_id else ""),
+        data=data,
     )
