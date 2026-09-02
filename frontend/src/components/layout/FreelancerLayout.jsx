@@ -62,16 +62,16 @@ const NAV_LINKS = [
 const HelpModal = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white/90 backdrop-blur-xl rounded-none border border-white/80 shadow-2xl w-full max-w-md p-6 relative animate-in fade-in zoom-in-95 duration-150">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-1 rounded-none hover:bg-black/5 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600">
+          <div className="w-10 h-10 bg-primary-50/80 rounded-none border border-primary-100 flex items-center justify-center text-primary-600 shadow-2xs">
             <HelpCircle className="w-6 h-6" />
           </div>
           <div>
@@ -81,7 +81,7 @@ const HelpModal = ({ onClose }) => {
         </div>
 
         <div className="space-y-3 mb-6">
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-3">
+          <div className="p-3.5 bg-white/60 backdrop-blur-md rounded-none border border-gray-200/70 hover:bg-white/80 transition-all shadow-2xs flex items-start gap-3">
             <Mail className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-gray-900">Contact Support</p>
@@ -89,16 +89,16 @@ const HelpModal = ({ onClose }) => {
             </div>
           </div>
 
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-accent-600 flex-shrink-0 mt-0.5" />
+          <div className="p-3.5 bg-white/60 backdrop-blur-md rounded-none border border-gray-200/70 hover:bg-white/80 transition-all shadow-2xs flex items-start gap-3">
+            <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-gray-900">Escrow & Payment Safety</p>
               <p className="text-xs text-gray-500">All contracts are backed by Razorpay Escrow protection.</p>
             </div>
           </div>
 
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-3">
-            <BookOpen className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+          <div className="p-3.5 bg-white/60 backdrop-blur-md rounded-none border border-gray-200/70 hover:bg-white/80 transition-all shadow-2xs flex items-start gap-3">
+            <BookOpen className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-gray-900">AI Worklog Guide</p>
               <p className="text-xs text-gray-500">Submit work updates in real-time chat to auto-generate weekly client reports.</p>
@@ -108,7 +108,7 @@ const HelpModal = ({ onClose }) => {
 
         <button
           onClick={onClose}
-          className="w-full btn-primary py-2.5 text-sm font-semibold"
+          className="w-full btn-primary py-2.5 text-sm font-semibold rounded-none shadow-sm active:scale-[0.99] transition-transform"
         >
           Got it
         </button>
@@ -156,7 +156,11 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp, onOpenPrivacy }) => {
     : user?.email?.split('@')[0] || 'Account'
 
   return (
-    <div className="relative border-t border-gray-100 flex-shrink-0 mt-auto" ref={ref}>
+    <div
+      className="relative border-t border-gray-100 flex-shrink-0 mt-auto"
+      ref={ref}
+      onMouseLeave={() => setOpen(false)}
+    >
       {/* Popover Menu Opening Upwards */}
       {open && (
         <div className={`absolute bottom-full mb-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100 ${

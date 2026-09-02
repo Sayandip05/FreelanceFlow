@@ -65,16 +65,16 @@ const NAV_LINKS = [
 const HelpModal = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white/90 backdrop-blur-xl rounded-none border border-white/80 shadow-2xl w-full max-w-md p-6 relative animate-in fade-in zoom-in-95 duration-150">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-1 rounded-none hover:bg-black/5 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0">
+          <div className="w-10 h-10 rounded-none bg-indigo-50/80 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0 shadow-2xs">
             <HelpCircle className="w-5 h-5" />
           </div>
           <div>
@@ -84,14 +84,14 @@ const HelpModal = ({ onClose }) => {
         </div>
 
         <div className="space-y-3 mb-6 text-xs text-gray-600">
-          <div className="p-3 bg-gray-50 rounded-xl flex items-start gap-3 border border-gray-100">
+          <div className="p-3.5 bg-white/60 backdrop-blur-md rounded-none flex items-start gap-3 border border-gray-200/70 hover:bg-white/80 transition-all shadow-2xs">
             <ShieldCheck className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-gray-900">Safe Razorpay Escrow</p>
               <p className="text-xs text-gray-500">Deposit funds per milestone. Payouts are only released after you inspect and approve deliverables.</p>
             </div>
           </div>
-          <div className="p-3 bg-gray-50 rounded-xl flex items-start gap-3 border border-gray-100">
+          <div className="p-3.5 bg-white/60 backdrop-blur-md rounded-none flex items-start gap-3 border border-gray-200/70 hover:bg-white/80 transition-all shadow-2xs">
             <Mail className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-gray-900">24/7 Platform Concierge</p>
@@ -102,7 +102,7 @@ const HelpModal = ({ onClose }) => {
 
         <button
           onClick={onClose}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 text-sm font-semibold rounded-xl transition-colors"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 text-sm font-semibold rounded-none transition-colors shadow-sm active:scale-[0.99]"
         >
           Close Help
         </button>
@@ -150,7 +150,11 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp, onOpenPrivacy }) => {
     : user?.email?.split('@')[0] || 'Account'
 
   return (
-    <div className="relative border-t border-gray-100 flex-shrink-0 mt-auto" ref={ref}>
+    <div
+      className="relative border-t border-gray-100 flex-shrink-0 mt-auto"
+      ref={ref}
+      onMouseLeave={() => setOpen(false)}
+    >
       {/* Popover Menu Opening Upwards */}
       {open && (
         <div className={`absolute bottom-full mb-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100 ${

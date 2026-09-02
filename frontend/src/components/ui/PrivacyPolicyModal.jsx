@@ -94,7 +94,7 @@ export default function PrivacyPolicyModal({ mode = 'view', onAccept, onDecline,
       onClick={isOnboarding ? undefined : onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden"
+        className="bg-white rounded-none w-full max-w-lg shadow-2xl flex flex-col overflow-hidden border border-gray-200"
         style={{ maxHeight: '88vh', animation: 'privacy-modal-in 0.2s ease' }}
         onClick={e => e.stopPropagation()}
       >
@@ -108,7 +108,7 @@ export default function PrivacyPolicyModal({ mode = 'view', onAccept, onDecline,
           {!isOnboarding && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+              className="p-1.5 rounded-none text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -116,7 +116,7 @@ export default function PrivacyPolicyModal({ mode = 'view', onAccept, onDecline,
         </div>
 
         {isOnboarding && (
-          <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5 flex-shrink-0">
+          <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-none flex items-start gap-2.5 flex-shrink-0">
             <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-amber-800 font-medium">
               Please read our Privacy Policy carefully and scroll to the bottom before accepting.
@@ -135,8 +135,8 @@ export default function PrivacyPolicyModal({ mode = 'view', onAccept, onDecline,
             const Icon = section.icon
             return (
               <div key={idx}>
-                <div className="flex items-start gap-3 p-3.5 rounded-xl hover:bg-gray-50 transition-colors">
-                  <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="flex items-start gap-3 p-3.5 rounded-none hover:bg-gray-50 transition-colors">
+                  <div className="w-7 h-7 bg-indigo-50 rounded-none flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Icon className="w-3.5 h-3.5 text-indigo-600" />
                   </div>
                   <div>
@@ -176,7 +176,7 @@ export default function PrivacyPolicyModal({ mode = 'view', onAccept, onDecline,
               <button
                 onClick={onAccept}
                 disabled={!canAccept}
-                className={`w-full py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${
+                className={`w-full py-2.5 text-sm font-bold rounded-none transition-all duration-200 ${
                   canAccept
                     ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -186,7 +186,7 @@ export default function PrivacyPolicyModal({ mode = 'view', onAccept, onDecline,
               </button>
               <button
                 onClick={onDecline}
-                className="w-full py-2 text-xs font-medium text-gray-500 hover:text-red-600 transition-colors"
+                className="w-full py-2 text-xs font-medium text-gray-500 hover:text-red-600 transition-colors rounded-none"
               >
                 Decline & Sign Out
               </button>
@@ -194,7 +194,7 @@ export default function PrivacyPolicyModal({ mode = 'view', onAccept, onDecline,
           ) : (
             <button
               onClick={onClose}
-              className="w-full py-2.5 text-sm font-bold rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+              className="w-full py-2.5 text-sm font-bold rounded-none btn-primary shadow-sm transition-all active:scale-[0.99]"
             >
               Close
             </button>
