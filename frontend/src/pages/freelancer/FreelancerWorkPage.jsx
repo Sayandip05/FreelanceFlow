@@ -24,7 +24,7 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { WorkPageSkeleton } from '../../components/common/Skeleton'
 
-// ─── Milestone status helpers ─────────────────────────────────────────────────
+// ─── Milestone status badge helper ───────────────────────────────────────────
 const statusBadge = (status) => {
   switch (status) {
     case 'APPROVED':
@@ -36,7 +36,7 @@ const statusBadge = (status) => {
     case 'FUNDED':
       return { label: 'In Progress', cls: 'bg-blue-50 text-blue-700 border-blue-200' }
     default:
-      return { label: 'Awaiting Escrow', cls: 'bg-gray-100 text-gray-500 border-gray-200' }
+      return { label: 'Awaiting Escrow', cls: 'bg-gray-100 text-gray-600 border-gray-200' }
   }
 }
 
@@ -52,7 +52,7 @@ const FreelancerWorkPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
 
-  // Selected milestone from URL ?milestone=X
+  // Selected milestone from URL query: ?milestone=X
   const urlMilestoneId = searchParams.get('milestone')
 
   // Automatically redirect client users to client portal
@@ -72,7 +72,7 @@ const FreelancerWorkPage = () => {
   // Active milestone driven by right sidebar selection
   const [activeMilestoneId, setActiveMilestoneId] = useState(urlMilestoneId ? parseInt(urlMilestoneId, 10) : null)
 
-  // Per-milestone workspace state map for complete isolation:
+  // Per-milestone isolated workspace state:
   // { [milestoneId]: { mode: 'AI'|'MANUAL', messages: [], conversationId, activeDraft, pdfUrl } }
   const [workspaceMap, setWorkspaceMap]       = useState({})
 
@@ -85,12 +85,12 @@ const FreelancerWorkPage = () => {
   const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
 
-  // ── Load data ──────────────────────────────────────────────────────────────
+  // ── Load Context & Milestones ──────────────────────────────────────────────
   useEffect(() => {
     if (contractId) loadContextBundle()
   }, [contractId])
 
-  // Scroll to bottom on new messages
+  // Auto-scroll inside the messages container only
   useEffect(() => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -100,7 +100,7 @@ const FreelancerWorkPage = () => {
     }
   }, [workspaceMap, activeMilestoneId, sending])
 
-  // Update URL search param when active milestone changes
+  // Sync active milestone to URL search params
   useEffect(() => {
     if (activeMilestoneId) {
       setSearchParams({ milestone: activeMilestoneId }, { replace: true })
@@ -122,7 +122,7 @@ const FreelancerWorkPage = () => {
         data = res.value.data
       }
 
-      // Populate contract details
+      // Populate contract details if needed
       if (!data.contract && contractRes.status === 'fulfilled' && contractRes.value?.data) {
         const c = contractRes.value.data
         data.contract = {
@@ -157,7 +157,7 @@ const FreelancerWorkPage = () => {
       }
       setMilestonesList(milestones)
 
-      // Determine active milestone
+      // Target milestone selection
       let targetId = urlMilestoneId ? parseInt(urlMilestoneId, 10) : null
       if (!targetId || !milestones.some(m => m.id === targetId)) {
         const firstActive = milestones.find(m => isFunded(m) || isSubmitted(m)) || milestones[0]
@@ -165,19 +165,17 @@ const FreelancerWorkPage = () => {
       }
       setActiveMilestoneId(targetId)
 
-      // Seed workspaces for each milestone from data
+      // Seed workspaces for each milestone
       const newMap = {}
       milestones.forEach((m) => {
         const pdfLink = m.deliverable_description?.includes('| Link:')
           ? m.deliverable_description.split('| Link:')[1]?.trim()
           : null
 
-        // Check if there is an active draft matching this milestone
         const isTarget = m.id === targetId
         const activeDraft = (isTarget && data.active_draft) ? data.active_draft : null
         const pdfUrl = pdfLink || activeDraft?.pdf_url || null
 
-        // Default initial message for AI chat
         const defaultMessages = [
           {
             role: 'assistant',
@@ -199,7 +197,7 @@ const FreelancerWorkPage = () => {
 
       setWorkspaceMap(prev => ({
         ...newMap,
-        ...prev, // preserve any ongoing local chat state
+        ...prev,
       }))
     } catch (err) {
       console.error('Error loading AI context bundle:', err)
@@ -209,7 +207,7 @@ const FreelancerWorkPage = () => {
     }
   }
 
-  // ── Helpers for current milestone workspace ────────────────────────────────
+  // ── Active Milestone Workspace Helpers ─────────────────────────────────────
   const activeMilestone = milestonesList.find(m => m.id === activeMilestoneId) || null
 
   const ws = activeMilestoneId ? (workspaceMap[activeMilestoneId] || {}) : {}
@@ -218,7 +216,6 @@ const FreelancerWorkPage = () => {
   const conversationId   = ws.conversationId || null
   const activeDraft      = ws.activeDraft || null
 
-  // PDF URL from either local state or deliverable link in milestone
   const pdfUrlFromDesc = activeMilestone?.deliverable_description?.includes('| Link:')
     ? activeMilestone.deliverable_description.split('| Link:')[1]?.trim()
     : null
@@ -232,7 +229,7 @@ const FreelancerWorkPage = () => {
     }))
   }
 
-  // AI report is locked (one-time) once generated OR milestone is SUBMITTED/APPROVED
+  // One-time AI worklog lock rule per milestone
   const hasApprovedReport = Boolean(
     pdfUrl ||
     (activeDraft?.pdf_url) ||
@@ -241,7 +238,7 @@ const FreelancerWorkPage = () => {
     isApproved(activeMilestone)
   )
 
-  // ── Milestone Selection ────────────────────────────────────────────────────
+  // ── Switch Milestone Selection ─────────────────────────────────────────────
   const handleSelectMilestone = (m) => {
     setActiveMilestoneId(m.id)
     setInputValue('')
@@ -323,7 +320,7 @@ const FreelancerWorkPage = () => {
     const text = (textToSend || inputValue).trim()
     if (!text || sending || !activeMilestoneId) return
 
-    // If AI report is already created, redirect to Manual Mode
+    // If AI report is already created, guide user to Manual Mode
     if (hasApprovedReport && (text.toLowerCase().includes('draft') || text.toLowerCase().includes('report') || text.toLowerCase().includes('compile'))) {
       setWorkspaceMap(prev => ({
         ...prev,
@@ -484,17 +481,16 @@ const FreelancerWorkPage = () => {
   }
 
   const contract = contextData?.contract || {}
-  const previous_reports = contextData?.previous_reports || []
 
   return (
     <div className="flex-1 min-h-0 flex flex-col w-full h-full bg-white text-gray-900 overflow-hidden">
 
-      {/* ── Top Header Bar ─────────────────────────────────────────────── */}
-      <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shrink-0 z-20 shadow-xs">
+      {/* ── Top Header Bar (Fixed / Stated in place) ────────────────────── */}
+      <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shrink-0 z-20 shadow-2xs">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(`/freelancer/contracts/${contractId}`)}
-            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1.5 text-xs font-bold"
+            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
           >
             <ArrowLeftIcon className="w-4 h-4" />
             <span className="hidden sm:inline">Back to Contract</span>
@@ -512,7 +508,7 @@ const FreelancerWorkPage = () => {
 
         {activeMilestone && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 font-medium hidden sm:inline">Active:</span>
+            <span className="text-xs text-gray-400 font-medium hidden sm:inline">Active Milestone:</span>
             <span className="text-xs font-bold text-gray-800 hidden sm:inline">{activeMilestone.title}</span>
             <span className={`px-2.5 py-1 text-xs font-bold rounded-lg border ${statusBadge(activeMilestone.status).cls}`}>
               {statusBadge(activeMilestone.status).label}
@@ -521,26 +517,26 @@ const FreelancerWorkPage = () => {
         )}
       </header>
 
-      {/* ── Main Layout: Workspace on Left + Milestone History on Right ── */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* ── Main Fixed Body: Center Chat Workspace + Right White Sidebar ── */}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
 
         {/* ══════════════════════════════════════════════════════════════
-            LEFT / CENTER: Active Milestone Workspace
+            CENTER / LEFT: Active Milestone Workspace (Fixed, Stated in Place)
         ══════════════════════════════════════════════════════════════ */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col min-w-0 bg-white overflow-hidden">
           {!activeMilestone ? (
             <div className="flex-1 flex items-center justify-center text-center p-10 bg-gray-50">
               <div>
                 <BriefcaseIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-base font-bold text-gray-700">Select a milestone from the right to begin</p>
-                <p className="text-xs text-gray-400 mt-1">Milestones funded by your client are ready for work logs.</p>
+                <p className="text-xs text-gray-400 mt-1">Milestones funded into escrow are ready for work logs.</p>
               </div>
             </div>
           ) : isApproved(activeMilestone) ? (
-            /* ── APPROVED MILESTONE: Clean Completed & PDF View (No editing needed) ── */
-            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-6 sm:p-10 overflow-y-auto">
-              <div className="max-w-md w-full bg-white rounded-3xl border border-gray-200 p-8 shadow-lg space-y-6 text-center animate-in fade-in zoom-in-95 duration-200">
-                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 shadow-sm">
+            /* ── APPROVED MILESTONE: Clean White Completed View (No editing needed) ── */
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center bg-gray-50/60 p-6 sm:p-10 overflow-y-auto">
+              <div className="max-w-md w-full bg-white rounded-3xl border border-gray-200 p-8 shadow-md space-y-6 text-center animate-in fade-in zoom-in-95 duration-200">
+                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 shadow-2xs">
                   <CheckCircleIcon className="w-9 h-9" />
                 </div>
                 <div>
@@ -553,7 +549,7 @@ const FreelancerWorkPage = () => {
                   )}
                 </div>
 
-                <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-2xl flex items-center justify-between">
                   <div className="text-left">
                     <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Payment Released</p>
                     <p className="text-xs text-emerald-600">Deposited to your balance</p>
@@ -563,7 +559,7 @@ const FreelancerWorkPage = () => {
                   </p>
                 </div>
 
-                {/* PDF Download Button */}
+                {/* Direct PDF Download Button */}
                 {pdfUrl ? (
                   <a
                     href={pdfUrl}
@@ -576,19 +572,19 @@ const FreelancerWorkPage = () => {
                   </a>
                 ) : (
                   <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-500">
-                    Milestone approved directly by client.
+                    Milestone approved and payment released by client.
                   </div>
                 )}
 
                 <div className="pt-2 border-t border-gray-100 text-xs text-gray-400">
-                  Select next funded milestone from the right sidebar to log work.
+                  Select the next funded milestone from the right sidebar to continue logging work.
                 </div>
               </div>
             </div>
           ) : isPending(activeMilestone) ? (
             /* ── PENDING MILESTONE: Awaiting Escrow Deposit ── */
-            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-6 sm:p-10 text-center">
-              <div className="max-w-md w-full bg-white rounded-3xl border border-gray-200 p-8 shadow-lg space-y-4">
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center bg-gray-50/60 p-6 sm:p-10 text-center">
+              <div className="max-w-md w-full bg-white rounded-3xl border border-gray-200 p-8 shadow-md space-y-4">
                 <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto text-gray-400">
                   <LockClosedIcon className="w-7 h-7" />
                 </div>
@@ -598,23 +594,23 @@ const FreelancerWorkPage = () => {
                   </span>
                   <h2 className="text-xl font-bold text-gray-900 mt-3">{activeMilestone.title}</h2>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    This milestone has not been funded into escrow yet. Once your client deposits the funds, you can immediately begin submitting worklogs.
+                    This milestone has not been funded into escrow yet. Once your client deposits the funds, you can immediately begin submitting work logs.
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex justify-between items-center">
-                  <span className="text-xs font-bold text-gray-500">Milestone Value:</span>
+                  <span className="text-xs font-bold text-gray-500">Milestone Amount:</span>
                   <span className="text-xl font-black text-gray-900">${parseFloat(activeMilestone.amount || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
           ) : (
-            /* ── ACTIVE / FUNDED / SUBMITTED MILESTONE: Interactive Workspace ── */
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Mode Switcher Tabs */}
-              <div className="flex border-b border-gray-200 shrink-0 bg-gray-50/70">
+            /* ── ACTIVE / FUNDED / SUBMITTED MILESTONE: Fixed Workspace ── */
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              {/* Mode Switcher Tabs (Fixed at Top) */}
+              <div className="flex border-b border-gray-200 shrink-0 bg-gray-50/80">
                 <button
                   onClick={() => updateWS({ mode: 'AI' })}
-                  className={`flex-1 py-3.5 text-xs sm:text-sm font-bold text-center transition-all flex items-center justify-center gap-2 ${
+                  className={`flex-1 py-3 text-xs sm:text-sm font-bold text-center transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     mode === 'AI'
                       ? 'text-blue-600 border-b-2 border-blue-600 bg-white shadow-2xs'
                       : 'text-gray-500 hover:text-gray-900'
@@ -630,7 +626,7 @@ const FreelancerWorkPage = () => {
                 </button>
                 <button
                   onClick={() => updateWS({ mode: 'MANUAL' })}
-                  className={`flex-1 py-3.5 text-xs sm:text-sm font-bold text-center transition-all flex items-center justify-center gap-2 ${
+                  className={`flex-1 py-3 text-xs sm:text-sm font-bold text-center transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     mode === 'MANUAL'
                       ? 'text-blue-600 border-b-2 border-blue-600 bg-white shadow-2xs'
                       : 'text-gray-500 hover:text-gray-900'
@@ -642,8 +638,8 @@ const FreelancerWorkPage = () => {
               </div>
 
               {mode === 'AI' ? (
-                /* ── AI CHAT ASSISTANT MODE ── */
-                <div className="flex-1 flex flex-col overflow-hidden">
+                /* ── AI CHAT ASSISTANT MODE (Fixed Layout, Scrollable Messages) ── */
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                   {/* Banner when AI report is already created for this milestone */}
                   {hasApprovedReport && (
                     <div className="mx-6 mt-4 p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs shrink-0">
@@ -660,17 +656,17 @@ const FreelancerWorkPage = () => {
                       </div>
                       <button
                         onClick={() => updateWS({ mode: 'MANUAL' })}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all whitespace-nowrap active:scale-95 flex items-center gap-1.5 shrink-0"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all whitespace-nowrap active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
                       >
                         Switch to Manual Mode <ArrowRightIcon className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   )}
 
-                  {/* Messages Stream */}
+                  {/* Messages Stream (Independently Scrollable Container) */}
                   <div
                     ref={messagesContainerRef}
-                    className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"
+                    className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 scroll-smooth"
                   >
                     {messages.map((msg, i) => {
                       const isUser = msg.role === 'user'
@@ -687,7 +683,7 @@ const FreelancerWorkPage = () => {
                               className={`rounded-2xl p-4 text-sm leading-relaxed ${
                                 isUser
                                   ? 'bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-600/20'
-                                  : 'bg-gray-50 border border-gray-200 text-gray-800 rounded-bl-none shadow-2xs'
+                                  : 'bg-gray-50 border border-gray-200 text-gray-900 rounded-bl-none shadow-2xs'
                               }`}
                             >
                               <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -699,7 +695,7 @@ const FreelancerWorkPage = () => {
                                     href={msg.pdf_url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all"
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
                                   >
                                     <ArrowDownTrayIcon className="w-4 h-4" />
                                     Download Official PDF Report
@@ -712,7 +708,7 @@ const FreelancerWorkPage = () => {
                                 <div className="mt-3 pt-3 border-t border-gray-200">
                                   <button
                                     onClick={() => updateWS({ mode: 'MANUAL' })}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all"
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
                                   >
                                     Go to Manual Worklog Mode <ArrowRightIcon className="w-3.5 h-3.5" />
                                   </button>
@@ -777,7 +773,7 @@ const FreelancerWorkPage = () => {
                                       href={pdfUrl || '#'}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all"
+                                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                                     >
                                       <CheckCircleIcon className="w-4 h-4" />
                                       Report Approved & Submitted — View PDF
@@ -786,7 +782,7 @@ const FreelancerWorkPage = () => {
                                     <button
                                       onClick={() => handleApproveDraft(msg.draft_id)}
                                       disabled={approving}
-                                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all disabled:opacity-50 active:scale-98"
+                                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all disabled:opacity-50 active:scale-98 cursor-pointer"
                                     >
                                       {approving ? (
                                         <>
@@ -825,13 +821,13 @@ const FreelancerWorkPage = () => {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Quick Prompts */}
+                  {/* Quick Action Chips (Fixed in place at bottom) */}
                   <div className="px-6 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
                     <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider shrink-0">Quick Prompts:</span>
                     {hasApprovedReport ? (
                       <button
                         onClick={() => updateWS({ mode: 'MANUAL' })}
-                        className="px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold whitespace-nowrap transition-colors border border-blue-200 shadow-2xs shrink-0 flex items-center gap-1"
+                        className="px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold whitespace-nowrap transition-colors border border-blue-200 shadow-2xs shrink-0 flex items-center gap-1 cursor-pointer"
                       >
                         Go to Manual Worklog <ArrowRightIcon className="w-3 h-3" />
                       </button>
@@ -841,7 +837,7 @@ const FreelancerWorkPage = () => {
                           key={i}
                           onClick={() => handleSendMessage(prompt)}
                           disabled={sending}
-                          className="px-3.5 py-1.5 rounded-full bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-600 text-xs font-semibold whitespace-nowrap transition-colors border border-gray-200 shadow-2xs shrink-0"
+                          className="px-3.5 py-1.5 rounded-full bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-600 text-xs font-semibold whitespace-nowrap transition-colors border border-gray-200 shadow-2xs shrink-0 cursor-pointer disabled:opacity-50"
                         >
                           {prompt}
                         </button>
@@ -849,7 +845,7 @@ const FreelancerWorkPage = () => {
                     )}
                   </div>
 
-                  {/* Chat Input Bar */}
+                  {/* Chat Input Bar (Fixed in place at bottom) */}
                   <div className="p-4 bg-white border-t border-gray-200 shrink-0">
                     <form
                       onSubmit={(e) => {
@@ -873,7 +869,7 @@ const FreelancerWorkPage = () => {
                       <button
                         type="submit"
                         disabled={!inputValue.trim() || sending}
-                        className="p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl shadow-md shadow-blue-600/20 transition-all shrink-0 active:scale-95"
+                        className="p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl shadow-md shadow-blue-600/20 transition-all shrink-0 active:scale-95 cursor-pointer"
                       >
                         <PaperAirplaneIcon className="w-5 h-5" />
                       </button>
@@ -882,7 +878,7 @@ const FreelancerWorkPage = () => {
                 </div>
               ) : (
                 /* ── MANUAL WORKLOG MODE (Multi-Submission) ── */
-                <div className="flex-1 overflow-y-auto p-6 md:p-10">
+                <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-10">
                   <div className="max-w-3xl mx-auto space-y-6">
                     <div>
                       <h2 className="text-2xl font-bold text-gray-900">Submit Milestone Worklog (Manual)</h2>
@@ -950,24 +946,24 @@ const FreelancerWorkPage = () => {
         </div>
 
         {/* ══════════════════════════════════════════════════════════════
-            RIGHT SIDEBAR: Milestone History (ChatGPT-style)
+            RIGHT SIDEBAR: White & Simple Milestone History Section
         ══════════════════════════════════════════════════════════════ */}
-        <aside className="w-72 lg:w-80 bg-gray-950 text-white flex flex-col shrink-0 overflow-hidden border-l border-gray-800">
+        <aside className="w-72 lg:w-80 bg-white text-gray-900 flex flex-col shrink-0 overflow-hidden border-l border-gray-200 shadow-xs">
           {/* Header */}
-          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+          <div className="p-4 border-b border-gray-100 bg-gray-50/60 flex items-center justify-between shrink-0">
             <div>
               <p className="text-[10px] uppercase tracking-widest font-extrabold text-gray-400">Milestone History</p>
-              <p className="text-xs text-gray-200 font-semibold line-clamp-1 mt-0.5">{contract?.title}</p>
+              <p className="text-xs text-gray-900 font-bold line-clamp-1 mt-0.5">{contract?.title}</p>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-md bg-gray-800 text-gray-300 font-bold border border-gray-700">
+            <span className="text-[10px] px-2 py-0.5 rounded-md bg-white text-gray-700 font-bold border border-gray-200 shadow-2xs">
               {milestonesList.filter(m => isApproved(m)).length}/{milestonesList.length}
             </span>
           </div>
 
-          {/* Milestone List (ChatGPT-style history cards) */}
-          <div className="flex-1 overflow-y-auto py-2 space-y-1.5 px-3">
+          {/* Milestone List (Clean White Cards) */}
+          <div className="flex-1 min-h-0 overflow-y-auto py-3 space-y-2 px-3">
             {milestonesList.length === 0 ? (
-              <p className="text-xs text-gray-500 p-4 text-center italic">No milestones configured for this contract.</p>
+              <p className="text-xs text-gray-400 p-4 text-center italic">No milestones configured for this contract.</p>
             ) : (
               milestonesList.map((m, idx) => {
                 const isActive = m.id === activeMilestoneId
@@ -975,7 +971,7 @@ const FreelancerWorkPage = () => {
                 const isLocked = isPending(m)
                 const badge    = statusBadge(m.status)
 
-                // Get PDF link if available
+                // PDF link if available
                 const pdfLinkFromDesc = m.deliverable_description?.includes('| Link:')
                   ? m.deliverable_description.split('| Link:')[1]?.trim()
                   : null
@@ -986,24 +982,24 @@ const FreelancerWorkPage = () => {
                   <div
                     key={m.id}
                     onClick={() => !isLocked && handleSelectMilestone(m)}
-                    className={`group relative rounded-xl p-3 transition-all duration-200 border ${
+                    className={`group relative rounded-2xl p-3.5 transition-all duration-200 border ${
                       isActive
-                        ? 'bg-gray-800/95 border-gray-600 shadow-md ring-1 ring-blue-500/30'
+                        ? 'bg-blue-50/40 border-blue-400 ring-2 ring-blue-500/15 shadow-xs'
                         : isLocked
-                        ? 'bg-gray-900/40 border-gray-850 opacity-50 cursor-not-allowed'
-                        : 'bg-gray-900/60 border-gray-850 hover:bg-gray-800 hover:border-gray-700 cursor-pointer'
+                        ? 'bg-gray-50/80 border-gray-200 opacity-60 cursor-not-allowed'
+                        : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 cursor-pointer shadow-2xs'
                     }`}
                   >
                     <div className="flex items-start gap-2.5">
-                      {/* Step Number / Check */}
+                      {/* Step Number Badge */}
                       <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-black mt-0.5 ${
                         isDone
-                          ? 'bg-emerald-500 text-white shadow-xs'
+                          ? 'bg-emerald-600 text-white shadow-2xs'
                           : isSubmitted(m)
                           ? 'bg-amber-500 text-white'
                           : isFunded(m)
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-800 text-gray-500'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 text-gray-500'
                       }`}>
                         {isDone ? <CheckIcon className="w-3.5 h-3.5 stroke-[3]" /> : idx + 1}
                       </div>
@@ -1012,42 +1008,34 @@ const FreelancerWorkPage = () => {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
                           <p className={`text-xs font-bold truncate ${
-                            isActive ? 'text-white' : 'text-gray-300 group-hover:text-white'
+                            isActive ? 'text-blue-900 font-extrabold' : 'text-gray-900 group-hover:text-blue-600'
                           }`}>
                             {m.title}
                           </p>
-                          {isLocked && <LockClosedIcon className="w-3 h-3 text-gray-600 shrink-0" />}
+                          {isLocked && <LockClosedIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
                         </div>
 
-                        <div className="flex items-center justify-between gap-2 mt-1">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
-                            isDone
-                              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/60'
-                              : isSubmitted(m)
-                              ? 'bg-amber-950/80 text-amber-300 border-amber-800/60'
-                              : isFunded(m)
-                              ? 'bg-blue-950/80 text-blue-300 border-blue-800/60'
-                              : 'bg-gray-800 text-gray-500 border-gray-700'
-                          }`}>
+                        <div className="flex items-center justify-between gap-2 mt-1.5">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${badge.cls}`}>
                             {badge.label}
                           </span>
-                          <span className="text-[11px] font-extrabold text-gray-300">
+                          <span className="text-[11px] font-black text-gray-900">
                             ${parseFloat(m.amount || 0).toLocaleString()}
                           </span>
                         </div>
 
                         {/* Direct PDF download on sidebar card for approved milestones */}
                         {isDone && milestonePdf && (
-                          <div className="mt-2 pt-1.5 border-t border-gray-750 flex items-center justify-between">
-                            <span className="text-[10px] text-emerald-400 font-semibold">Report Verified</span>
+                          <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between">
+                            <span className="text-[10px] text-emerald-700 font-bold">Report Verified</span>
                             <a
                               href={milestonePdf}
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 text-[10px] font-bold rounded border border-emerald-500/40 transition-all shadow-2xs"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-lg border border-emerald-200 transition-all shadow-2xs"
                             >
-                              <ArrowDownTrayIcon className="w-2.5 h-2.5" /> PDF
+                              <ArrowDownTrayIcon className="w-3 h-3" /> PDF
                             </a>
                           </div>
                         )}
@@ -1060,14 +1048,14 @@ const FreelancerWorkPage = () => {
           </div>
 
           {/* Sidebar Footer Metrics */}
-          <div className="p-4 border-t border-gray-800 space-y-2 bg-gray-950/80">
+          <div className="p-4 border-t border-gray-100 space-y-2 bg-gray-50/60 shrink-0">
             <div className="flex justify-between items-center text-xs">
-              <span className="text-gray-400">Contract Total:</span>
-              <span className="font-bold text-white">${parseFloat(contract?.rate || 0).toLocaleString()}</span>
+              <span className="text-gray-500 font-medium">Contract Total:</span>
+              <span className="font-black text-gray-900">${parseFloat(contract?.rate || 0).toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center text-xs">
-              <span className="text-gray-400">Total Released:</span>
-              <span className="font-bold text-emerald-400">
+              <span className="text-gray-500 font-medium">Total Released:</span>
+              <span className="font-black text-emerald-600">
                 ${milestonesList.filter(m => isApproved(m)).reduce((sum, m) => sum + parseFloat(m.amount || 0), 0).toLocaleString()}
               </span>
             </div>

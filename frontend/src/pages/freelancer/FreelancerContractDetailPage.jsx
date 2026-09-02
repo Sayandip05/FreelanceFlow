@@ -579,8 +579,8 @@ export default function FreelancerContractDetailPage() {
                       <td className="py-4 px-4 text-right whitespace-nowrap">
                         {isFunded && (
                           <button
-                            onClick={() => navigate(`/freelancer/contracts/${contractId}/work?milestone=${m.id}`)}
-                            className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto"
+                            onClick={() => navigate(`/freelancer/worklogs/${contractId}?milestone=${m.id}`)}
+                            className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
                           >
                             <FileText className="w-3.5 h-3.5" /> Log Work / Submit Deliverable
                           </button>
