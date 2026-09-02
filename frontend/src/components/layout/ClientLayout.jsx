@@ -251,12 +251,12 @@ export default function ClientLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 w-full overflow-x-hidden">
-      {/* ── Sidebar (Expands on cursor hover with constant spacious spacing) ── */}
+    <div className="flex h-screen overflow-hidden bg-gray-50 w-full">
+      {/* ── Sidebar (Fixed height, never scrolls) ── */}
       <aside
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={`${isExpanded ? 'w-64' : 'w-20'} bg-white border-r border-gray-100 h-screen sticky top-0 flex-shrink-0 flex flex-col justify-between z-30 transition-all duration-300 ease-in-out`}
+        className={`${isExpanded ? 'w-64' : 'w-20'} bg-white border-r border-gray-100 h-full flex-shrink-0 flex flex-col justify-between z-30 transition-all duration-300 ease-in-out select-none`}
       >
         <div className="flex flex-col flex-1 min-h-0">
           {/* Logo Header (Height: h-14 / 56px) */}
@@ -330,9 +330,9 @@ export default function ClientLayout() {
         <SidebarProfileCard collapsed={!isExpanded} onOpenHelp={() => setShowHelp(true)} onOpenPrivacy={openPrivacyView} />
       </aside>
 
-      {/* ── Main Area ───────────────────────────────────────────────────── */}
-      <div className={`flex-1 flex flex-col min-w-0 ${location.pathname.includes('/messages') ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
-        {/* Top Navbar Header (Height: h-14 / 56px) */}
+      {/* ── Main Area (Independent smooth scrolling container) ─────────────── */}
+      <div className={`flex-1 flex flex-col min-w-0 ${location.pathname.includes('/messages') ? 'h-full overflow-hidden' : 'h-full overflow-y-auto'}`}>
+        {/* Top Navbar Header (Sticky at top of scroll view) */}
         <header className="h-14 bg-white/95 backdrop-blur-md border-b border-gray-100 px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-20 shadow-xs">
           <div className="flex items-center gap-2">
             {/* Left header title / context */}
@@ -347,7 +347,7 @@ export default function ClientLayout() {
           </div>
         </header>
 
-        {/* Page Content with unrestricted vertical scrolling */}
+        {/* Page Content */}
         <main className={`flex-1 ${location.pathname.includes('/messages') ? 'p-0 overflow-hidden flex flex-col' : 'p-4 sm:p-6 lg:p-8'}`}>
           <Outlet />
         </main>

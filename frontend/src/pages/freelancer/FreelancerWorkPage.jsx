@@ -84,7 +84,7 @@ const FreelancerWorkPage = () => {
           setMessages([
             {
               role: 'assistant',
-              content: `Hello! I'm your AI Worklog Assistant for **${data.contract?.title || 'this project'}**. I'm grounded with your project requirements via Qdrant. Tell me what you worked on today, or click a quick prompt below to draft your report.`,
+              content: `Hello! I'm your AI Worklog Assistant for **${data.contract?.title || 'this project'}**. Tell me what you worked on today, or click a quick prompt below to draft your report.`,
             },
           ])
         }
@@ -92,7 +92,7 @@ const FreelancerWorkPage = () => {
         setMessages([
           {
             role: 'assistant',
-            content: `Hello! I'm your AI Worklog Assistant for **${data.contract?.title || 'this project'}**. I'm grounded with your project requirements via Qdrant. Tell me what you worked on today, or click a quick prompt below to draft your report.`,
+            content: `Hello! I'm your AI Worklog Assistant for **${data.contract?.title || 'this project'}**. Tell me what you worked on today, or click a quick prompt below to draft your report.`,
           },
         ])
       }
@@ -542,7 +542,7 @@ const FreelancerWorkPage = () => {
                       <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce"></span>
                       <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:0.2s]"></span>
                       <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:0.4s]"></span>
-                      <span className="ml-1 font-medium">Querying Qdrant context & synthesizing...</span>
+                      <span className="ml-1 font-medium">Synthesizing worklog progress...</span>
                     </div>
                   </div>
                 )}
