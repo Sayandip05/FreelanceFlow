@@ -817,9 +817,9 @@ support@freelanceflow.com
                   const isFunded = m.status === 'IN_PROGRESS' || m.status === 'FUNDED'
                   const isPending = m.status === 'PENDING'
 
-                  // Check if there is an associated deliverable or report PDF
-                  const matchingDeliverable = deliverables.find(d => d.milestone_id === m.id || (deliverables.length === 1 && d.pdf_url))
-                  const latestWorkPdf = matchingDeliverable?.pdf_url || (deliverables.find(d => d.pdf_url)?.pdf_url) || (reports.find(r => r.pdf_url)?.pdf_url)
+                  // Check if there is an associated deliverable for this specific milestone
+                  const matchingDeliverable = deliverables.find(d => d.milestone_id === m.id && d.pdf_url)
+                  const milestoneWorkPdf = matchingDeliverable?.pdf_url || (isSubmitted ? (deliverables.find(d => d.pdf_url)?.pdf_url || reports.find(r => r.pdf_url)?.pdf_url) : null)
 
                   return (
                     <tr key={m.id} className="hover:bg-gray-50/80 transition-colors">
@@ -886,18 +886,18 @@ support@freelanceflow.com
 
                         {isSubmitted && (
                           <div className="flex items-center justify-end gap-2">
-                            {latestWorkPdf && (
+                            {milestoneWorkPdf && (
                               <button
                                 type="button"
                                 onClick={() => {
                                   if (setPdfReadyUrl) {
                                     setPdfReadyUrl({
-                                      url: latestWorkPdf,
+                                      url: milestoneWorkPdf,
                                       title: 'Worklog / Deliverable PDF',
                                       body: 'Click download to view the official verified worklog document.'
                                     })
                                   } else {
-                                    window.open(latestWorkPdf, '_blank')
+                                    window.open(milestoneWorkPdf, '_blank')
                                   }
                                 }}
                                 className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5"
@@ -915,29 +915,9 @@ support@freelanceflow.com
                         )}
 
                         {isFunded && (
-                          latestWorkPdf ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (setPdfReadyUrl) {
-                                  setPdfReadyUrl({
-                                    url: latestWorkPdf,
-                                    title: 'Worklog Submitted',
-                                    body: 'Click download to view the official verified PDF document.'
-                                  })
-                                } else {
-                                  window.open(latestWorkPdf, '_blank')
-                                }
-                              }}
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5 ml-auto"
-                            >
-                              <Download className="w-3.5 h-3.5" /> Worklog Submitted — Download PDF
-                            </button>
-                          ) : (
-                            <span className="text-xs font-semibold text-gray-400 italic">
-                              Work In Progress
-                            </span>
-                          )
+                          <span className="text-xs font-semibold text-gray-400 italic">
+                            Work In Progress
+                          </span>
                         )}
 
                         {isPaid && (
@@ -969,106 +949,7 @@ support@freelanceflow.com
         )}
       </div>
 
-      {/* ── Deliverables & Progress Reports Review ───────────────────────── */}
-      {(deliverables.length > 0 || reports.length > 0) && (
-        <div className="bg-white rounded-3xl p-8 border border-gray-200/80 shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-black text-gray-900 tracking-tight">Submitted Deliverables & Progress Reports</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Official documents compiled and submitted by the freelancer.
-              </p>
-            </div>
-            <span className="text-xs font-bold text-gray-400 px-3 py-1 bg-gray-100 rounded-full">
-              {deliverables.length + reports.length} Document(s)
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {deliverables.map((d) => (
-              <div key={`deliv-${d.id}`} className="p-5 bg-gray-50/80 rounded-2xl border border-gray-200/80 space-y-3 hover:border-gray-300 transition-all shadow-2xs">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="font-bold text-gray-900 text-sm">{d.title || `Deliverable #${d.id}`}</p>
-                    <p className="text-xs text-gray-600 line-clamp-2">{d.description}</p>
-                  </div>
-
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase shrink-0 ${
-                    d.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                  }`}>
-                    {d.status}
-                  </span>
-                </div>
-
-                {d.pdf_url ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (setPdfReadyUrl) {
-                        setPdfReadyUrl({
-                          url: d.pdf_url,
-                          title: d.title || 'Deliverable Document',
-                          body: 'Click download to view the official PDF deliverable document.'
-                        })
-                      } else {
-                        window.open(d.pdf_url, '_blank')
-                      }
-                    }}
-                    className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5" /> Download Deliverable PDF
-                  </button>
-                ) : d.file_url && (
-                  <a
-                    href={d.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline pt-1"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" /> View Deliverable Files / Link
-                  </a>
-                )}
-              </div>
-            ))}
-
-            {reports.map((r) => (
-              <div key={`report-${r.id}`} className="p-5 bg-gray-50/80 rounded-2xl border border-gray-200/80 space-y-3 hover:border-gray-300 transition-all shadow-2xs">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="font-bold text-gray-900 text-sm">{r.title || `Progress Report (${formatDate(r.created_at)})`}</p>
-                    <p className="text-xs text-gray-500">
-                      {r.total_hours ? `${r.total_hours} hrs logged` : 'Verified Progress Document'} • {formatDate(r.created_at)}
-                    </p>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
-                    Compiled Report
-                  </span>
-                </div>
-
-                {r.pdf_url && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (setPdfReadyUrl) {
-                        setPdfReadyUrl({
-                          url: r.pdf_url,
-                          title: r.title || 'Progress Report PDF',
-                          body: 'Click download to view the official verified report document.'
-                        })
-                      } else {
-                        window.open(r.pdf_url, '_blank')
-                      }
-                    }}
-                    className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5" /> Download Report PDF
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Section removed per user request */}
 
       {/* ── Milestone Setup Modal (Equal Distribution / Custom) ───────────── */}
       {showMilestoneModal && (
