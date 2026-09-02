@@ -67,35 +67,43 @@ const FreelancerWorkPage = () => {
     setLoading(true)
     setErrorMsg('')
     try {
-      const [res, milestonesRes] = await Promise.allSettled([
+      const [res, milestonesRes, contractRes] = await Promise.allSettled([
         aiWorklogAPI.getContext(contractId),
         paymentsAPI.getMilestones(contractId),
+        contractsAPI.getContractDetail(contractId),
       ])
 
       let data = {}
-      if (res.status === 'fulfilled') {
+      if (res.status === 'fulfilled' && res.value?.data) {
         data = res.value.data
-        setContextData(data)
+      }
 
-        if (data.active_draft) {
-          setActiveDraft(data.active_draft)
-          if (data.active_draft.pdf_url) {
-            setPdfUrl(data.active_draft.pdf_url)
-          }
+      // If contract is missing in AI context, populate from contract detail API
+      if (!data.contract && contractRes.status === 'fulfilled' && contractRes.value?.data) {
+        const c = contractRes.value.data
+        data.contract = {
+          id: c.id,
+          title: c.project?.title || c.title || `Contract #${contractId}`,
+          description: c.project?.description || c.description || '',
+          client_name: c.client?.first_name ? `${c.client.first_name} ${c.client.last_name || ''}`.trim() : (c.client?.email || 'Client'),
+          rate: c.agreed_amount || c.total_amount || 0,
+          status: c.status || 'ACTIVE',
         }
+      }
 
-        if (data.conversation) {
-          setConversationId(data.conversation.id)
-          if (data.conversation.messages && data.conversation.messages.length > 0) {
-            setMessages(data.conversation.messages)
-          } else {
-            setMessages([
-              {
-                role: 'assistant',
-                content: `Hello! I'm your AI Worklog Assistant for **${data.contract?.title || 'this project'}**. Tell me what you worked on today, or click a quick prompt below to draft your report.`,
-              },
-            ])
-          }
+      setContextData(data)
+
+      if (data.active_draft) {
+        setActiveDraft(data.active_draft)
+        if (data.active_draft.pdf_url) {
+          setPdfUrl(data.active_draft.pdf_url)
+        }
+      }
+
+      if (data.conversation) {
+        setConversationId(data.conversation.id)
+        if (data.conversation.messages && data.conversation.messages.length > 0) {
+          setMessages(data.conversation.messages)
         } else {
           setMessages([
             {
@@ -104,6 +112,13 @@ const FreelancerWorkPage = () => {
             },
           ])
         }
+      } else {
+        setMessages([
+          {
+            role: 'assistant',
+            content: `Hello! I'm your AI Worklog Assistant for **${data.contract?.title || 'this project'}**. Tell me what you worked on today, or click a quick prompt below to draft your report.`,
+          },
+        ])
       }
 
       if (milestonesRes.status === 'fulfilled' && Array.isArray(milestonesRes.value.data)) {
@@ -119,7 +134,10 @@ const FreelancerWorkPage = () => {
     }
   }
 
-  const { contract, deliverables = [], previous_reports = [], qdrant_status = {} } = contextData || {}
+  const contract = contextData?.contract || {}
+  const deliverables = contextData?.deliverables || []
+  const previous_reports = contextData?.previous_reports || []
+  const qdrant_status = contextData?.qdrant_status || {}
   const milestones = milestonesList.length > 0 ? milestonesList : (contextData?.milestones || [])
   const hasApprovedReport = Boolean(pdfUrl || activeDraft?.status === 'APPROVED' || (previous_reports && previous_reports.length > 0))
 
@@ -343,9 +361,9 @@ const FreelancerWorkPage = () => {
           <div className="h-5 w-px bg-gray-200"></div>
           <div>
             <h1 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              {contract.title}
+              {contract?.title || `Contract #${contractId}`}
               <span className="text-xs px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-200">
-                Contract #{contract.id}
+                Contract #{contract?.id || contractId}
               </span>
             </h1>
           </div>
@@ -769,12 +787,12 @@ const FreelancerWorkPage = () => {
           <div className="rounded-2xl bg-white border border-gray-200 p-5 space-y-3 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Contract Budget</span>
-              <span className="text-sm font-black text-blue-600">${parseFloat(contract.rate || 0).toLocaleString()}</span>
+              <span className="text-sm font-black text-blue-600">${parseFloat(contract?.rate || 0).toLocaleString()}</span>
             </div>
-            <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">{contract.description}</p>
+            <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">{contract?.description || 'No description provided.'}</p>
             <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-              <span>Client: <strong className="text-gray-800">{contract.client_name}</strong></span>
-              <span>Status: <strong className="text-blue-600 font-bold">{contract.status}</strong></span>
+              <span>Client: <strong className="text-gray-800">{contract?.client_name || 'Client'}</strong></span>
+              <span>Status: <strong className="text-blue-600 font-bold">{contract?.status || 'ACTIVE'}</strong></span>
             </div>
           </div>
 
