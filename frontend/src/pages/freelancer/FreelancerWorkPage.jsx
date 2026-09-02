@@ -625,58 +625,10 @@ const FreelancerWorkPage = () => {
           )}
         </main>
 
-        {/* ── RIGHT PANEL: Consolidated Deliverable Downloads, Previous Reports & Contract Scope ── */}
+        {/* ── RIGHT PANEL: Previous Compiled Reports (At Top), Current Ready Deliverables & Contract Scope ── */}
         <aside className="w-80 lg:w-96 bg-gray-50/70 p-6 flex flex-col gap-6 overflow-y-auto shrink-0">
           
-          {/* Current Deliverable Status */}
-          <div>
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-              Current Deliverable
-            </h3>
-            
-            {pdfUrl ? (
-              <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-sm">
-                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-sm">
-                  <CheckCircleIcon className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">PDF Ready</p>
-                  <p className="text-xs text-gray-600 mt-1">Your deliverable has been compiled and is ready for the client.</p>
-                </div>
-                <a
-                  href={pdfUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all mt-2"
-                >
-                  <ArrowDownTrayIcon className="w-4 h-4" />
-                  Download PDF
-                </a>
-              </div>
-            ) : activeDraft ? (
-              <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-sm">
-                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 shadow-sm">
-                  <DocumentTextIcon className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">Draft Pending</p>
-                  <p className="text-xs text-gray-600 mt-1">Review the draft in the chat and approve it to generate the PDF.</p>
-                </div>
-              </div>
-            ) : (
-              <div className="p-5 bg-white border border-gray-200 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-xs">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
-                  <ClockIcon className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">No Draft Yet</p>
-                  <p className="text-xs text-gray-500 mt-1">Chat with the AI or use the manual form to create your deliverable.</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Report Downloads & History (Shifted from Left to Right Side) */}
+          {/* Previous Compiled Reports (Positioned on Upper Part) */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
               Previous Compiled Reports ({previous_reports.length})
@@ -717,6 +669,46 @@ const FreelancerWorkPage = () => {
               </div>
             )}
           </div>
+
+          {/* Current Deliverable Status (Only shown when PDF is ready or Draft is pending) */}
+          {(pdfUrl || activeDraft) && (
+            <div>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                Current Deliverable
+              </h3>
+              
+              {pdfUrl ? (
+                <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-sm">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-sm">
+                    <CheckCircleIcon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">PDF Ready</p>
+                    <p className="text-xs text-gray-600 mt-1">Your deliverable has been compiled and is ready for the client.</p>
+                  </div>
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all mt-2"
+                  >
+                    <ArrowDownTrayIcon className="w-4 h-4" />
+                    Download PDF
+                  </a>
+                </div>
+              ) : (
+                <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col items-center text-center space-y-3 shadow-sm">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 shadow-sm">
+                    <DocumentTextIcon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">Draft Pending</p>
+                    <p className="text-xs text-gray-600 mt-1">Review the draft in the chat and approve it to generate the PDF.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Contract Overview Box */}
           <div className="rounded-2xl bg-white border border-gray-200 p-5 space-y-3 shadow-xs">

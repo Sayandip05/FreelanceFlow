@@ -4,10 +4,12 @@ import {
   ScrollText, Briefcase, Search, Filter, ArrowRight,
   ShieldCheck, CheckCircle2, Clock, AlertTriangle,
   DollarSign, User, MessageSquare, PlusCircle, ExternalLink,
-  ChevronRight, Sparkles, RefreshCw
+  ChevronRight, Sparkles, RefreshCw, ChevronLeft, Calendar
 } from 'lucide-react'
 import { contractsAPI } from '../../api/bids'
 import { formatCurrency } from '../../utils/formatCurrency'
+
+const ITEMS_PER_PAGE = 12
 
 export default function FreelancerContractsPage() {
   const navigate = useNavigate()
@@ -15,10 +17,16 @@ export default function FreelancerContractsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTab, setActiveTab] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     fetchContracts()
   }, [])
+
+  // Reset to first page whenever search term or tab filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, activeTab])
 
   const fetchContracts = async () => {
     setLoading(true)
@@ -60,8 +68,22 @@ export default function FreelancerContractsPage() {
   const completedContractsCount = contracts.filter((c) => !c.is_active).length
   const totalEarningsPotential = contracts.reduce((sum, c) => sum + parseFloat(c.agreed_amount || 0), 0)
 
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredContracts.length / ITEMS_PER_PAGE) || 1
+  const paginatedContracts = filteredContracts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 max-w-7xl mx-auto pb-16">
       {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
@@ -87,7 +109,7 @@ export default function FreelancerContractsPage() {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Active Contracts</p>
-            <p className="text-2xl font-black text-emerald-600">{activeContractsCount}</p>
+            <p className="text-2xl font-black text-gray-900">{activeContractsCount}</p>
           </div>
         </div>
 
@@ -97,7 +119,7 @@ export default function FreelancerContractsPage() {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Completed</p>
-            <p className="text-2xl font-black text-blue-600">{completedContractsCount}</p>
+            <p className="text-2xl font-black text-gray-900">{completedContractsCount}</p>
           </div>
         </div>
 
@@ -107,7 +129,7 @@ export default function FreelancerContractsPage() {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Value</p>
-            <p className="text-xl font-black text-gray-900">{formatCurrency(totalEarningsPotential)}</p>
+            <p className="text-2xl font-black text-gray-900">{formatCurrency(totalEarningsPotential)}</p>
           </div>
         </div>
       </div>
@@ -146,14 +168,15 @@ export default function FreelancerContractsPage() {
         </div>
       </div>
 
-      {/* ── Contract Cards List ─────────────────────────────────────────── */}
+      {/* ── Boxy 3-Columns Grid of Contracts (3 Boxes per row, up to 12 per page) ── */}
       {loading ? (
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4 animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white rounded-3xl border border-gray-200 p-6 space-y-4 animate-pulse">
               <div className="h-6 bg-gray-200 rounded-md w-1/3" />
-              <div className="h-4 bg-gray-100 rounded-md w-1/2" />
-              <div className="h-10 bg-gray-100 rounded-xl" />
+              <div className="h-5 bg-gray-100 rounded-md w-3/4" />
+              <div className="h-4 bg-gray-100 rounded-md w-full" />
+              <div className="h-10 bg-gray-100 rounded-xl mt-4" />
             </div>
           ))}
         </div>
@@ -170,119 +193,146 @@ export default function FreelancerContractsPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredContracts.map((contract) => {
-            const project = contract.project || contract.bid?.project || {}
-            const client = contract.client || contract.bid?.project?.client || {}
-            const clientName = `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email?.split('@')[0] || 'Client'
-            const initials = [client.first_name?.[0], client.last_name?.[0]].filter(Boolean).join('').toUpperCase() || 'CL'
-            const budget = contract.agreed_amount || project.budget || 0
-            const startDate = contract.start_date ? new Date(contract.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
-            const deadline = project.deadline ? new Date(project.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible'
+        <div className="space-y-8">
+          {/* 3 boxes per line grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedContracts.map((contract) => {
+              const project = contract.project || contract.bid?.project || {}
+              const client = contract.client || contract.bid?.project?.client || {}
+              const clientName = `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email?.split('@')[0] || 'Client'
+              const initials = [client.first_name?.[0], client.last_name?.[0]].filter(Boolean).join('').toUpperCase() || 'CL'
+              const budget = contract.agreed_amount || project.budget || 0
+              const startDate = contract.start_date ? new Date(contract.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+              const deadline = project.deadline ? new Date(project.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible'
 
-            return (
-              <div
-                key={contract.id}
-                className="bg-white rounded-2xl border border-gray-200/80 hover:border-primary-300 hover:shadow-lg transition-all duration-200 overflow-hidden group"
-              >
-                <div className="p-6">
-                  {/* Top row */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-2.5">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${contract.is_active
+              return (
+                <div
+                  key={contract.id}
+                  className="bg-white rounded-3xl border border-gray-200/90 hover:border-primary-300 hover:shadow-lg transition-all duration-300 p-6 flex flex-col justify-between group shadow-sm"
+                >
+                  <div>
+                    {/* Top row: Status & Contract # */}
+                    <div className="flex items-center justify-between gap-3 mb-3.5">
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${contract.is_active
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : 'bg-blue-50 text-blue-700 border border-blue-200'
                         }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${contract.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
                         {contract.is_active ? 'Active Contract' : 'Completed'}
                       </span>
-                      <span className="text-xs font-medium text-gray-400">
-                        Contract #{contract.id}
+                      <span className="text-xs font-semibold text-gray-400">
+                        #{contract.id}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs font-semibold text-primary-700 bg-primary-50/80 px-3 py-1 rounded-lg border border-primary-100">
-                      <ShieldCheck className="w-3.5 h-3.5 text-primary-600" />
-                      Razorpay Escrow Protected
-                    </div>
-                  </div>
+                    {/* Project Title */}
+                    <h3
+                      onClick={() => navigate(`/freelancer/contracts/${contract.id}`)}
+                      className="text-base font-bold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1 cursor-pointer"
+                    >
+                      {project.title || `Contract #${contract.id}`}
+                    </h3>
 
-                  {/* Project Title & Client */}
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-gray-100">
-                    <div className="space-y-2 flex-1 min-w-0">
-                      <button
-                        onClick={() => navigate(`/freelancer/contracts/${contract.id}`)}
-                        className="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors text-left truncate block max-w-2xl"
-                      >
-                        {project.title || `Contract #${contract.id}`}
-                      </button>
+                    {/* Description preview */}
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+                      {project.description || 'Active milestone workspace with progress and deliverable tracking.'}
+                    </p>
 
-                      {/* Client Info */}
-                      <div className="flex items-center gap-3">
+                    {/* Client Info Bar */}
+                    <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         {client.profile_photo ? (
                           <img
                             src={client.profile_photo}
                             alt={clientName}
-                            className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                            className="w-7 h-7 rounded-full object-cover border border-gray-200 shrink-0"
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center">
+                          <div className="w-7 h-7 rounded-full bg-primary-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                             {initials}
                           </div>
                         )}
-                        <div>
-                          <p className="text-xs font-bold text-gray-800">{clientName}</p>
-                          <p className="text-[11px] text-gray-500">{client.email}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-gray-800 truncate">{clientName}</p>
+                          <p className="text-[10px] text-gray-400 truncate">{client.email}</p>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Contract Details Grid */}
-                    <div className="grid grid-cols-3 gap-4 bg-gray-50/80 rounded-2xl p-4 border border-gray-100 text-center flex-shrink-0">
-                      <div>
-                        <p className="text-[11px] font-semibold text-gray-400 uppercase">Total Amount</p>
-                        <p className="text-base font-black text-gray-900 mt-0.5">{formatCurrency(budget)}</p>
-                      </div>
-                      <div className="border-x border-gray-200 px-3">
-                        <p className="text-[11px] font-semibold text-gray-400 uppercase">Contract Type</p>
-                        <p className="text-xs font-bold text-primary-600 mt-1">Milestone-wise</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-semibold text-gray-400 uppercase">Deadline</p>
-                        <p className="text-xs font-bold text-gray-800 mt-1">{deadline}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions & Navigation Footer */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
-                    <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                      <Clock className="w-3.5 h-3.5 text-gray-400" />
-                      Started on {startDate}
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
                       <button
                         onClick={() => navigate(`/freelancer/messages?client=${client.id}`)}
-                        className="p-2.5 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-colors text-xs font-semibold flex items-center gap-1.5"
-                        title="Send Message"
+                        className="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors shrink-0"
+                        title="Message Client"
                       >
                         <MessageSquare className="w-4 h-4" />
-                        <span className="hidden sm:inline">Message</span>
-                      </button>
-
-                      <button
-                        onClick={() => navigate(`/freelancer/contracts/${contract.id}`)}
-                        className="px-5 py-2.5 btn-primary text-xs font-bold flex items-center gap-2 group-hover:scale-[1.02]"
-                      >
-                        View Contract & Milestones <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
+
+                    {/* Contract Budget & Deadline row */}
+                    <div className="mt-3.5 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-gray-400 block">Total Budget</span>
+                        <span className="text-base font-black text-gray-900">{formatCurrency(budget)}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-gray-400 block">Deadline</span>
+                        <span className="text-xs font-bold text-gray-700">{deadline}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Button at bottom */}
+                  <div className="mt-5 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => navigate(`/freelancer/contracts/${contract.id}`)}
+                      className="w-full py-2.5 px-4 btn-primary text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all"
+                    >
+                      View Contract & Milestones <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
+
+          {/* ── Standard Numbered Pagination (1, 2, 3... with Arrows) ── */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-6">
+              {/* Prev Button */}
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-2xs"
+                title="Previous Page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Number Buttons */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${
+                    currentPage === pageNum
+                      ? 'bg-primary-600 text-white shadow-md shadow-primary-500/20'
+                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+
+              {/* Next Button */}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors shadow-2xs"
+                title="Next Page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

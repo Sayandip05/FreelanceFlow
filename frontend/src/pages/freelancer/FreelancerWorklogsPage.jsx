@@ -92,7 +92,7 @@ const FreelancerWorklogsPage = () => {
           </div>
           <div>
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Contract Value</span>
-            <div className="text-2xl font-black text-blue-600 mt-0.5">${totalBudget.toLocaleString()}</div>
+            <div className="text-2xl font-black text-gray-900 mt-0.5">${totalBudget.toLocaleString()}</div>
             <span className="text-xs text-blue-600 font-medium">Across active engagements</span>
           </div>
         </div>

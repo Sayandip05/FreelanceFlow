@@ -506,10 +506,12 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         for d in draft.section_deliverables:
             if isinstance(d, dict):
                 deliverables_html += f"""
-                <div style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border-left: 4px solid #6366f1; border-radius: 4px;">
-                    <strong style="color: #1e293b;">{d.get('title', 'Deliverable')}</strong>
-                    <span style="font-size: 11px; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">{d.get('status', 'COMPLETED')}</span>
-                    <p style="margin: 4px 0 0 0; color: #475569; font-size: 13px;">{d.get('description', '')}</p>
+                <div style="margin-bottom: 10px; padding: 10px 12px; background: #f8fafc; border-left: 4px solid #1e40af; border-radius: 4px; border: 1px solid #e2e8f0; border-left-width: 4px;">
+                    <div style="margin-bottom: 4px;">
+                        <strong style="color: #0f172a; font-size: 13px;">{d.get('title', 'Deliverable')}</strong>
+                        <span style="font-size: 10px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 1px 6px; border-radius: 4px; font-weight: bold; margin-left: 8px;">{d.get('status', 'COMPLETED')}</span>
+                    </div>
+                    <p style="margin: 0; color: #475569; font-size: 12px; line-height: 1.4;">{d.get('description', '')}</p>
                 </div>
                 """
 
@@ -519,54 +521,58 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         <head>
             <meta charset="utf-8">
             <style>
-                @page {{ size: A4; margin: 20mm; }}
-                body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5; font-size: 14px; }}
-                .header {{ border-bottom: 2px solid #6366f1; padding-bottom: 15px; margin-bottom: 25px; }}
-                .badge {{ background: #6366f1; color: #ffffff; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }}
-                h1 {{ margin: 0 0 8px 0; color: #0f172a; font-size: 24px; }}
-                h2 {{ color: #4338ca; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 20px; }}
-                .meta-grid {{ display: table; width: 100%; margin-bottom: 20px; }}
-                .meta-col {{ display: table-cell; width: 50%; }}
-                .footer {{ margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 11px; color: #94a3b8; text-align: center; }}
+                @page {{ size: A4; margin: 18mm; }}
+                body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5; font-size: 13px; }}
+                .header {{ border-bottom: 2px solid #1e40af; padding-bottom: 12px; margin-bottom: 20px; }}
+                .badge {{ background: #1e40af; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; }}
+                h1 {{ margin: 8px 0 4px 0; color: #0f172a; font-size: 20px; }}
+                h2 {{ color: #1e40af; font-size: 14px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 20px; margin-bottom: 10px; font-weight: bold; }}
+                .meta-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }}
+                .meta-table td {{ padding: 8px 12px; font-size: 12px; border-bottom: 1px solid #e2e8f0; }}
+                .footer {{ margin-top: 35px; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 11px; color: #64748b; text-align: center; }}
+                .disclaimer {{ font-size: 10.5px; color: #475569; font-style: italic; margin-top: 4px; }}
             </style>
         </head>
         <body>
             <div class="header">
                 <span class="badge">VERIFIED WORKLOG REPORT</span>
-                <h1 style="margin-top: 10px;">{draft.title}</h1>
-                <p style="margin: 0; color: #64748b;">FreelanceFlow Verified Progress Document • Contract #{contract.id}</p>
+                <h1>{draft.title}</h1>
+                <p style="margin: 0; color: #64748b; font-size: 12px;">FreelanceFlow Verified Progress Document • Contract #{contract.id}</p>
             </div>
 
-            <div class="meta-grid">
-                <div class="meta-col">
-                    <strong>Project:</strong> {project.title}<br>
-                    <strong>Client:</strong> {client.get_full_name() or client.username}<br>
-                    <strong>Date Generated:</strong> {timezone.now().strftime('%B %d, %Y')}
-                </div>
-                <div class="meta-col" style="text-align: right;">
-                    <strong>Freelancer:</strong> {freelancer.get_full_name() or freelancer.username}<br>
-                    <strong>Hours Billed/Logged:</strong> {draft.hours_worked} hrs<br>
-                    <strong>Status:</strong> Pending Client Approval
-                </div>
-            </div>
+            <table class="meta-table">
+                <tr>
+                    <td style="width: 50%;"><strong>Project:</strong> {project.title}</td>
+                    <td style="width: 50%;"><strong>Freelancer:</strong> {freelancer.get_full_name() or freelancer.username}</td>
+                </tr>
+                <tr>
+                    <td><strong>Client:</strong> {client.get_full_name() or client.username}</td>
+                    <td><strong>Hours Logged:</strong> <span style="color: #1e40af; font-weight: bold;">{draft.hours_worked} hrs</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Date Generated:</strong> {timezone.now().strftime('%B %d, %Y')}</td>
+                    <td><strong>Status:</strong> <span style="color: #16a34a; font-weight: bold;">Verified & Approved</span></td>
+                </tr>
+            </table>
 
             <h2>1. Executive Summary</h2>
-            <p style="color: #334155;">{draft.section_summary}</p>
+            <p style="color: #334155; margin: 0 0 15px 0;">{draft.section_summary}</p>
 
             <h2>2. Deliverables & Milestones Completed</h2>
             {deliverables_html or '<p style="color: #64748b;">No discrete deliverables listed for this period.</p>'}
 
             <h2>3. Next Steps & Upcoming Priorities</h2>
-            <p style="color: #334155;">{draft.section_next_steps}</p>
+            <p style="color: #334155; margin: 0 0 15px 0;">{draft.section_next_steps}</p>
 
             <div class="footer">
-                Compiled securely by FreelanceFlow AI Agent • Tamper-evident ID: RPT-{draft.id}-{timezone.now().strftime('%Y%m%d%H%M')}
+                <p class="disclaimer">* Note: This progress report was compiled by FreelanceFlow AI Worklog Assistant and verified by the freelancer.</p>
+                <p style="margin: 2px 0 0 0; color: #94a3b8; font-size: 10px;">Document ID: RPT-{draft.id}-{timezone.now().strftime('%Y%m%d%H%M')}</p>
             </div>
         </body>
         </html>
         """
 
-        # Generate PDF bytes via WeasyPrint
+        # Generate PDF bytes via WeasyPrint or FPDF2 fallback
         pdf_bytes = None
         try:
             from weasyprint import HTML
@@ -599,26 +605,32 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 
                 class ReportPDF(FPDF):
                     def header(self):
-                        self.set_font("Helvetica", "B", 14)
-                        self.set_text_color(79, 70, 229)  # Indigo
-                        self.cell(0, 8, "FREELANCEFLOW PROGRESS REPORT", border=0, ln=1, align="L")
-                        self.set_font("Helvetica", "I", 9)
+                        self.set_font("Helvetica", "B", 13)
+                        self.set_text_color(30, 64, 175)  # Deep Blue
+                        self.cell(0, 7, "FREELANCEFLOW PROGRESS REPORT", border=0, ln=1, align="L")
+                        self.set_font("Helvetica", "", 9)
                         self.set_text_color(100, 116, 139)  # Slate
                         self.cell(0, 5, "Verified Contract Progress & Delivery Summary", border=0, ln=1, align="L")
-                        self.set_draw_color(226, 232, 240)
-                        self.set_line_width(0.5)
-                        self.line(15, 26, 195, 26)
-                        self.ln(6)
+                        self.ln(2)
+                        y_line = self.get_y()
+                        self.set_draw_color(203, 213, 225)
+                        self.set_line_width(0.4)
+                        self.line(15, y_line, 195, y_line)
+                        self.ln(5)
 
                     def footer(self):
-                        self.set_y(-15)
+                        self.set_y(-18)
+                        self.set_draw_color(226, 232, 240)
+                        self.set_line_width(0.3)
+                        self.line(15, self.get_y(), 195, self.get_y())
+                        self.set_y(-14)
                         self.set_font("Helvetica", "I", 8)
-                        self.set_text_color(148, 163, 184)  # Light grey
-                        self.cell(0, 10, f"Compiled securely by FreelanceFlow AI - Page {self.page_no()}", border=0, align="C")
+                        self.set_text_color(100, 116, 139)
+                        self.cell(0, 5, f"* Note: Compiled by FreelanceFlow AI Worklog Assistant • Verified by Freelancer (Page {self.page_no()})", border=0, align="C")
 
 
                 pdf = ReportPDF()
-                pdf.set_auto_page_break(auto=True, margin=20)
+                pdf.set_auto_page_break(auto=True, margin=22)
                 pdf.set_margins(15, 15, 15)
                 pdf.add_page()
 
@@ -628,10 +640,10 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 pdf.set_line_width(0.3)
 
                 # Card Top Row: Project Title
-                pdf.set_font("Helvetica", "B", 10)
+                pdf.set_font("Helvetica", "B", 9.5)
                 pdf.set_text_color(71, 85, 105)
                 pdf.cell(32, 7, "Project Title:", border="LT", ln=0, fill=True)
-                pdf.set_font("Helvetica", "B", 10)
+                pdf.set_font("Helvetica", "B", 9.5)
                 pdf.set_text_color(15, 23, 42)
                 pdf.cell(148, 7, clean_pdf_text(project.title), border="TR", ln=1, fill=True)
 
@@ -650,12 +662,12 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 pdf.set_text_color(15, 23, 42)
                 pdf.cell(58, 6, clean_pdf_text(freelancer.get_full_name() or freelancer.email), border="R", ln=1, fill=True)
 
-                # Card Bottom Row: Hours & Status
+                # Card Bottom Row: Hours & Date
                 pdf.set_font("Helvetica", "B", 9)
                 pdf.set_text_color(71, 85, 105)
                 pdf.cell(32, 6, "Hours Logged:", border="LB", ln=0, fill=True)
                 pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(79, 70, 229)
+                pdf.set_text_color(30, 64, 175)  # Deep blue
                 pdf.cell(58, 6, f"{draft.hours_worked} hrs", border="B", ln=0, fill=True)
 
                 pdf.set_font("Helvetica", "B", 9)
@@ -665,59 +677,67 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 pdf.set_text_color(15, 23, 42)
                 pdf.cell(58, 6, timezone.now().strftime('%B %d, %Y'), border="RB", ln=1, fill=True)
 
-                pdf.ln(6)
+                pdf.ln(5)
 
                 # Section 1: Executive Summary
-                pdf.set_font("Helvetica", "B", 11)
-                pdf.set_text_color(67, 56, 202)  # Darker indigo
-                pdf.cell(0, 7, "1. Executive Summary", ln=1)
-                pdf.set_draw_color(226, 232, 240)
-                pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+                pdf.set_font("Helvetica", "B", 10.5)
+                pdf.set_text_color(30, 64, 175)  # Deep Blue
+                pdf.cell(0, 6, "1. Executive Summary", ln=1)
+                pdf.set_draw_color(203, 213, 225)
+                pdf.set_line_width(0.4)
+                y_s1 = pdf.get_y()
+                pdf.line(15, y_s1, 195, y_s1)
                 pdf.ln(3)
 
                 pdf.set_font("Helvetica", "", 9.5)
                 pdf.set_text_color(30, 41, 59)
                 pdf.multi_cell(180, 5.5, clean_pdf_text(draft.section_summary))
-                pdf.ln(5)
+                pdf.ln(4)
 
                 # Section 2: Deliverables Completed
-                pdf.set_font("Helvetica", "B", 11)
-                pdf.set_text_color(67, 56, 202)
-                pdf.cell(0, 7, "2. Deliverables & Milestones Completed", ln=1)
-                pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+                pdf.set_font("Helvetica", "B", 10.5)
+                pdf.set_text_color(30, 64, 175)  # Deep Blue
+                pdf.cell(0, 6, "2. Deliverables & Milestones Completed", ln=1)
+                pdf.set_draw_color(203, 213, 225)
+                pdf.set_line_width(0.4)
+                y_s2 = pdf.get_y()
+                pdf.line(15, y_s2, 195, y_s2)
                 pdf.ln(3)
 
                 if not draft.section_deliverables:
-                    pdf.set_font("Helvetica", "I", 9.5)
+                    pdf.set_font("Helvetica", "I", 9)
                     pdf.set_text_color(100, 116, 139)
                     pdf.cell(0, 6, "No discrete deliverables listed for this period.", ln=1)
                 else:
                     for d in draft.section_deliverables:
                         if isinstance(d, dict):
-                            d_title = d.get('title', 'Deliverable')
-                            d_status = d.get('status', 'COMPLETED')
-                            d_desc = d.get('description', '')
+                            d_title = clean_pdf_text(d.get('title', 'Deliverable'))
+                            d_status = clean_pdf_text(d.get('status', 'COMPLETED'))
+                            d_desc = clean_pdf_text(d.get('description', ''))
 
+                            # Deliverable header line: title and badge
                             pdf.set_font("Helvetica", "B", 9.5)
                             pdf.set_text_color(15, 23, 42)
-                            pdf.cell(30, 6, f"* {clean_pdf_text(d_title)}:", ln=0)
-                            pdf.set_font("Helvetica", "B", 9.5)
-                            pdf.set_text_color(79, 70, 229)
-                            pdf.cell(30, 6, f"[{clean_pdf_text(d_status)}]", ln=0)
-                            pdf.set_font("Helvetica", "", 9.5)
-                            pdf.set_text_color(51, 65, 85)
-                            if d_desc:
-                                pdf.multi_cell(120, 5.5, clean_pdf_text(d_desc))
-                            else:
-                                pdf.ln(6)
+                            pdf.cell(0, 5.5, f"* {d_title}  [{d_status}]", ln=1)
 
-                pdf.ln(5)
+                            # Description on indented line below
+                            if d_desc:
+                                pdf.set_font("Helvetica", "", 9)
+                                pdf.set_text_color(71, 85, 105)
+                                pdf.set_x(20)
+                                pdf.multi_cell(170, 5, d_desc)
+                            pdf.ln(2)
+
+                pdf.ln(3)
 
                 # Section 3: Next Steps & Priorities
-                pdf.set_font("Helvetica", "B", 11)
-                pdf.set_text_color(67, 56, 202)
-                pdf.cell(0, 7, "3. Next Steps & Upcoming Priorities", ln=1)
-                pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+                pdf.set_font("Helvetica", "B", 10.5)
+                pdf.set_text_color(30, 64, 175)  # Deep Blue
+                pdf.cell(0, 6, "3. Next Steps & Upcoming Priorities", ln=1)
+                pdf.set_draw_color(203, 213, 225)
+                pdf.set_line_width(0.4)
+                y_s3 = pdf.get_y()
+                pdf.line(15, y_s3, 195, y_s3)
                 pdf.ln(3)
 
                 pdf.set_font("Helvetica", "", 9.5)
