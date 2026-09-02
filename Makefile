@@ -4,10 +4,10 @@
 # ============================================================
 
 ifeq ($(OS),Windows_NT)
-    VENV     = .venv
+    VENV     ?= $(if $(wildcard venv),venv,.venv)
     PYTHON   = $(VENV)/Scripts/python
 else
-    VENV     = .venv
+    VENV     ?= $(if $(wildcard venv),venv,.venv)
     PYTHON   = $(VENV)/bin/python
 endif
 MANAGE   = $(PYTHON) manage.py
