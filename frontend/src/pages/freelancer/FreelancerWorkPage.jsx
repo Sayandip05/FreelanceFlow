@@ -284,9 +284,9 @@ const FreelancerWorkPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 flex flex-col h-screen overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col w-full h-full bg-white text-gray-900 overflow-hidden">
       {/* ── Top Header ────────────────────────────────────────── */}
-      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-xs">
+      <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-xs">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/freelancer/worklogs')}
@@ -303,17 +303,6 @@ const FreelancerWorkPage = () => {
                 Contract #{contract.id}
               </span>
             </h1>
-          </div>
-        </div>
-
-        {/* Vector Grounding Pill */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs">
-            <ShieldCheckIcon className="w-4 h-4 text-blue-600" />
-            <span className="text-gray-700 font-medium">Qdrant Vector Cloud:</span>
-            <span className="text-blue-700 font-bold">
-              {qdrant_status.is_initialized ? `${qdrant_status.vectors_count} Grounded Docs` : 'Grounded'}
-            </span>
           </div>
         </div>
       </header>
