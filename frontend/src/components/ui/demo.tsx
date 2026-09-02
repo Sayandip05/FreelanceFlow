@@ -1,11 +1,9 @@
-import React from "react";
-import { BrowserRouter } from "react-router-dom";
-import { LoginPage } from "@/components/ui/sign-in-page";
+import React from 'react';
+import { Component } from './image-auto-slider';
 
-export default function Demo() {
-  return (
-    <BrowserRouter>
-      <LoginPage />
-    </BrowserRouter>
-  );
-}
+const DemoOne = () => {
+  return <Component />;
+};
+
+export { DemoOne };
+export default DemoOne;

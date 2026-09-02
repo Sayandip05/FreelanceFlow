@@ -68,16 +68,6 @@ export default function FreelancerBrowsePage() {
   const [search, setSearch] = useState('')
   const [budgetFilter, setBudgetFilter] = useState('')
   const [biddedProjectIds, setBiddedProjectIds] = useState(new Set())
-  const [expandedProjectIds, setExpandedProjectIds] = useState(new Set())
-
-  const toggleExpandProject = (id) => {
-    setExpandedProjectIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
 
   useEffect(() => {
     fetchProjects()
@@ -169,7 +159,7 @@ export default function FreelancerBrowsePage() {
             <div
               key={project.id}
               onClick={() => navigate(`/freelancer/projects/${project.id}`)}
-              className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md hover:border-primary-100 transition-all cursor-pointer group"
+              className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -179,31 +169,15 @@ export default function FreelancerBrowsePage() {
                     </span>
                   </div>
                   
-                  {/* Title */}
-                  <h3 className="font-bold text-gray-900 text-lg mb-1 group-hover:text-primary-600 transition-colors flex items-center gap-2">
+                  {/* Title (Constant Black) */}
+                  <h3 className="font-bold text-gray-900 text-lg mb-1 flex items-center gap-2">
                     {project.title}
                   </h3>
                   
-                  {/* Description with More Toggle */}
-                  <div className="mb-3">
-                    <p className={`text-gray-600 text-sm leading-relaxed ${expandedProjectIds.has(project.id) ? 'whitespace-pre-line' : 'line-clamp-2'}`}>
-                      {expandedProjectIds.has(project.id)
-                        ? (project.description || project.short_description)
-                        : (project.short_description || project.description)}
-                    </p>
-                    {(project.description && (project.description.length > 120 || project.description !== project.short_description)) && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleExpandProject(project.id)
-                        }}
-                        className="mt-1 text-xs font-bold text-primary-600 hover:text-primary-800 inline-flex items-center gap-1 hover:underline"
-                      >
-                        {expandedProjectIds.has(project.id) ? 'Show less' : 'More...'}
-                      </button>
-                    )}
-                  </div>
+                  {/* Description preview */}
+                  <p className="text-gray-600 text-sm leading-relaxed line-clamp-2 mb-3">
+                    {project.short_description || project.description}
+                  </p>
                   
                   {/* Skills tags */}
                   {project.required_skills?.length > 0 && (
