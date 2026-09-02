@@ -197,7 +197,7 @@ const FreelancerWorklogsPage = () => {
                   </div>
 
                   {/* Title & Description */}
-                  <h3 className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                  <h3 className="text-base font-bold text-gray-900 line-clamp-1">
                     {projectTitle}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
@@ -223,7 +223,7 @@ const FreelancerWorklogsPage = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500">Contract Budget:</span>
-                      <span className="font-bold text-blue-600 text-sm">
+                      <span className="font-bold text-gray-900 text-sm">
                         ${parseFloat(amount).toLocaleString()}
                       </span>
                     </div>
