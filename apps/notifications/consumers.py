@@ -194,6 +194,8 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 "title": n.title,
                 "body": n.body,
                 "type": n.type,
+                "action_url": n.action_url,
+                "data": n.data,
                 "is_read": n.is_read,
                 "created_at": n.created_at.isoformat(),
             }
