@@ -273,6 +273,57 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
     return state
 
 
+import re
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Security & Safety Guardrails
+# ─────────────────────────────────────────────────────────────────────────────
+
+INJECTION_PATTERNS = [
+    r"ignore\s+(all\s+)?(previous|prior)\s+instructions",
+    r"system\s+prompt\s+override",
+    r"you\s+are\s+now\s+in\s+developer\s+mode",
+    r"jailbreak",
+    r"bypass\s+(safety|guardrails|filters)",
+    r"release\s+(funds|escrow|payment)",
+    r"transfer\s+(money|funds|balance)",
+    r"execute\s+payment",
+    r"access\s+(client\s+wallet|bank|credentials)",
+    r"reveal\s+(api\s+key|private\s+key|password|secrets)",
+    r"dan\s+mode",
+]
+
+def sanitize_sensitive_data(text: str) -> str:
+    """
+    Strips credit card numbers, bank account patterns, private keys, and API tokens
+    to prevent sensitive client/freelancer PII from reaching LLMs or vector databases.
+    """
+    if not text:
+        return ""
+    # Credit Card pattern (13-19 digits with optional spaces/hyphens)
+    text = re.sub(r"\b(?:\d[ -]*?){13,19}\b", "[REDACTED_CARD_NUMBER]", text)
+    # API tokens, Razorpay keys, bearer tokens
+    text = re.sub(r"(?:rzp_[a-zA-Z0-9_]+|Bearer\s+[a-zA-Z0-9_\-\.]+|sk-[a-zA-Z0-9]{20,})", "[REDACTED_TOKEN]", text)
+    # Private Key blocks
+    text = re.sub(r"-----BEGIN[ A-Z_-]+PRIVATE KEY-----[\s\S]+?-----END[ A-Z_-]+PRIVATE KEY-----", "[REDACTED_PRIVATE_KEY]", text)
+    # Passwords / secrets
+    text = re.sub(r"(?:password|passwd|secret)\s*[:=]\s*\S+", "[REDACTED_SECRET]", text, flags=re.IGNORECASE)
+    return text
+
+
+def detect_prompt_injection(user_message: str) -> bool:
+    """
+    Basic guardrail detecting prompt injection or unauthorized payment execution attempts.
+    """
+    if not user_message:
+        return False
+    msg_lower = user_message.lower()
+    for pattern in INJECTION_PATTERNS:
+        if re.search(pattern, msg_lower):
+            return True
+    return False
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Node 2: report_generator
 # ─────────────────────────────────────────────────────────────────────────────
@@ -282,6 +333,7 @@ async def report_generator(state: AIWorklogState) -> AIWorklogState:
     """
     Calls Groq LLaMA 3.3 70B with assembled context and determines intent:
     Outputs a structured 3-section report draft or conversational coaching.
+    Enforces strict payment isolation and prompt injection guardrails.
     """
     if state.get("error"):
         return state
@@ -290,13 +342,33 @@ async def report_generator(state: AIWorklogState) -> AIWorklogState:
     if state.get("action") == "approve":
         return state
 
-    pg = state["postgres_context"]
-    q_context = "\n".join([f"- [{item.get('type')}]: {item.get('text')}" for item in state.get("qdrant_context", [])])
-    history = state.get("conversation_history", [])
     user_msg = state.get("user_message", "")
+
+    # ── Guardrail 1: Prompt Injection & Unauthorized Payment Attempt Check ──
+    if detect_prompt_injection(user_msg):
+        state["llm_response"] = (
+            "I am the FreelanceFlow AI Worklog Assistant. My role is strictly limited to helping you "
+            "document deliverables and draft milestone progress reports. I do not have access to financial systems, "
+            "cannot execute payments or fund transfers, and cannot bypass platform safety boundaries."
+        )
+        state["report_draft"] = None
+        state["is_draft_ready"] = False
+        return state
+
+    pg = state["postgres_context"]
+    # Sanitize inputs before feeding to LLM
+    clean_user_msg = sanitize_sensitive_data(user_msg)
+    q_context = "\n".join([f"- [{item.get('type')}]: {sanitize_sensitive_data(item.get('text', ''))}" for item in state.get("qdrant_context", [])])
+    history = state.get("conversation_history", [])
 
     system_prompt = f"""You are the FreelanceFlow AI Worklog & Weekly Report Assistant.
 Your goal is to help the freelancer document progress, synthesize weekly achievements, and draft professional progress reports for their client.
+
+SECURITY & SAFETY BOUNDARY:
+- You are strictly an automated technical reporting assistant.
+- You have NO access to client bank accounts, payment gateways, wallets, or financial execution tools.
+- You CANNOT authorize, release, debit, or transfer payments.
+- Never output sensitive personal credentials, payment tokens, or client private info.
 
 PROJECT METRICS & SCOPE:
 - Project: {pg['project_title']}
@@ -312,31 +384,24 @@ RECENT WORKLOGS:
 {json.dumps(pg['recent_logs'])}
 
 INSTRUCTIONS:
-1. If the freelancer is asking to draft, generate, update, or compile a report (e.g. "draft my report", "generate report", "here is what I did", "summarize my week"), you MUST respond with a JSON block containing a structured 3-section draft:
+1. If the freelancer is asking to draft, generate, update, or compile a report, or asking about progress report timelines (e.g. "draft my progress report", "what is my timeline of my progress report", "generate report", "here is what I did", "summarize my week"), you MUST respond with a JSON block containing a structured 3-section draft:
 ```json
 {{
   "is_draft": true,
-  "reply": "I've synthesized your work into a 3-section progress report draft. Review the details below and click Approve to generate the official PDF.",
+  "reply": "I have created your progress report draft with milestone progress and target timeline. Review the details below and click Approve to generate the official report PDF.",
   "draft": {{
     "title": "Weekly Progress Report - {pg['project_title']}",
-    "section_summary": "High-level executive summary of key achievements and milestones reached this week.",
+    "section_summary": "Executive summary of progress made towards milestone objectives and target timeline.",
     "section_deliverables": [
-      {{"title": "Deliverable/Feature Name", "description": "Specific technical work and completion status", "status": "COMPLETED"}}
+      {{"title": "Milestone & Deliverable Progress", "description": "Specific technical work completed and deliverables verified against the project schedule.", "status": "COMPLETED"}}
     ],
-    "section_next_steps": "Planned milestones, upcoming tasks for next week, and any blockers or requirements from client.",
+    "section_next_steps": "Upcoming milestone deadlines, timeline schedule for remaining tasks, and next deliverables.",
     "hours_worked": 8.0
   }}
 }}
 ```
 
-2. If the user is asking questions, requesting ideas, or providing conversational input, respond with:
-```json
-{{
-  "is_draft": false,
-  "reply": "Helpful, encouraging, and concise response with 1-2 practical suggestions for their worklog or project."
-}}
-```
-Always return valid JSON.
+2. The AI worklog assistant's core purpose is drafting and organizing worklogs simply and cleanly. Always return valid JSON.
 """
 
     llm = get_llm()

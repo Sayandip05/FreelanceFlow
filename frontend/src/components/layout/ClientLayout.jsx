@@ -251,7 +251,7 @@ export default function ClientLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 w-full overflow-x-hidden">
       {/* ── Sidebar (Expands on cursor hover with constant spacious spacing) ── */}
       <aside
         onMouseEnter={() => setHovered(true)}
@@ -347,8 +347,8 @@ export default function ClientLayout() {
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className={`flex-1 min-h-0 ${location.pathname.includes('/messages') ? 'p-0 overflow-hidden flex flex-col' : 'p-8'}`}>
+        {/* Page Content with unrestricted vertical scrolling */}
+        <main className={`flex-1 ${location.pathname.includes('/messages') ? 'p-0 overflow-hidden flex flex-col' : 'p-4 sm:p-6 lg:p-8'}`}>
           <Outlet />
         </main>
       </div>
