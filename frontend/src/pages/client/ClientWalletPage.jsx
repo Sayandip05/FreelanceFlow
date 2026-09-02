@@ -3,6 +3,7 @@ import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, Download, AlertCircle, Refre
 import { paymentsAPI } from '../../api/payments'
 import { useAuth } from '../../context/AuthContext'
 import { formatCurrency } from '../../utils/formatCurrency'
+import { DashboardSkeleton } from '../../components/common/Skeleton'
 
 export default function ClientWalletPage() {
   const { user } = useAuth()
@@ -112,8 +113,8 @@ export default function ClientWalletPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[500px]">
-        <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+      <div className="max-w-4xl mx-auto py-4">
+        <DashboardSkeleton />
       </div>
     )
   }

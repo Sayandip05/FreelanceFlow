@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { contractsAPI } from '../../api/bids'
 import { formatCurrency } from '../../utils/formatCurrency'
+import { formatDate } from '../../utils/formatDate'
+import { Skeleton } from '../../components/common/Skeleton'
 
 export default function ClientContractsPage() {
   const navigate = useNavigate()
@@ -171,10 +173,25 @@ export default function ClientContractsPage() {
       {loading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4 animate-pulse">
-              <div className="h-6 bg-gray-200 rounded-md w-1/3" />
-              <div className="h-4 bg-gray-100 rounded-md w-1/2" />
-              <div className="h-10 bg-gray-100 rounded-xl" />
+            <div key={i} className="bg-white rounded-3xl border border-gray-100 p-6 space-y-4 shadow-xs">
+              <div className="flex justify-between items-start">
+                <div className="space-y-2 flex-1 max-w-md">
+                  <Skeleton className="h-6 w-64 rounded-xl" />
+                  <Skeleton className="h-4 w-40 rounded-lg" />
+                </div>
+                <Skeleton className="h-7 w-28 rounded-full" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                {[...Array(4)].map((_, j) => (
+                  <div key={j} className="p-3 bg-gray-50 rounded-2xl space-y-1.5">
+                    <Skeleton className="h-3 w-16 rounded-md" />
+                    <Skeleton className="h-5 w-24 rounded-lg" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end pt-2 border-t border-gray-100">
+                <Skeleton className="h-10 w-36 rounded-xl" />
+              </div>
             </div>
           ))}
         </div>

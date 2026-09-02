@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 import { bidsAPI } from '../../api/bids'
+import { DetailPageSkeleton } from '../../components/common/Skeleton'
 
 export default function FreelancerProjectDetailPage() {
   const { projectId } = useParams()
@@ -91,10 +92,8 @@ export default function FreelancerProjectDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="h-6 w-32 bg-gray-200 rounded-lg animate-pulse" />
-        <div className="h-44 bg-white rounded-2xl border border-gray-100 p-8 animate-pulse" />
-        <div className="h-48 bg-white rounded-2xl border border-gray-100 p-8 animate-pulse" />
+      <div className="max-w-4xl mx-auto py-6">
+        <DetailPageSkeleton />
       </div>
     )
   }

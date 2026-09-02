@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext'
 import { bidsAPI, contractsAPI } from '../../api/bids'
 import { paymentsAPI } from '../../api/payments'
 import { usersAPI } from '../../api/auth'
+import { DashboardSkeleton } from '../../components/common/Skeleton'
 
 const POPULAR_SKILLS = [
   'React', 'Node.js', 'Python', 'TypeScript', 'Next.js',
@@ -270,6 +271,14 @@ export default function FreelancerOverviewPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  if (loadingMetrics && !user) {
+    return (
+      <div className="max-w-6xl mx-auto pt-4 pb-16 space-y-8">
+        <DashboardSkeleton />
+      </div>
+    )
   }
 
   return (

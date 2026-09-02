@@ -17,6 +17,7 @@ import {
   ArrowRightIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline'
+import { WorkPageSkeleton } from '../../components/common/Skeleton'
 
 const FreelancerWorkPage = () => {
   const { contractId } = useParams()
@@ -258,9 +259,8 @@ const FreelancerWorkPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-gray-600">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-        <p className="mt-4 text-sm font-semibold tracking-wide">Connecting to Qdrant & Assembling Workspace...</p>
+      <div className="p-6">
+        <WorkPageSkeleton />
       </div>
     )
   }
