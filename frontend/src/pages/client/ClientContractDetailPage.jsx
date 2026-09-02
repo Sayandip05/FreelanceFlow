@@ -857,9 +857,32 @@ support@freelanceflow.com
                           </span>
                         )}
                         {isSubmitted && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                            <Clock className="w-3.5 h-3.5 text-amber-600" /> Deliverable Submitted
-                          </span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                              <Clock className="w-3.5 h-3.5 text-amber-600" /> Worklog Submitted
+                            </span>
+                            {milestoneWorkPdf && (
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (setPdfReadyUrl) {
+                                      setPdfReadyUrl({
+                                        url: milestoneWorkPdf,
+                                        title: `${m.title} - Worklog Document`,
+                                        body: 'Click download to view the verified worklog PDF.'
+                                      })
+                                    } else {
+                                      window.open(milestoneWorkPdf, '_blank')
+                                    }
+                                  }}
+                                  className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 hover:underline"
+                                >
+                                  <Download className="w-3 h-3" /> Download PDF
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                         {isFunded && (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -886,30 +909,23 @@ support@freelanceflow.com
 
                         {isSubmitted && (
                           <div className="flex items-center justify-end gap-2">
-                            {milestoneWorkPdf && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (setPdfReadyUrl) {
-                                    setPdfReadyUrl({
-                                      url: milestoneWorkPdf,
-                                      title: 'Worklog / Deliverable PDF',
-                                      body: 'Click download to view the official verified worklog document.'
-                                    })
-                                  } else {
-                                    window.open(milestoneWorkPdf, '_blank')
-                                  }
-                                }}
-                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5"
-                              >
-                                <Download className="w-3.5 h-3.5" /> Download Worklog
-                              </button>
-                            )}
                             <button
-                              onClick={() => { setSelectedMilestone(m); setShowReviewModal(true) }}
-                              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                              onClick={() => {
+                                setSelectedMilestone(m)
+                                setShowReviewModal(true)
+                              }}
+                              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
                             >
-                              <Eye className="w-3.5 h-3.5" /> Review Deliverable
+                              <Check className="w-3.5 h-3.5" /> Approve
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedMilestone(m)
+                                setShowReviewModal(true)
+                              }}
+                              className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                            >
+                              <X className="w-3.5 h-3.5" /> Reject
                             </button>
                           </div>
                         )}
@@ -1230,7 +1246,10 @@ support@freelanceflow.com
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
             <button
-              onClick={() => setShowReviewModal(false)}
+              onClick={() => {
+                setShowReviewModal(false)
+                setRevisionFeedback('')
+              }}
               className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-1 rounded-lg"
             >
               <X className="w-5 h-5" />
@@ -1241,30 +1260,43 @@ support@freelanceflow.com
               <p className="text-xs text-gray-500 mt-0.5">{selectedMilestone.title}</p>
             </div>
 
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
-              <p className="text-xs font-bold text-gray-700">Milestone Amount: {formatCurrency(selectedMilestone.amount)}</p>
-              <p className="text-xs text-gray-600">{selectedMilestone.description}</p>
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-gray-500">Escrow Payment:</span>
+                <span className="font-black text-gray-900 text-sm">{formatCurrency(selectedMilestone.amount)}</span>
+              </div>
+              {selectedMilestone.description && (
+                <p className="text-xs text-gray-600">{selectedMilestone.description}</p>
+              )}
               {selectedMilestone.deliverable_description && (() => {
                 const parts = selectedMilestone.deliverable_description.split(' | Link: ');
                 const description = parts[0];
                 const link = parts[1];
                 return (
-                  <div className="pt-2 space-y-2">
+                  <div className="pt-2 space-y-2 border-t border-gray-200/60">
                     <div>
-                      <p className="text-xs font-bold text-gray-800">Freelancer Notes:</p>
+                      <p className="text-xs font-bold text-gray-800">Submitted Deliverable Notes:</p>
                       <p className="text-xs text-gray-600 mt-0.5 bg-white p-3 rounded-xl border border-gray-200">{description}</p>
                     </div>
                     {link && (
                       <div className="pt-1">
-                        <p className="text-xs font-bold text-gray-700 mb-1">Attached File / Link:</p>
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-750 bg-indigo-50/80 hover:bg-indigo-100 px-3.5 py-2 rounded-xl border border-indigo-100 transition-all shadow-sm"
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (setPdfReadyUrl) {
+                              setPdfReadyUrl({
+                                url: link,
+                                title: `${selectedMilestone.title} - Verified PDF`,
+                                body: 'Click download to view the official verified worklog document.'
+                              })
+                            } else {
+                              window.open(link, '_blank')
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-xl border border-emerald-200 transition-all shadow-2xs"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" /> View Deliverable File / Link
-                        </a>
+                          <Download className="w-3.5 h-3.5" /> Download Submitted Worklog PDF
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1273,12 +1305,14 @@ support@freelanceflow.com
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Feedback / Revision Requirements</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Rejection Reason / Revision Instructions <span className="font-normal text-gray-400">(Required if rejecting)</span>
+              </label>
               <textarea
                 rows={3}
                 value={revisionFeedback}
                 onChange={(e) => setRevisionFeedback(e.target.value)}
-                placeholder="Explain what needs to be changed or fixed in this deliverable..."
+                placeholder="Explain what needs to be changed or why the worklog is being rejected..."
                 className="w-full p-3 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -1289,15 +1323,15 @@ support@freelanceflow.com
                 disabled={actionLoading}
                 className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
               >
-                <Check className="w-4 h-4" /> Approve & Release Payment
+                <Check className="w-4 h-4" /> Approve & Release {formatCurrency(selectedMilestone.amount)}
               </button>
 
               <button
                 onClick={() => handleRejectMilestone(selectedMilestone.id)}
                 disabled={actionLoading}
-                className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
               >
-                Request Changes
+                <X className="w-4 h-4" /> Reject Worklog
               </button>
             </div>
           </div>
