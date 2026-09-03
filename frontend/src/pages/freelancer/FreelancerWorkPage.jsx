@@ -506,6 +506,7 @@ const FreelancerWorkPage = () => {
   }
 
   const contract = contextData?.contract || {}
+  const previous_reports = contextData?.previous_reports || []
 
   return (
     <div className="flex-1 min-h-0 flex flex-col w-full h-full bg-white text-gray-900 overflow-hidden">
