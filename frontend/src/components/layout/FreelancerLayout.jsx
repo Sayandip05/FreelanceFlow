@@ -270,12 +270,12 @@ export default function FreelancerLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 w-full">
       {/* ── Sidebar (Expands automatically on hover, collapses on mouse leave) ── */}
       <aside
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className={`${isExpanded ? 'w-64' : 'w-20'} bg-white border-r border-gray-100 h-screen sticky top-0 flex-shrink-0 flex flex-col justify-between z-30 transition-all duration-300 ease-in-out select-none`}
+        className={`${isExpanded ? 'w-64' : 'w-20'} bg-white border-r border-gray-100 h-full flex-shrink-0 flex flex-col justify-between z-30 transition-all duration-300 ease-in-out select-none`}
       >
         <div className="flex flex-col flex-1 min-h-0">
           {/* Logo Header (Height: h-14 / 56px) */}

@@ -55,6 +55,7 @@ class AIWorklogState(TypedDict):
     action: Literal["chat", "draft", "approve"]
     draft_id: Optional[int]
     milestone_id: Optional[int]
+    draft_data: Optional[Dict[str, Any]]
     postgres_context: Dict[str, Any]
     qdrant_context: List[Dict[str, Any]]
     llm_response: str
@@ -611,6 +612,24 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         if not draft:
             return None, "No report draft found to compile"
 
+        # Apply freelancer's custom inline edits if provided
+        custom_draft = state.get("draft_data")
+        if custom_draft and isinstance(custom_draft, dict):
+            if custom_draft.get("title"):
+                draft.title = custom_draft["title"]
+            if custom_draft.get("hours_worked") is not None:
+                try:
+                    draft.hours_worked = float(custom_draft["hours_worked"])
+                except (ValueError, TypeError):
+                    pass
+            if custom_draft.get("section_summary"):
+                draft.section_summary = custom_draft["section_summary"]
+            if isinstance(custom_draft.get("section_deliverables"), list):
+                draft.section_deliverables = custom_draft["section_deliverables"]
+            if custom_draft.get("section_next_steps"):
+                draft.section_next_steps = custom_draft["section_next_steps"]
+            draft.save()
+
         contract = draft.contract
         project = contract.bid.project
         client = project.client
@@ -882,6 +901,7 @@ async def run_ai_worklog_agent(
     conversation_id: Optional[int] = None,
     draft_id: Optional[int] = None,
     milestone_id: Optional[int] = None,
+    draft_data: Optional[Dict[str, Any]] = None,
     history: Optional[List[Dict]] = None
 ) -> Dict[str, Any]:
     """
@@ -896,6 +916,7 @@ async def run_ai_worklog_agent(
         "action": action,
         "draft_id": draft_id,
         "milestone_id": milestone_id,
+        "draft_data": draft_data,
         "postgres_context": {},
         "qdrant_context": [],
         "llm_response": "",

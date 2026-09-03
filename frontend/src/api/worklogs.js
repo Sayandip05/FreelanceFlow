@@ -124,12 +124,13 @@ export const aiWorklogAPI = {
       milestone_id: milestoneId,
     }),
 
-  // Approve report draft & compile official WeasyPrint PDF
-  approveDraft: (contractId, draftId = null, milestoneId = null) =>
+  // Approve report draft & compile official WeasyPrint PDF with custom edited data
+  approveDraft: (contractId, draftId = null, milestoneId = null, draftData = null) =>
     api.post('/worklogs/ai/approve/', {
       contract: contractId,
       draft_id: draftId,
       milestone_id: milestoneId,
+      draft_data: draftData,
     }),
 
   // Get conversation transcripts and previous drafts
