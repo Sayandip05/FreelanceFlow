@@ -69,6 +69,7 @@ class AIChatView(views.APIView):
         contract_id = serializer.validated_data["contract"]
         message = serializer.validated_data["message"]
         conversation_id = serializer.validated_data.get("conversation_id")
+        milestone_id = serializer.validated_data.get("milestone_id")
 
         # Verify contract access
         try:
@@ -92,6 +93,7 @@ class AIChatView(views.APIView):
             user_message=message,
             action="chat",
             conversation_id=conversation_id,
+            milestone_id=milestone_id,
         )
 
         if agent_result.get("error"):
@@ -126,6 +128,8 @@ class AIApproveDraftView(views.APIView):
 
         contract_id = serializer.validated_data["contract"]
         draft_id = serializer.validated_data.get("draft_id")
+        milestone_id = serializer.validated_data.get("milestone_id")
+        draft_data = serializer.validated_data.get("draft_data")
 
         try:
             contract = Contract.objects.select_related("bid__freelancer").get(id=contract_id)
@@ -171,6 +175,8 @@ class AIApproveDraftView(views.APIView):
                 user_message="Approve and generate official PDF report",
                 action="approve",
                 draft_id=draft_id,
+                milestone_id=milestone_id,
+                draft_data=draft_data,
             )
 
             # Notify via WebSocket if push is available

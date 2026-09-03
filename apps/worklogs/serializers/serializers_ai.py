@@ -45,11 +45,14 @@ class AIChatRequestSerializer(serializers.Serializer):
     contract = serializers.IntegerField(required=True)
     message = serializers.CharField(required=True, allow_blank=False)
     conversation_id = serializers.IntegerField(required=False, allow_null=True)
+    milestone_id = serializers.IntegerField(required=False, allow_null=True)
 
 
 class AIApproveRequestSerializer(serializers.Serializer):
     contract = serializers.IntegerField(required=True)
     draft_id = serializers.IntegerField(required=False, allow_null=True)
+    milestone_id = serializers.IntegerField(required=False, allow_null=True)
+    draft_data = serializers.DictField(required=False, allow_null=True)
 
 
 class AIContextDeliverableSerializer(serializers.ModelSerializer):

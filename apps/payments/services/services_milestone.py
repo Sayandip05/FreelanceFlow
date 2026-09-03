@@ -277,9 +277,30 @@ def reject_milestone(milestone_id, client, feedback=""):
     if milestone.status != PaymentMilestone.Status.SUBMITTED:
         raise ValidationError("Milestone must be submitted for review before requesting changes")
         
+    # Clean up rejected PDF from Azure Blob Storage if present
+    if milestone.deliverable_description and "| Link:" in milestone.deliverable_description:
+        try:
+            pdf_url = milestone.deliverable_description.split("| Link:")[1].strip()
+            from apps.worklogs.services.pdf_service import delete_from_azure_blob
+            delete_from_azure_blob(pdf_url)
+        except Exception:
+            pass
+
     milestone.status = PaymentMilestone.Status.IN_PROGRESS
     milestone.client_feedback = feedback
+    milestone.deliverable_description = ""
+    milestone.submitted_at = None
     milestone.save()
+
+    # Reset any submitted Deliverable record on contract
+    try:
+        from apps.worklogs.models import Deliverable
+        Deliverable.objects.filter(
+            contract=milestone.contract,
+            status=Deliverable.Status.SUBMITTED
+        ).update(status=Deliverable.Status.REVISION_REQUESTED, pdf_url=None)
+    except Exception:
+        pass
 
     # Push real-time rejection event to both contract participants
     try:

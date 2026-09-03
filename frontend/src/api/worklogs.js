@@ -110,24 +110,27 @@ export const proofAPI = {
   generateProof: (contractId) => api.post(`/worklogs/proofs/${contractId}/`),
 }
 
-// End-to-End AI Worklog & Weekly Report APIs
+// End-to-End AI Worklog & Milestone Report APIs
 export const aiWorklogAPI = {
   // Get complete context bundle for split-screen workspace
   getContext: (contractId) => api.get('/worklogs/ai/context/', { params: { contract: contractId } }),
 
   // Send conversational or drafting message to LangGraph agent
-  sendChatMessage: (contractId, message, conversationId = null) =>
+  sendChatMessage: (contractId, message, conversationId = null, milestoneId = null) =>
     api.post('/worklogs/ai/chat/', {
       contract: contractId,
       message,
       conversation_id: conversationId,
+      milestone_id: milestoneId,
     }),
 
-  // Approve report draft & compile official WeasyPrint PDF
-  approveDraft: (contractId, draftId = null) =>
+  // Approve report draft & compile official WeasyPrint PDF with custom edited data
+  approveDraft: (contractId, draftId = null, milestoneId = null, draftData = null) =>
     api.post('/worklogs/ai/approve/', {
       contract: contractId,
       draft_id: draftId,
+      milestone_id: milestoneId,
+      draft_data: draftData,
     }),
 
   // Get conversation transcripts and previous drafts

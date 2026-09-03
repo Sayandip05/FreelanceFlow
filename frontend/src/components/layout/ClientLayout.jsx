@@ -135,12 +135,17 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp, onOpenPrivacy }) => {
   const ref = useRef(null)
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
   const handleLogout = () => {
+    setOpen(false)
     logout()
     navigate('/login')
   }
@@ -153,38 +158,41 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp, onOpenPrivacy }) => {
     <div
       className="relative border-t border-gray-100 flex-shrink-0 mt-auto"
       ref={ref}
-      onMouseLeave={() => setOpen(false)}
     >
       {/* Popover Menu Opening Upwards */}
       {open && (
-        <div className={`absolute bottom-full mb-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100 ${
-          collapsed ? 'left-2 w-48' : 'left-3 right-3'
+        <div className={`absolute bottom-full mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-100 ${
+          collapsed ? 'left-2 w-52' : 'left-3 right-3'
         }`}>
           <button
-            onClick={() => { navigate('/client/dashboard'); setOpen(false) }}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+            onClick={() => { setOpen(false); navigate('/client/dashboard') }}
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer text-left"
           >
-            <User className="w-4 h-4 text-gray-500" /> My Dashboard
+            <User className="w-4 h-4 text-gray-500 shrink-0" />
+            <span>My Dashboard</span>
           </button>
           <button
-            onClick={() => { onOpenHelp(); setOpen(false) }}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            onClick={() => { setOpen(false); onOpenHelp() }}
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer text-left"
           >
-            <HelpCircle className="w-4 h-4 text-gray-500" /> Help & Support
+            <HelpCircle className="w-4 h-4 text-gray-500 shrink-0" />
+            <span>Help & Support</span>
           </button>
           <button
-            onClick={() => { onOpenPrivacy(); setOpen(false) }}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            onClick={() => { setOpen(false); onOpenPrivacy() }}
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer text-left"
           >
-            <FileText className="w-4 h-4 text-gray-500" /> Privacy Policy
+            <FileText className="w-4 h-4 text-gray-500 shrink-0" />
+            <span>Privacy Policy</span>
           </button>
           <div className="border-t border-gray-100 my-1" />
           <button
             id="logout-btn"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
           >
-            <LogOut className="w-4 h-4" /> Sign out
+            <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>Sign out</span>
           </button>
         </div>
       )}
@@ -192,7 +200,7 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp, onOpenPrivacy }) => {
       {/* Trigger Button */}
       <button
         onClick={() => setOpen(prev => !prev)}
-        className={`w-full h-16 flex items-center transition-colors hover:bg-gray-50 text-left ${
+        className={`w-full h-16 flex items-center transition-colors hover:bg-gray-50 text-left cursor-pointer ${
           collapsed ? 'justify-center px-3' : 'gap-3 px-4'
         }`}
         title={collapsed ? fullName : undefined}
@@ -204,7 +212,7 @@ const SidebarProfileCard = ({ collapsed, onOpenHelp, onOpenPrivacy }) => {
             <p className="text-[11px] text-gray-400 truncate capitalize leading-tight">Client Account</p>
           </div>
         )}
-        {!collapsed && <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`} />}
+        {!collapsed && <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${open ? '-rotate-90 text-primary-600' : ''}`} />}
       </button>
     </div>
   )
@@ -252,7 +260,7 @@ export default function ClientLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 w-full">
-      {/* ── Sidebar (Fixed height, never scrolls) ── */}
+      {/* ── Sidebar (Expands automatically on hover, collapses on mouse leave) ── */}
       <aside
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}

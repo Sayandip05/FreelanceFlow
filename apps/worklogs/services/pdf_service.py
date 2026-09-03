@@ -95,6 +95,48 @@ def upload_to_azure_blob(pdf_bytes: bytes, blob_name: str) -> str:
         return f"https://placeholder-azure-blob-url/{blob_name}"
 
 
+def delete_from_azure_blob(blob_name_or_url: str) -> bool:
+    """
+    Deletes a blob from Azure Blob Storage if it exists.
+    Supports either direct blob_name or full SAS URL.
+    """
+    connection_string = getattr(settings, "AZURE_STORAGE_CONNECTION_STRING", None)
+    container_name = getattr(settings, "AZURE_CONTAINER_NAME", "media")
+    if not connection_string or not blob_name_or_url:
+        return False
+
+    try:
+        import urllib.parse
+        import logging
+        logger = logging.getLogger(__name__)
+        from azure.storage.blob import BlobServiceClient
+
+        # Extract blob path from URL if a full URL is passed
+        if blob_name_or_url.startswith("http"):
+            parsed = urllib.parse.urlparse(blob_name_or_url)
+            path = parsed.path.lstrip("/")
+            if path.startswith(f"{container_name}/"):
+                blob_name = path[len(f"{container_name}/"):]
+            else:
+                blob_name = path
+        else:
+            blob_name = blob_name_or_url
+
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        container_client = blob_service_client.get_container_client(container_name)
+        blob_client = container_client.get_blob_client(blob_name)
+        if blob_client.exists():
+            blob_client.delete_blob()
+            logger.info("Successfully deleted Azure blob: %s", blob_name)
+            return True
+        return False
+    except Exception as exc:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("Failed to delete Azure blob (%s): %s", blob_name_or_url, exc)
+        return False
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Progress Report PDF
 # ─────────────────────────────────────────────────────────────────────────────
