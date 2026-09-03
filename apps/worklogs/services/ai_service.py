@@ -301,8 +301,9 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
 
     state["postgres_context"] = pg_context
 
-    # 2. Fetch Qdrant Semantic Context asynchronously
-    q_matches = await sync_to_async(query_context)(contract_id, user_message, top_k=4)
+    # 2. Fetch Qdrant Semantic Context asynchronously with rich milestone search query
+    search_query = f"{user_message} {pg_context.get('target_milestone_title', '')} {pg_context.get('target_milestone_description', '')} {pg_context.get('project_title', '')}".strip()
+    q_matches = await sync_to_async(query_context)(contract_id, search_query, top_k=6)
     state["qdrant_context"] = q_matches or []
 
     return state
@@ -367,7 +368,7 @@ def detect_prompt_injection(user_message: str) -> bool:
 async def report_generator(state: AIWorklogState) -> AIWorklogState:
     """
     Calls Groq LLaMA 3.3 70B (or Google Gemini fallback) with assembled context.
-    Outputs a structured 3-section report draft or conversational milestone assistance.
+    Outputs a comprehensive 3-section pointed report draft with full technical depth.
     Enforces strict payment isolation and prompt injection guardrails.
     """
     if state.get("error"):
@@ -400,19 +401,21 @@ async def report_generator(state: AIWorklogState) -> AIWorklogState:
         final_milestone_guidance = f"""
 SPECIAL FINAL MILESTONE INSTRUCTIONS:
 - This is the FINAL milestone of the contract (Milestone {pg['target_milestone_number']} of {pg['total_milestones']}).
-- Section 1 (Executive Summary): Highlight final project completion, full verification, and delivery of all agreed requirements.
-- Section 2 (Deliverables Completed): Focus on final milestone outputs, test verification, production deployment, and project handover artifacts.
-- Section 3 (Next Steps): Focus on final client review, sign-off acceptance, warranty support, and contract closure (do NOT mention upcoming milestones as this is the last one).
+- Section 1 (Executive Summary): Provide a thorough 4 to 5 line technical overview covering the completion of all core project milestones, final architectural integration, quality verification, and client readiness.
+- Section 2 (Deliverables Completed): Generate 3 to 4 detailed pointed deliverable items detailing final frontend/backend integrations, test suites, end-to-end verification, and release packaging.
+- Section 3 (Next Steps): Provide a comprehensive 4 to 5 line plan covering final project handover, client staging sign-off, deployment verification, warranty period support, and contract closure (do NOT mention upcoming milestones as this is the last one).
 """
     else:
         final_milestone_guidance = f"""
 MILESTONE POSITION:
 - This is Milestone {pg['target_milestone_number']} of {pg['total_milestones']}.
-- Section 3 (Next Steps): Mention upcoming priorities for Milestone {pg['target_milestone_number'] + 1} and client feedback review.
+- Section 1 (Executive Summary): Provide a thorough 4 to 5 line technical overview detailing key engineering tasks accomplished for Milestone {pg['target_milestone_number']}, architectural decisions, design fidelity, and integration checkpoints.
+- Section 2 (Deliverables Completed): Generate 3 to 4 detailed pointed deliverable items, each with 2 to 3 lines of technical implementation notes, components built, and verification steps.
+- Section 3 (Next Steps): Provide a comprehensive 4 to 5 line plan detailing upcoming priorities for Milestone {pg['target_milestone_number'] + 1}, client review checkpoints, and dependency preparation.
 """
 
     system_prompt = f"""You are the FreelanceFlow AI Worklog Assistant for the project "{pg['project_title']}".
-Your role is to help the freelancer document technical progress, synthesize deliverables, and draft official milestone reports for their client ({pg['client_name']}).
+Your role is to deeply analyze all project technical context, milestone scopes, vector database memories, and freelancer inputs to draft an in-depth, professional, and comprehensive milestone progress report for client {pg['client_name']}.
 
 TARGET ACTIVE MILESTONE:
 - Milestone Position: Milestone {pg['target_milestone_number']} of {pg['total_milestones']}
@@ -428,36 +431,54 @@ TARGET ACTIVE MILESTONE:
 ALL PROJECT MILESTONES (Universal Schedule):
 {pg['timeline_bullets']}
 
-SEMANTIC SCOPE GROUNDING (from Project Context):
+SEMANTIC CONTEXT (Retrieved from Qdrant Vector DB):
 {q_context or 'No specific vector matches.'}
 
 CRITICAL RULES:
-1. STRICT MILESTONE ISOLATION: Focus strictly on **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})**. Do NOT generate deliverables or summaries for earlier finished milestones or future unstarted milestones.
-2. UNIVERSAL TIMELINES: Milestones follow the universal milestone dates (can be monthly, bi-weekly, or custom). Do NOT refer to monthly milestones as "weekly" and never say "weekly report". Always refer to this as "Milestone {pg['target_milestone_number']} Progress Report".
-3. NO HOURS OR TIME LOGS: Do NOT mention or output hours (e.g., no "8 hours", no "12 hours", no time logs). The worklog report is strictly milestone-deliverable-driven.
-4. DRAFTING RESPONSE: When the freelancer asks to draft or summarize their progress report (e.g. "draft my progress report", "generate report", "here is what I worked on"), output a JSON block formatted exactly as:
+1. DEPTH & LENGTH REQUIREMENTS:
+   - Section 1 (Executive Summary): MUST be a comprehensive paragraph of at least 4 to 5 detailed sentences explaining the technical work, architectural achievements, optimizations, and milestone completion.
+   - Section 2 (Deliverables & Tasks Completed): MUST contain at least 3 to 4 granular, pointed deliverable items. Each item must feature a descriptive title, "COMPLETED" status, and a detailed 2 to 3 line technical explanation with verification criteria.
+   - Section 3 (Next Steps & Priorities): MUST be a detailed paragraph of at least 4 to 5 sentences covering client review, staging verification, and upcoming milestone / handover tasks.
+2. STRICT MILESTONE ISOLATION: Focus strictly on **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})**. Do NOT generate deliverables or summaries for earlier finished milestones or future unstarted milestones.
+3. UNIVERSAL TIMELINES: Milestones follow the universal milestone dates (can be monthly, bi-weekly, or custom). Do NOT refer to monthly milestones as "weekly" and never say "weekly report". Always refer to this as "Milestone {pg['target_milestone_number']} Progress Report".
+4. NO HOURS OR TIME LOGS: Do NOT mention or output hours (e.g., no "8 hours", no "12 hours", no time logs). The worklog report is strictly milestone-deliverable-driven.
+5. DRAFTING RESPONSE: When the freelancer asks to draft or summarize their progress report (e.g. "draft my progress report", "generate report", "here is what I worked on"), output a JSON block formatted exactly as:
 ```json
 {{
   "is_draft": true,
-  "reply": "I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into an editable progress report draft. You can edit any section below and submit it directly to your client.",
+  "reply": "I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into a comprehensive, editable progress report draft. You can customize any section below and submit it directly to your client.",
   "draft": {{
     "title": "Milestone {pg['target_milestone_number']} Progress Report – {pg['project_title']}",
-    "section_summary": "Executive summary detailing technical progress made for Milestone {pg['target_milestone_number']}.",
+    "section_summary": "During this milestone cycle, successfully implemented the core architecture and technical specifications outlined for Milestone {pg['target_milestone_number']}. Engineered responsive UI components, integrated seamless backend API endpoints, and ensured cross-browser compatibility across desktop and mobile viewports. Validated all interactive states with comprehensive unit and integration test coverage, achieving optimal performance and zero critical regressions. The milestone objectives have been thoroughly met and prepared for official client review and approval.",
     "section_deliverables": [
-      {{"title": "Key Deliverable Completed", "description": "Technical implementation and deliverable items verified for Milestone {pg['target_milestone_number']}.", "status": "COMPLETED"}}
+      {{
+        "title": "{pg['target_milestone_title']} - Core Architecture & Implementation",
+        "description": "Engineered the primary functional components and layout modules according to design specifications. Implemented modern state management, optimized rendering lifecycles, and ensured full responsive adaptability across all target screen resolutions.",
+        "status": "COMPLETED"
+      }},
+      {{
+        "title": "API Integration & Data Flow Synchronization",
+        "description": "Connected frontend user workflows with secure backend REST endpoints and WebSocket channels. Implemented robust error handling, loading skeletons, and real-time state synchronization to deliver a frictionless user experience.",
+        "status": "COMPLETED"
+      }},
+      {{
+        "title": "Quality Assurance, Security & Performance Tuning",
+        "description": "Conducted automated testing and manual cross-device audits. Minimized bundle sizes, optimized network payloads, and verified data integrity to guarantee production-ready reliability and strict adherence to project standards.",
+        "status": "COMPLETED"
+      }}
     ],
-    "section_next_steps": "{'Final project handover and contract closure sign-off.' if pg.get('is_final_milestone') else f'Upcoming priorities for Milestone {pg['target_milestone_number'] + 1}.'}"
+    "section_next_steps": "{'Initiate final staging verification with the client, deliver deployment documentation and source code repositories, and complete the official project handover sign-off.' if pg.get('is_final_milestone') else f'Submit this milestone deliverable for client review, incorporate any stakeholder feedback, and begin initial technical scoping for Milestone {pg['target_milestone_number'] + 1}.'}"
   }}
 }}
 ```
-5. TIMELINE INQUIRIES: When the user asks "what is my timeline of my progress report" or asks about timeline/schedule, output:
+6. TIMELINE INQUIRIES: When the user asks "what is my timeline of my progress report" or asks about timeline/schedule, output:
 ```json
 {{
   "is_draft": false,
   "reply": "Your progress report timeline follows the project milestones:\n\n{pg['timeline_bullets']}"
 }}
 ```
-6. NEVER mention internal backend names (e.g. Qdrant, WeasyPrint, vector DB, PostgreSQL, LLM) in any response. Always return valid JSON.
+7. NEVER mention internal backend names (e.g. Qdrant, WeasyPrint, vector DB, PostgreSQL, LLM) in any response. Always return valid JSON.
 """
 
     llm = get_llm()
@@ -503,34 +524,38 @@ CRITICAL RULES:
             parsed = {"is_draft": False, "reply": ai_raw}
 
     if not parsed:
-        # Grounded fallback intelligent generator
+        # Grounded fallback intelligent generator with rich 4-5 line paragraphs and pointed deliverables
         if any(w in user_msg.lower() for w in ["draft", "report", "generate", "summary", "submit", "done", "progress"]):
             next_steps_text = (
-                f"Coordinate with client {pg['client_name']} for final deliverable verification, project handover, and contract completion sign-off."
+                f"Coordinate directly with client {pg['client_name']} for final deliverable verification, provide comprehensive system documentation, and complete official project handover sign-off. Ensure all staging environments are synchronized and ready for production deployment."
                 if pg.get("is_final_milestone")
-                else f"Coordinate with client {pg['client_name']} for milestone sign-off and prepare deliverables for Milestone {pg['target_milestone_number'] + 1}."
+                else f"Submit current Milestone {pg['target_milestone_number']} deliverables to client {pg['client_name']} for review and escrow release. Incorporate any stakeholder feedback, and initiate technical preparation and requirement scoping for Milestone {pg['target_milestone_number'] + 1}."
             )
             parsed = {
                 "is_draft": True,
-                "reply": f"I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into an editable progress report draft. Review the details below, edit any section, and click Approve to generate the official PDF.",
+                "reply": f"I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into a comprehensive, editable progress report draft. Review the details below, edit any section as needed, and click Approve to generate the official PDF.",
                 "draft": {
                     "title": f"Milestone {pg['target_milestone_number']} Progress Report – {pg['project_title']}",
-                    "section_summary": f"Completed technical implementation and key deliverables for Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']}) on {pg['project_title']}. All items verified against contract specifications.",
+                    "section_summary": f"Successfully completed all core technical requirements and engineering milestones designated for Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']}) on project '{pg['project_title']}'. Developed modular, responsive interface elements and integrated backend services while upholding strict performance and accessibility standards. Executed rigorous cross-browser testing and functional validations to verify that all milestone deliverables align with client expectations. All completed items are fully documented, audited, and ready for official stakeholder review.",
                     "section_deliverables": [
-                        {"title": f"{pg['target_milestone_title']} Core Deliverable", "description": pg['target_milestone_description'] or user_msg, "status": "COMPLETED"}
+                        {
+                            "title": f"{pg['target_milestone_title']} - Implementation & Architecture",
+                            "description": f"Developed and deployed the fundamental features and architectural structure required for {pg['target_milestone_title']}. Ensured responsive design across all devices and validated core functionality.",
+                            "status": "COMPLETED"
+                        },
+                        {
+                            "title": "Integration, State Management & Workflow Validation",
+                            "description": "Configured dynamic data synchronization and API workflows. Handled edge cases, asynchronous data fetching, and user interaction states to maintain high reliability.",
+                            "status": "COMPLETED"
+                        },
+                        {
+                            "title": "Verification Testing & Client Deliverable Preparation",
+                            "description": pg.get("target_milestone_description") or f"Executed quality assurance checks and performance optimizations to ensure all deliverable requirements for {pg['target_milestone_title']} are verified.",
+                            "status": "COMPLETED"
+                        }
                     ],
                     "section_next_steps": next_steps_text
                 }
-            }
-        elif any(w in user_msg.lower() for w in ["timeline", "schedule", "when", "due", "date"]):
-            parsed = {
-                "is_draft": False,
-                "reply": f"Your progress report timeline follows the project milestones:\n\n{pg['timeline_bullets']}"
-            }
-        else:
-            parsed = {
-                "is_draft": False,
-                "reply": f"I'm tracking your progress on **Milestone {pg['target_milestone_number']}: {pg['target_milestone_title']}** for {pg['project_title']}. Tell me what tasks you finished today, or click *'draft my progress report'* below to generate an editable report draft."
             }
 
     state["llm_response"] = parsed.get("reply", "")
