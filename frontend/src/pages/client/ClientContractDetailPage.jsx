@@ -886,7 +886,7 @@ support@freelanceflow.com
                         {m.description && (
                           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{m.description}</p>
                         )}
-                        {m.client_feedback && (
+                        {!isPaid && !isSubmitted && m.client_feedback && (
                           <div className="mt-2 p-2 bg-amber-50 rounded-xl text-xs text-amber-900 border border-amber-200 flex items-center gap-1.5">
                             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                             <span className="font-semibold">Revision Requested: {m.client_feedback}</span>

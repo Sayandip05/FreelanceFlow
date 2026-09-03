@@ -286,6 +286,7 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
             "target_milestone_due_date": target_milestone.due_date.strftime("%B %d, %Y") if (target_milestone and target_milestone.due_date) else "Flexible",
             "target_milestone_amount": f"${float(target_milestone.amount):,.2f}" if target_milestone else "$0.00",
             "target_milestone_status": target_milestone.status if target_milestone else "IN_PROGRESS",
+            "client_feedback": getattr(target_milestone, "client_feedback", "") or "",
             "next_milestone_title": next_milestone.title if next_milestone else "Final Project Handover & Contract Sign-off",
             "next_milestone_description": next_milestone.description if next_milestone else "Final staging verification, project sign-off, and repository handover.",
             "universal_milestones": universal_milestones,
@@ -414,6 +415,14 @@ MILESTONE POSITION:
 - Section 2 (Upcoming Milestone): Heading must be 'Upcoming Milestone: Milestone {pg['target_milestone_number'] + 1} - {pg.get('next_milestone_title')}' detailing upcoming priorities and dependency preparation.
 """
 
+    revision_guidance = ""
+    if pg.get("client_feedback"):
+        revision_guidance = f"""
+CLIENT REVISION FEEDBACK (Important context for rework):
+- The client previously requested revisions with feedback: "{pg['client_feedback']}".
+- In Section 1 (Milestone Progress Summary), synthesize the updated technical accomplishments and address the client's feedback in natural human language.
+"""
+
     system_prompt = f"""You are the FreelanceFlow AI Worklog Assistant for the project "{pg['project_title']}".
 Your role is to deeply analyze all project technical context, milestone scopes, vector database memories, and freelancer inputs to draft an in-depth, professional, and comprehensive milestone progress report for client {pg['client_name']}.
 
@@ -431,6 +440,7 @@ UPCOMING MILESTONE (Ground Truth from PostgreSQL):
 - Scope: {pg.get('next_milestone_description', 'Final staging verification and handover.')}
 
 {final_milestone_guidance}
+{revision_guidance}
 
 ALL PROJECT MILESTONES (Universal Schedule):
 {pg['timeline_bullets']}
@@ -905,7 +915,8 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 active_milestone.status = PaymentMilestone.Status.SUBMITTED
                 active_milestone.deliverable_description = f"{draft.title} | Link: {sas_url}"
                 active_milestone.submitted_at = timezone.now()
-                active_milestone.save(update_fields=["status", "deliverable_description", "submitted_at", "updated_at"])
+                active_milestone.client_feedback = ""
+                active_milestone.save(update_fields=["status", "deliverable_description", "submitted_at", "client_feedback", "updated_at"])
 
                 from apps.payments.consumers import push_contract_event
                 push_contract_event(

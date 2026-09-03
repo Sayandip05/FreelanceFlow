@@ -539,7 +539,7 @@ export default function FreelancerContractDetailPage() {
                         {m.description && (
                           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{m.description}</p>
                         )}
-                        {m.client_feedback && (
+                        {!isPaid && !isSubmitted && m.client_feedback && (
                           <div className="mt-2 p-2.5 bg-amber-50 rounded-xl text-xs text-amber-900 border border-amber-200">
                             <span className="font-bold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Revision Requested:</span>
                             <p className="mt-1 text-[11px] text-amber-800 bg-white/50 p-2 rounded-lg border border-amber-100">{m.client_feedback}</p>
