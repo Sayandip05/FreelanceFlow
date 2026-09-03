@@ -62,7 +62,7 @@ def create_milestone_escrow(contract: Contract, client, milestone) -> Payment:
     try:
         order_data = {
             'amount': int(milestone.amount * 100),  # paise
-            'currency': 'USD',
+            'currency': 'INR',
             'receipt': f'milestone_{milestone.id}',
             'notes': {
                 'contract_id': contract.id,
@@ -134,7 +134,7 @@ def create_escrow(contract: Contract, client) -> Payment:
     try:
         order_data = {
             'amount': int(contract.agreed_amount * 100),  # paise
-            'currency': 'USD',
+            'currency': 'INR',
             'receipt': f'contract_{contract.id}',
             'notes': {
                 'contract_id': contract.id,

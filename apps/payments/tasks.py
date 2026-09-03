@@ -142,7 +142,7 @@ def razorpay_transfer_to_freelancer_task(self, payment_id: int, amount: float):
         payout = _get_razorpay_client().payout.create({
             'account_number': settings.RAZORPAY_ACCOUNT_NUMBER,
             'amount': int(Decimal(str(amount)) * 100),
-            'currency': 'USD',
+            'currency': 'INR',
             'mode': 'IMPS',
             'purpose': 'payout',
             'fund_account_id': fund_account_id,
@@ -299,7 +299,7 @@ def razorpay_payout_withdrawal_task(self, withdrawal_id: int):
         payout = _get_razorpay_client().payout.create({
             'account_number': settings.RAZORPAY_ACCOUNT_NUMBER,
             'amount': int(Decimal(str(withdrawal.amount)) * 100),
-            'currency': 'USD',
+            'currency': 'INR',
             'mode': 'IMPS',
             'purpose': 'payout',
             'fund_account_id': fund_account_id,

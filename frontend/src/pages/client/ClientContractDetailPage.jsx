@@ -353,14 +353,14 @@ export default function ClientContractDetailPage() {
       if (is_mock) {
         // Direct simulation success
         await paymentsAPI.confirmClientDeposit(order_id, `pay_mock_${Math.random().toString(36).substr(2, 9)}`)
-        toast.success(`Successfully topped up $${parseFloat(deficit).toFixed(2)} and secured milestone "${milestoneToFund.title}"!`)
+        toast.success(`Successfully topped up ${formatCurrency(deficit)} and secured milestone "${milestoneToFund.title}"!`)
         setShowPaymentChoiceModal(false)
         loadContractData()
       } else {
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TSUnxYrEPrLAdv',
-          amount: amount * 100,
-          currency: 'USD',
+          amount: Math.round(amount * 100),
+          currency: 'INR',
           name: 'FreelanceFlow',
           description: `Top-up and fund milestone: ${milestoneToFund.title}`,
           order_id: order_id,
@@ -405,8 +405,8 @@ export default function ClientContractDetailPage() {
       if (window.Razorpay && paymentData?.razorpay_order_id) {
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-          amount: milestone.amount * 100,
-          currency: 'USD',
+          amount: Math.round(milestone.amount * 100),
+          currency: 'INR',
           order_id: paymentData.razorpay_order_id,
           name: 'FreelanceFlow Escrow',
           description: `Escrow funding for: ${milestone.title}`,
