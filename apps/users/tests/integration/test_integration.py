@@ -25,6 +25,7 @@ class UserIntegrationFlowTest(TestCase):
         payload = {
             "email": self.freelancer_email,
             "password": self.password,
+            "password_confirm": self.password,
             "role": "FREELANCER",
             "first_name": "Test",
             "last_name": "Freelancer",
@@ -71,6 +72,7 @@ class UserIntegrationFlowTest(TestCase):
         payload = {
             "email": self.client_email,
             "password": self.password,
+            "password_confirm": self.password,
             "role": "CLIENT",
             "first_name": "Test",
             "last_name": "Client",
