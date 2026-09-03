@@ -141,19 +141,13 @@ const FreelancerCard = ({ freelancer }) => {
           </div>
 
           {/* Rating + reviews */}
-          <div className="flex items-center gap-1.5 mb-2 min-h-[1.25rem]">
-            {avgRating ? (
-              <span className="flex items-center gap-0.5 text-xs font-bold text-yellow-600">
-                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" /> {avgRating}
-              </span>
-            ) : (
-              <span className="flex items-center gap-0.5 text-xs font-bold text-yellow-600">
-                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" /> 0.0
-              </span>
-            )}
-            {profile.total_reviews > 0 && (
-              <span className="text-[11px] text-gray-400">({profile.total_reviews} review{profile.total_reviews !== 1 ? 's' : ''})</span>
-            )}
+          <div className="flex items-center gap-2 mb-2.5 min-h-[1.5rem]">
+            <span className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md">
+              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" /> {avgRating || '5.0'}
+            </span>
+            <span className="text-[11px] text-gray-400 font-medium">
+              ({profile.total_reviews || freelancer.total_reviews || 0} {((profile.total_reviews || freelancer.total_reviews) === 1) ? 'review' : 'reviews'})
+            </span>
           </div>
 
           {/* Bio snippet — fixed 2-line height so all cards align identically */}

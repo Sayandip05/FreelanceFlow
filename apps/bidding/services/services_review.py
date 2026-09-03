@@ -36,9 +36,11 @@ def create_review(
     except Contract.DoesNotExist:
         raise NotFoundError("Contract not found.")
     
-    # Verify contract is completed
-    if contract.is_active:
-        raise ValidationError("Cannot review an active contract.")
+    # Verify contract is completed or all milestones released
+    milestones = contract.milestones.all()
+    all_milestones_released = milestones.exists() and all(m.status in ['PAID', 'APPROVED'] for m in milestones)
+    if contract.is_active and not all_milestones_released:
+        raise ValidationError("Cannot review an active contract until all milestones are completed and released.")
     
     # Determine reviewer type and reviewee
     if reviewer == contract.bid.project.client:
@@ -54,6 +56,10 @@ def create_review(
     if Review.objects.filter(contract=contract, reviewer=reviewer).exists():
         raise ValidationError("You have already reviewed this contract.")
     
+    clean_text = (review_text or "").strip()
+    if not clean_text:
+        clean_text = f"Completed project milestone contract with {rating} stars."
+    
     with transaction.atomic():
         review = Review.objects.create(
             contract=contract,
@@ -61,7 +67,7 @@ def create_review(
             reviewee=reviewee,
             reviewer_type=reviewer_type,
             rating=rating,
-            review_text=review_text,
+            review_text=clean_text,
             communication_rating=communication_rating,
             quality_rating=quality_rating,
             professionalism_rating=professionalism_rating,

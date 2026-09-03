@@ -5,9 +5,9 @@ import {
   DollarSign, User, MessageSquare, Plus, Download,
   ExternalLink, ChevronRight, FileText, Check, X,
   CreditCard, Sparkles, RefreshCw, AlertCircle, Calendar,
-  Briefcase, Send, Lock, Unlock, Eye, Wallet
+  Briefcase, Send, Lock, Unlock, Eye, Wallet, Star
 } from 'lucide-react'
-import { contractsAPI } from '../../api/bids'
+import { contractsAPI, reviewsAPI } from '../../api/bids'
 import { paymentsAPI } from '../../api/payments'
 import { deliverableAPI } from '../../api/worklogs'
 import api from '../../api/axiosConfig'
@@ -33,6 +33,13 @@ export default function ClientContractDetailPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [revisionFeedback, setRevisionFeedback] = useState('')
+
+  // Mandatory Post-Completion 5-Star Review State
+  const [existingReview, setExistingReview] = useState(null)
+  const [showMandatoryRatingModal, setShowMandatoryRatingModal] = useState(false)
+  const [selectedRating, setSelectedRating] = useState(5)
+  const [hoverRating, setHoverRating] = useState(0)
+  const [submittingRating, setSubmittingRating] = useState(false)
 
   // Modals & Drawers
   const [showMilestoneModal, setShowMilestoneModal] = useState(false)
@@ -158,33 +165,74 @@ export default function ClientContractDetailPage() {
   const loadContractData = async (isInitial = true) => {
     if (isInitial) setLoading(true)
     try {
-      const [contractRes, milestonesRes, deliverablesRes, reportsRes] = await Promise.allSettled([
+      const [contractRes, milestonesRes, deliverablesRes, reportsRes, reviewsRes] = await Promise.allSettled([
         contractsAPI.getContractDetail(contractId),
         paymentsAPI.getMilestones(contractId),
         deliverableAPI.getDeliverables(contractId),
         api.get(`/worklogs/reports/?contract=${contractId}`),
+        reviewsAPI.getContractReviews(contractId),
       ])
 
+      let loadedContract = null
       if (contractRes.status === 'fulfilled') {
-        console.log('Contract detail response:', contractRes.value.data)
-        setContract(contractRes.value.data)
+        loadedContract = contractRes.value.data
+        setContract(loadedContract)
       }
+
+      let ms = []
       if (milestonesRes.status === 'fulfilled') {
-        console.log('Milestones response:', milestonesRes.value.data)
-        setMilestones(milestonesRes.value.data?.results || milestonesRes.value.data || [])
-      } else {
-        console.error('Milestones request rejected:', milestonesRes.reason)
+        ms = milestonesRes.value.data?.results || milestonesRes.value.data || []
+        setMilestones(ms)
       }
+
       if (deliverablesRes.status === 'fulfilled') {
         setDeliverables(deliverablesRes.value.data?.results || deliverablesRes.value.data || [])
       }
       if (reportsRes.status === 'fulfilled') {
         setReports(reportsRes.value.data?.results || reportsRes.value.data || [])
       }
+
+      // Check if client already reviewed this contract
+      let clientReview = null
+      if (reviewsRes.status === 'fulfilled') {
+        const rList = reviewsRes.value.data?.results || reviewsRes.value.data || []
+        clientReview = rList.find((r) => r.reviewer_type === 'CLIENT') || null
+        setExistingReview(clientReview)
+      }
+
+      // If all milestones released / 100% completed and no client review, show mandatory 5-star modal
+      const allMilestonesReleased = ms.length > 0 && ms.every((m) => m.status === 'APPROVED' || m.status === 'PAID')
+      if (allMilestonesReleased && !clientReview) {
+        setShowMandatoryRatingModal(true)
+      }
     } catch (e) {
       console.error('Error loading contract data:', e)
     } finally {
       if (isInitial) setLoading(false)
+    }
+  }
+
+  const handleSubmitRating = async () => {
+    if (!selectedRating || selectedRating < 1) {
+      toast.warning('Please select a star rating from 1 to 5 stars.')
+      return
+    }
+
+    setSubmittingRating(true)
+    try {
+      await reviewsAPI.createReview({
+        contract_id: parseInt(contractId, 10),
+        rating: selectedRating,
+        review_text: '',
+      })
+      toast.success(`Thank you! Your ${selectedRating}-star rating has been recorded.`, 'Rating Submitted')
+      setShowMandatoryRatingModal(false)
+      loadContractData(false)
+    } catch (err) {
+      console.error('Error submitting rating:', err)
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to submit rating.')
+    } finally {
+      setSubmittingRating(false)
     }
   }
 
@@ -1519,6 +1567,89 @@ support@freelanceflow.com
                 className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold py-3 px-4 rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
               >
                 <CreditCard className="w-4 h-4" /> Pay via Direct Gateway Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mandatory 5-Star Contract Review Pop-up ────────────────────────────── */}
+      {showMandatoryRatingModal && (
+        <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100 text-center space-y-6 relative animate-in zoom-in-95 duration-200">
+            {/* Top Star Glow Badge */}
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 border border-amber-200 text-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/10">
+              <Star className="w-9 h-9 fill-amber-400 stroke-amber-500" />
+            </div>
+
+            {/* Header Text */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                Contract 100% Completed
+              </span>
+              <h3 className="text-xl font-extrabold text-gray-900 pt-1">
+                Rate Your Experience
+              </h3>
+              <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
+                All milestones for <strong className="text-gray-800">{contract?.bid?.project?.title || 'this project'}</strong> have been released. Please rate the freelancer <strong className="text-gray-800">{contract?.bid?.freelancer?.get_full_name || contract?.bid?.freelancer?.email || 'Freelancer'}</strong>.
+              </p>
+            </div>
+
+            {/* Interactive 5 Big Gold Stars */}
+            <div className="py-2">
+              <div className="flex items-center justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((starVal) => {
+                  const isHighlighted = starVal <= (hoverRating || selectedRating)
+                  return (
+                    <button
+                      key={starVal}
+                      type="button"
+                      onMouseEnter={() => setHoverRating(starVal)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setSelectedRating(starVal)}
+                      className="p-1 focus:outline-none transition-transform hover:scale-125 active:scale-90 cursor-pointer"
+                    >
+                      <Star
+                        className={`w-10 h-10 transition-colors ${
+                          isHighlighted
+                            ? 'fill-amber-400 text-amber-400 drop-shadow-sm'
+                            : 'text-gray-200 fill-gray-100'
+                        }`}
+                      />
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Dynamic Star Rating Label */}
+              <p className="text-xs font-bold text-amber-600 mt-2.5">
+                {selectedRating === 5 && '★★★★★ 5 Stars — Exceptional Performance!'}
+                {selectedRating === 4 && '★★★★☆ 4 Stars — Very Good Work'}
+                {selectedRating === 3 && '★★★☆☆ 3 Stars — Good / Satisfactory'}
+                {selectedRating === 2 && '★★☆☆☆ 2 Stars — Needs Improvement'}
+                {selectedRating === 1 && '★☆☆☆☆ 1 Star — Unsatisfactory'}
+              </p>
+            </div>
+
+            {/* Submit Action */}
+            <div className="pt-2">
+              <button
+                type="button"
+                disabled={submittingRating || selectedRating < 1}
+                onClick={handleSubmitRating}
+                className="w-full py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-sm shadow-lg shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {submittingRating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Submitting Rating...
+                  </>
+                ) : (
+                  <>
+                    <Star className="w-4 h-4 fill-white" />
+                    Submit {selectedRating}-Star Rating
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -39,7 +39,7 @@ class Review(models.Model):
     )
     
     # Review text
-    review_text = models.TextField()
+    review_text = models.TextField(blank=True, default="")
     
     # Specific ratings
     communication_rating = models.IntegerField(

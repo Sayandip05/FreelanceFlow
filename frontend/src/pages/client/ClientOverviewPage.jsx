@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Briefcase, FileText, CreditCard, MessageSquare, Star,
   TrendingUp, Clock, CheckCircle, AlertCircle, Plus, ArrowRight, Wallet
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 import { projectsAPI } from '../../api/projects'
 import { paymentsAPI } from '../../api/payments'
 import { DashboardSkeleton } from '../../components/common/Skeleton'
@@ -21,9 +22,15 @@ const StatCard = ({ icon: Icon, label, value, color, bg }) => (
 
 const ClientOverviewPage = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [projects, setProjects] = useState([])
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
+
+  const clientRating = user?.client_profile?.average_rating
+    ? parseFloat(user.client_profile.average_rating).toFixed(1)
+    : '5.0'
+  const clientReviewsCount = user?.client_profile?.total_reviews || 0
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,12 +65,17 @@ const ClientOverviewPage = () => {
   }
 
   return (
-          
       <div className="flex-1 p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Client Dashboard</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">Client Dashboard</h1>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold shadow-2xs">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                {clientRating} ({clientReviewsCount} {clientReviewsCount === 1 ? 'review' : 'reviews'})
+              </span>
+            </div>
             <p className="text-gray-600 mt-1">Manage your projects and track progress</p>
           </div>
           <button
@@ -76,11 +88,12 @@ const ClientOverviewPage = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <StatCard icon={Briefcase} label="Active Projects" value={loading ? '—' : activeProjects.length} color="text-primary-600" bg="bg-primary-50" />
           <StatCard icon={FileText} label="Total Projects" value={loading ? '—' : projects.length} color="text-indigo-600" bg="bg-indigo-50" />
           <StatCard icon={Wallet} label="Total Spent" value={loading ? '—' : `$${totalSpent.toLocaleString()}`} color="text-accent-600" bg="bg-green-50" />
           <StatCard icon={Clock} label="Pending Payments" value={loading ? '—' : pendingPayments} color="text-yellow-600" bg="bg-yellow-50" />
+          <StatCard icon={Star} label="Client Rating" value={loading ? '—' : `★ ${clientRating}`} color="text-amber-600" bg="bg-amber-50" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

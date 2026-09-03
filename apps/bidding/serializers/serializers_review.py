@@ -33,6 +33,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class ReviewCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating reviews."""
+    review_text = serializers.CharField(required=False, allow_blank=True, default="")
     
     class Meta:
         model = Review
@@ -51,8 +52,8 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
         return value
     
     def validate_review_text(self, value):
-        if len(value.strip()) < 20:
-            raise serializers.ValidationError("Review must be at least 20 characters.")
+        if not value or not value.strip():
+            return ""
         # Sanitize to prevent XSS
         return sanitize_html(value, allow_basic_formatting=True)
     
