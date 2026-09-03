@@ -762,43 +762,163 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         </html>
         """
 
-        # Generate PDF bytes via WeasyPrint, fallback to fpdf2
+        # Generate PDF bytes via WeasyPrint, fallback to full flexible FPDF2
         try:
             from weasyprint import HTML
             pdf_bytes = HTML(string=html_content).write_pdf()
         except Exception as e:
-            logger.warning("WeasyPrint compilation failed, falling back to clean fpdf2: %s", e)
+            logger.warning("WeasyPrint compilation unavailable, generating full multi-page PDF via FPDF2: %s", e)
             try:
                 from fpdf import FPDF
-                pdf = FPDF(format='A4', unit='mm')
-                pdf.set_auto_page_break(auto=True, margin=15)
-                pdf.add_page()
+                from fpdf.enums import XPos, YPos
 
                 def clean_pdf_text(t: str) -> str:
                     if not t:
                         return ""
-                    return (
-                        t.replace("\u2013", "-")
-                         .replace("\u2014", "--")
-                         .replace("\u2018", "'")
-                         .replace("\u2019", "'")
-                         .replace("\u201c", '"')
-                         .replace("\u201d", '"')
-                         .replace("\u2022", "*")
-                         .encode("latin-1", "replace")
-                         .decode("latin-1")
-                    )
+                    t = str(t)
+                    replacements = {
+                        '\u2013': '-',
+                        '\u2014': '--',
+                        '\u2018': "'",
+                        '\u2019': "'",
+                        '\u201c': '"',
+                        '\u201d': '"',
+                        '\u2022': '|',
+                        '\u2026': '...',
+                        '\u2713': '[Verified]',
+                        '\u2714': '[Verified]',
+                        '•': '|',
+                        '–': '-',
+                        '—': '--',
+                        '’': "'",
+                        '‘': "'",
+                        '“': '"',
+                        '”': '"',
+                    }
+                    for k, v in replacements.items():
+                        t = t.replace(k, v)
+                    return t.encode('latin-1', 'replace').decode('latin-1')
 
-                pdf.set_font("Helvetica", "B", 13)
+                class MilestoneReportPDF(FPDF):
+                    def footer(self):
+                        self.set_y(-12)
+                        self.set_font('Helvetica', 'I', 8)
+                        self.set_text_color(100, 116, 139)
+                        self.cell(0, 8, clean_pdf_text(f'FreelanceFlow Official Milestone Progress Audit | Page {self.page_no()}'), align='C')
+
+                pdf = MilestoneReportPDF(format='A4', unit='mm')
+                pdf.set_auto_page_break(auto=True, margin=15)
+                pdf.set_margins(16, 16, 16)
+                pdf.add_page()
+
+                # Header badge banner
+                pdf.set_fill_color(15, 23, 42)
+                pdf.set_text_color(255, 255, 255)
+                pdf.set_font('Helvetica', 'B', 9)
+                pdf.cell(0, 7, clean_pdf_text(f'  MILESTONE {milestone_num} OF {total_milestones_count} VERIFIED PROGRESS REPORT'), fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.ln(3)
+
+                # Report Title
                 pdf.set_text_color(15, 23, 42)
-                pdf.cell(0, 7, clean_pdf_text(f"MILESTONE {milestone_num} PROGRESS REPORT"), ln=1)
-                pdf.set_font("Helvetica", "", 10)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(0, 5, clean_pdf_text(f"Project: {project.title} | Contract #{contract.id}"), ln=1)
+                pdf.set_font('Helvetica', 'B', 15)
+                pdf.multi_cell(0, 7, clean_pdf_text(draft.title), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+                pdf.set_font('Helvetica', '', 9)
+                pdf.set_text_color(100, 116, 139)
+                pdf.cell(0, 5, clean_pdf_text(f'FreelanceFlow Verified Progress Document | Contract #{contract.id} | Bid #{contract.bid.id}'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 pdf.ln(4)
+
+                # Metadata Box
+                pdf.set_fill_color(248, 250, 252)
+                pdf.set_draw_color(226, 232, 240)
+                pdf.rect(pdf.get_x(), pdf.get_y(), 178, 24, 'FD')
+                pdf.set_xy(pdf.get_x() + 3, pdf.get_y() + 2)
+
+                freelancer_name = freelancer.get_full_name() or freelancer.email
+                client_name = client.get_full_name() or client.email
+
+                pdf.set_font('Helvetica', 'B', 9)
+                pdf.set_text_color(15, 23, 42)
+                pdf.cell(85, 6, clean_pdf_text(f'Project: {project.title[:38]}'))
+                pdf.cell(85, 6, clean_pdf_text(f'Freelancer: {freelancer_name[:35]}'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_x(19)
+                pdf.cell(85, 6, clean_pdf_text(f'Client: {client_name[:38]}'))
+                pdf.cell(85, 6, clean_pdf_text(f'Milestone: Milestone {milestone_num} of {total_milestones_count}'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_x(19)
+                pdf.cell(85, 6, clean_pdf_text(f"Date: {timezone.now().strftime('%B %d, %Y')}"))
+                pdf.cell(85, 6, clean_pdf_text('Status: Verified & Approved'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.ln(6)
+
+                # Section 1: Executive Summary
+                pdf.set_font('Helvetica', 'B', 11)
+                pdf.set_text_color(15, 23, 42)
+                pdf.cell(0, 6, clean_pdf_text('1. Executive Summary'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_draw_color(226, 232, 240)
+                pdf.line(16, pdf.get_y(), 194, pdf.get_y())
+                pdf.ln(2)
+
+                pdf.set_font('Helvetica', '', 9.5)
+                pdf.set_text_color(51, 65, 85)
+                pdf.multi_cell(0, 5.2, clean_pdf_text(draft.section_summary), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.ln(4)
+
+                # Section 2: Deliverables & Tasks Completed
+                pdf.set_font('Helvetica', 'B', 11)
+                pdf.set_text_color(15, 23, 42)
+                pdf.cell(0, 6, clean_pdf_text('2. Deliverables & Tasks Completed'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_draw_color(226, 232, 240)
+                pdf.line(16, pdf.get_y(), 194, pdf.get_y())
+                pdf.ln(3)
+
+                for d in (draft.section_deliverables or []):
+                    if isinstance(d, dict):
+                        d_title = d.get('title', 'Deliverable')
+                        d_status = d.get('status', 'COMPLETED')
+                        d_desc = d.get('description', '')
+
+                        # Deliverable title and status
+                        pdf.set_font('Helvetica', 'B', 9.5)
+                        pdf.set_text_color(15, 23, 42)
+                        pdf.cell(140, 6, clean_pdf_text(f'* {d_title[:65]}'))
+                        pdf.set_font('Helvetica', 'B', 8)
+                        pdf.set_text_color(22, 163, 74)
+                        pdf.cell(38, 6, clean_pdf_text(f'[{d_status}]'), align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+                        # Deliverable detailed description
+                        if d_desc:
+                            pdf.set_font('Helvetica', '', 9)
+                            pdf.set_text_color(71, 85, 105)
+                            pdf.multi_cell(0, 4.8, clean_pdf_text(f'   {d_desc}'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                        pdf.ln(2.5)
+
+                # Section 3: Next Steps & Priorities
+                pdf.ln(2)
+                pdf.set_font('Helvetica', 'B', 11)
+                pdf.set_text_color(15, 23, 42)
+                pdf.cell(0, 6, clean_pdf_text('3. Next Steps & Priorities'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_draw_color(226, 232, 240)
+                pdf.line(16, pdf.get_y(), 194, pdf.get_y())
+                pdf.ln(2)
+
+                pdf.set_font('Helvetica', '', 9.5)
+                pdf.set_text_color(51, 65, 85)
+                pdf.multi_cell(0, 5.2, clean_pdf_text(draft.section_next_steps), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.ln(5)
+
+                # Audit Verification Box
+                pdf.set_fill_color(241, 245, 249)
+                pdf.set_draw_color(203, 213, 225)
+                pdf.rect(pdf.get_x(), pdf.get_y(), 178, 12, 'FD')
+                pdf.set_xy(pdf.get_x() + 3, pdf.get_y() + 2)
+                pdf.set_font('Helvetica', 'I', 8)
+                pdf.set_text_color(100, 116, 139)
+                pdf.cell(0, 4, clean_pdf_text('FreelanceFlow | Milestone Verified Progress Audit'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_x(19)
+                pdf.cell(0, 4, clean_pdf_text(f'Document verified and generated by FreelanceFlow AI Worklog Assistant for Milestone {milestone_num}.'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
                 pdf_bytes = bytes(pdf.output())
             except Exception as e_fallback:
-                logger.error("fpdf2 fallback generation failed: %s", e_fallback)
+                logger.error("fpdf2 fallback generation failed: %s", e_fallback, exc_info=True)
                 pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
 
         # Descriptive blob name: milestone_{num}_{slug}_contract_{id}_bid_{id}.pdf
