@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, DollarSign, Clock, Tag, ArrowRight, ShieldCheck, CheckCircle, Sparkles } from 'lucide-react'
+import { Search, IndianRupee, Clock, Tag, ArrowRight, ShieldCheck, CheckCircle, Sparkles } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 import { bidsAPI } from '../../api/bids'
 import { Skeleton } from '../../components/common/Skeleton'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 /* ── FreelanceFlow Auto-Scrolling Banner Carousel ───────────────────────── */
 const FREELANCER_SLIDES = [
@@ -125,16 +126,16 @@ export default function FreelancerBrowsePage() {
           />
         </div>
         <div className="relative">
-          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <select
             value={budgetFilter}
             onChange={e => setBudgetFilter(e.target.value)}
             className="pl-9 pr-8 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm bg-white appearance-none"
           >
             <option value="">Any Budget</option>
-            <option value="low">Under $500</option>
-            <option value="mid">$500 – $2,000</option>
-            <option value="high">$2,000+</option>
+            <option value="low">Under ₹500</option>
+            <option value="mid">₹500 – ₹2,000</option>
+            <option value="high">₹2,000+</option>
           </select>
         </div>
         <button type="submit" className="btn-primary px-5">Search</button>
@@ -215,7 +216,7 @@ export default function FreelancerBrowsePage() {
                 {/* Right Column: Budget & Action */}
                 <div className="text-right flex-shrink-0 flex flex-col justify-between h-full pt-1">
                   <div>
-                    <p className="text-2xl font-extrabold text-gray-900 mb-0.5">${parseFloat(project.budget)?.toLocaleString()}</p>
+                    <p className="text-2xl font-extrabold text-gray-900 mb-0.5">{formatCurrency(project.budget)}</p>
                     <p className="text-xs text-gray-400 mb-4 font-medium">Fixed Budget</p>
                   </div>
 

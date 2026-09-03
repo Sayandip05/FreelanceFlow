@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Briefcase, Clock, User, DollarSign, CheckCircle, XCircle, MessageSquare,
+  ArrowLeft, Briefcase, Clock, User, IndianRupee, CheckCircle, XCircle, MessageSquare,
   Trash2, AlertTriangle, Loader2
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
@@ -334,7 +334,7 @@ const ClientProjectDetailPage = () => {
               <h3 className="font-semibold text-gray-900 mb-4">Project Details</h3>
               <div className="space-y-3">
                 {[
-                  { icon: DollarSign, label: 'Budget', value: formatCurrency(project.budget) },
+                  { icon: IndianRupee, label: 'Budget', value: formatCurrency(project.budget) },
                   { icon: Clock, label: 'Duration', value: project.approx_duration || 'Not specified' },
                   { icon: Clock, label: 'Posted', value: new Date(project.created_at).toLocaleDateString() },
                   { icon: User, label: 'Total Bids', value: bids.length },

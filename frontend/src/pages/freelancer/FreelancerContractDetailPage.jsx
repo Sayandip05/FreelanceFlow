@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, Clock, AlertTriangle,
-  DollarSign, User, MessageSquare, Upload, Download,
+  IndianRupee, User, MessageSquare, Upload, Download,
   ExternalLink, ChevronRight, FileText, Check, X,
   CreditCard, Sparkles, RefreshCw, AlertCircle, Calendar,
   Briefcase, Send, Lock, Unlock, Eye, Wallet
@@ -435,7 +435,7 @@ export default function FreelancerContractDetailPage() {
         <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 space-y-3">
           <div className="flex flex-wrap items-center justify-between text-xs gap-2">
             <span className="font-bold text-gray-800 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-600" />
+              <IndianRupee className="w-4 h-4 text-emerald-600" />
               Contract Release Progress: {formatCurrency(releasedAmount)} / {formatCurrency(totalBudget)} released
             </span>
             <span className="font-black text-primary-600">{progressPercent}% Completed</span>

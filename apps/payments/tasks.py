@@ -284,7 +284,7 @@ def razorpay_payout_withdrawal_task(self, withdrawal_id: int):
             create_notification(
                 recipient=freelancer,
                 title="Withdrawal Completed",
-                body=f"Your simulated withdrawal of USD {withdrawal.amount} has been successfully processed.",
+                body=f"Your simulated withdrawal of ₹{withdrawal.amount} has been successfully processed.",
                 notification_type=Notification.Type.PAYMENT_RELEASED,
             )
             logger.info("Simulated payout withdrawal succeeded: withdrawal_id=%s", withdrawal.id)
@@ -322,7 +322,7 @@ def razorpay_payout_withdrawal_task(self, withdrawal_id: int):
         create_notification(
             recipient=freelancer,
             title="Withdrawal Completed",
-            body=f"Your withdrawal of USD {withdrawal.amount} has been successfully processed.",
+            body=f"Your withdrawal of ₹{withdrawal.amount} has been successfully processed.",
             notification_type=Notification.Type.PAYMENT_RELEASED,
         )
 

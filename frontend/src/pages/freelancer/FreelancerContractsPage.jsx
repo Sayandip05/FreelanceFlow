@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   ScrollText, Briefcase, Search, Filter, ArrowRight,
   ShieldCheck, CheckCircle2, Clock, AlertTriangle,
-  DollarSign, User, MessageSquare, PlusCircle, ExternalLink,
+  IndianRupee, User, MessageSquare, PlusCircle, ExternalLink,
   ChevronRight, Sparkles, RefreshCw, ChevronLeft, Calendar
 } from 'lucide-react'
 import { contractsAPI } from '../../api/bids'
@@ -125,7 +125,7 @@ export default function FreelancerContractsPage() {
 
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0">
-            <DollarSign className="w-6 h-6" />
+            <IndianRupee className="w-6 h-6" />
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Value</p>

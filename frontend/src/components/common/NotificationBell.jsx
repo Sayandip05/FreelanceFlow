@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Bell, Check, CheckCheck, MessageSquare, Briefcase,
-  DollarSign, Clock, Sparkles, X, ChevronRight, CheckCircle2, Download
+  IndianRupee, Clock, Sparkles, X, ChevronRight, CheckCircle2, Download
 } from 'lucide-react'
 import { useNotifications } from '../../context/NotificationContext'
 import { useAuth } from '../../context/AuthContext'
@@ -157,7 +157,7 @@ const NotificationBell = () => {
   const getNotifIcon = (type) => {
     const t = (type || '').toUpperCase()
     if (t.includes('MESSAGE') || t.includes('CHAT')) return <MessageSquare className="w-4 h-4 text-indigo-600" />
-    if (t.includes('PAYMENT') || t.includes('ESCROW')) return <DollarSign className="w-4 h-4 text-emerald-600" />
+    if (t.includes('PAYMENT') || t.includes('ESCROW')) return <IndianRupee className="w-4 h-4 text-emerald-600" />
     if (t.includes('CONTRACT') || t.includes('BID')) return <Briefcase className="w-4 h-4 text-primary-600" />
     if (t.includes('WORKLOG') || t.includes('AI')) return <Sparkles className="w-4 h-4 text-purple-600" />
     return <Clock className="w-4 h-4 text-gray-500" />

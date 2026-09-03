@@ -688,7 +688,7 @@ def withdraw_funds(user, amount) -> "WithdrawalRequest":
     with transaction.atomic():
         wallet, _ = Wallet.objects.select_for_update().get_or_create(user=user)
         if wallet.balance < amount_dec:
-            raise ValidationError(f"Insufficient funds. Maximum available balance is USD {wallet.balance}.")
+            raise ValidationError(f"Insufficient funds. Maximum available balance is ₹{wallet.balance}.")
 
         # Deduct from wallet
         wallet.balance -= amount_dec
@@ -734,7 +734,7 @@ def fund_milestone_from_wallet_service(milestone, client) -> Payment:
     with transaction.atomic():
         wallet, _ = ClientWallet.objects.select_for_update().get_or_create(client=client)
         if wallet.balance < milestone.amount:
-            raise ValidationError(f"Insufficient wallet balance. Milestone costs ${milestone.amount} but your wallet has ${wallet.balance}.")
+            raise ValidationError(f"Insufficient wallet balance. Milestone costs ₹{milestone.amount} but your wallet has ₹{wallet.balance}.")
 
         # Deduct from wallet
         wallet.balance -= milestone.amount
@@ -891,13 +891,13 @@ def generate_transaction_receipt_pdf(tx_id: int, tx_type: str, user_id: int) -> 
                 <tbody>
                     <tr>
                         <td>{description}</td>
-                        <td style="text-align: right; font-weight: bold;">${amount:.2f} USD</td>
+                        <td style="text-align: right; font-weight: bold;">₹{amount:.2f} INR</td>
                     </tr>
                 </tbody>
             </table>
 
             <div class="total-box">
-                Total: ${amount:.2f} USD
+                Total: ₹{amount:.2f} INR
             </div>
 
             <div class="footer">

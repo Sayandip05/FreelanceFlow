@@ -232,13 +232,13 @@ export default function ClientWalletPage() {
             <h3 className="text-base font-extrabold text-gray-900 mb-2 flex items-center gap-2">
               <Plus className="w-5 h-5 text-indigo-600" /> Add Funds to Wallet
             </h3>
-            <p className="text-xs text-gray-500 mb-6 font-semibold">Enter the amount in USD you wish to add to your pre-funded platform balance.</p>
+            <p className="text-xs text-gray-500 mb-6 font-semibold">Enter the amount in INR (₹) you wish to add to your pre-funded platform balance.</p>
             
             <form onSubmit={handleAddFunds} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Deposit Amount ($)</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Deposit Amount (₹)</label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                   <input
                     type="number"
                     step="0.01"

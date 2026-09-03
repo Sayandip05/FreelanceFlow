@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Search, FileText, Briefcase, DollarSign,
+  Search, FileText, Briefcase, IndianRupee,
   MessageSquare, Clock, Send, CircleDot, Wifi, WifiOff,
   Loader2, X, ArrowDown, Check, CheckCheck
 } from 'lucide-react'

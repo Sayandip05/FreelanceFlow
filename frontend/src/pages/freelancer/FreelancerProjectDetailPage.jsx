@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
-  ArrowLeft, Clock, DollarSign, Tag, User, ShieldCheck, CheckCircle,
+  ArrowLeft, Clock, IndianRupee, Tag, User, ShieldCheck, CheckCircle,
   Briefcase, Send, AlertCircle
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 import { bidsAPI } from '../../api/bids'
 import { DetailPageSkeleton } from '../../components/common/Skeleton'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 export default function FreelancerProjectDetailPage() {
   const { projectId } = useParams()
@@ -136,7 +137,7 @@ export default function FreelancerProjectDetailPage() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{project.title}</h1>
           </div>
           <div className="sm:text-right flex-shrink-0">
-            <p className="text-2xl sm:text-3xl font-black text-gray-900">${parseFloat(project.budget)?.toLocaleString()}</p>
+            <p className="text-2xl sm:text-3xl font-black text-gray-900">{formatCurrency(project.budget)}</p>
             <p className="text-xs text-gray-400 font-medium mt-0.5">Fixed Project Budget</p>
           </div>
         </div>
@@ -206,10 +207,10 @@ export default function FreelancerProjectDetailPage() {
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                Your Bid Amount ($)
+                Your Bid Amount (₹)
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                 <input
                   type="number"
                   value={bidForm.amount}

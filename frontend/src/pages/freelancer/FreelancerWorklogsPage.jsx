@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { contractsAPI } from '../../api/bids'
 import { Skeleton } from '../../components/common/Skeleton'
+import { formatCurrency } from '../../utils/formatCurrency'
 import {
   SparklesIcon,
   BriefcaseIcon,
@@ -12,7 +13,7 @@ import {
   ShieldCheckIcon,
   DocumentTextIcon,
   UserCircleIcon,
-  CurrencyDollarIcon,
+  CurrencyRupeeIcon,
 } from '@heroicons/react/24/outline'
 
 const FreelancerWorklogsPage = () => {
@@ -89,11 +90,11 @@ const FreelancerWorklogsPage = () => {
         {/* Total Contract Value */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex items-center gap-4">
           <div className="p-3 bg-blue-50 rounded-xl text-blue-600 border border-blue-200">
-            <CurrencyDollarIcon className="w-6 h-6" />
+            <CurrencyRupeeIcon className="w-6 h-6" />
           </div>
           <div>
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Contract Value</span>
-            <div className="text-2xl font-black text-gray-900 mt-0.5">${totalBudget.toLocaleString()}</div>
+            <div className="text-2xl font-black text-gray-900 mt-0.5">{formatCurrency(totalBudget)}</div>
             <span className="text-xs text-gray-500 font-medium">Across active engagements</span>
           </div>
         </div>
@@ -242,7 +243,7 @@ const FreelancerWorklogsPage = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500">Contract Budget:</span>
                       <span className="font-bold text-gray-900 text-sm">
-                        ${parseFloat(amount).toLocaleString()}
+                        {formatCurrency(amount)}
                       </span>
                     </div>
                   </div>

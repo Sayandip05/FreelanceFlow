@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { aiWorklogAPI } from '../../api/worklogs'
 import { paymentsAPI } from '../../api/payments'
 import { contractsAPI } from '../../api/bids'
+import { formatCurrency } from '../../utils/formatCurrency'
 import {
   SparklesIcon,
   PaperAirplaneIcon,
@@ -581,7 +582,7 @@ const FreelancerWorkPage = () => {
                     <p className="text-xs text-emerald-600">Deposited to your balance</p>
                   </div>
                   <p className="text-2xl font-black text-emerald-700">
-                    ${parseFloat(activeMilestone.amount || 0).toLocaleString()}
+                    {formatCurrency(activeMilestone.amount || 0)}
                   </p>
                 </div>
 
@@ -625,7 +626,7 @@ const FreelancerWorkPage = () => {
                 </div>
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex justify-between items-center">
                   <span className="text-xs font-bold text-gray-500">Milestone Amount:</span>
-                  <span className="text-xl font-black text-gray-900">${parseFloat(activeMilestone.amount || 0).toLocaleString()}</span>
+                  <span className="text-xl font-black text-gray-900">{formatCurrency(activeMilestone.amount || 0)}</span>
                 </div>
               </div>
             </div>
@@ -1007,7 +1008,7 @@ const FreelancerWorkPage = () => {
                             {badge.label}
                           </span>
                           <span className="text-[11px] font-black text-gray-900">
-                            ${parseFloat(m.amount || 0).toLocaleString()}
+                            {formatCurrency(m.amount || 0)}
                           </span>
                         </div>
 

@@ -5,6 +5,7 @@ import { Briefcase, FileText, CreditCard, MessageSquare, Star,
 } from 'lucide-react'
 import { projectsAPI } from '../../api/projects'
 import { Skeleton } from '../../components/common/Skeleton'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 const STATUS_COLORS = {
   OPEN: 'bg-green-100 text-green-700',
@@ -54,7 +55,7 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm resize-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Budget (USD)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Budget (INR)</label>
             <input type="number" value={form.budget} onChange={e => setForm({...form, budget: e.target.value})} required min="1" placeholder="500"
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm" />
           </div>
@@ -261,7 +262,7 @@ const ClientProjectsPage = () => {
                 </div>
                 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                  <span className="text-sm font-semibold text-gray-900">${project.budget?.toLocaleString()}</span>
+                  <span className="text-sm font-semibold text-gray-900">{formatCurrency(project.budget)}</span>
                   <div className="flex items-center gap-2">
                     {(project.status === 'OPEN' || project.status === 'CANCELLED') && (
                       <button
