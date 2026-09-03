@@ -13,10 +13,13 @@ import {
   UserIcon
 } from '@heroicons/react/24/outline'
 import { formatDate } from '../../utils/formatDate'
+import { useToast, useConfirm } from '../../context/ModalToastContext'
 
 const ClientDeliverableReviewPage = () => {
   const { deliverableId } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
+  const confirm = useConfirm()
   const [deliverable, setDeliverable] = useState(null)
   const [contract, setContract] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -49,19 +52,23 @@ const ClientDeliverableReviewPage = () => {
 
   const handleApprove = async () => {
     if (!feedback.trim()) {
-      if (!window.confirm('Are you sure you want to approve without feedback?')) {
-        return
-      }
+      const ok = await confirm({
+        title: 'Approve Deliverable',
+        message: 'Are you sure you want to approve without feedback?',
+        confirmText: 'Approve',
+        type: 'primary',
+      })
+      if (!ok) return
     }
 
     setActionLoading(true)
     try {
       await deliverableAPI.approveDeliverable(deliverableId, feedback)
-      alert('Deliverable approved! Payment release is now enabled.')
+      toast.success('Deliverable approved! Payment release is now enabled.')
       navigate(`/client/contracts/${deliverable.contract}`)
     } catch (error) {
       console.error('Error approving deliverable:', error)
-      alert('Failed to approve deliverable')
+      toast.error('Failed to approve deliverable')
     } finally {
       setActionLoading(false)
     }
@@ -69,18 +76,18 @@ const ClientDeliverableReviewPage = () => {
 
   const handleRequestRevision = async () => {
     if (!feedback.trim()) {
-      alert('Please provide feedback explaining what needs to be revised')
+      toast.warning('Please provide feedback explaining what needs to be revised')
       return
     }
 
     setActionLoading(true)
     try {
       await deliverableAPI.rejectDeliverable(deliverableId, feedback, 'request_revision')
-      alert('Revision requested. The freelancer will be notified.')
+      toast.success('Revision requested. The freelancer will be notified.')
       navigate(`/client/contracts/${deliverable.contract}`)
     } catch (error) {
       console.error('Error requesting revision:', error)
-      alert('Failed to request revision')
+      toast.error('Failed to request revision')
     } finally {
       setActionLoading(false)
     }
@@ -88,22 +95,26 @@ const ClientDeliverableReviewPage = () => {
 
   const handleReject = async () => {
     if (!feedback.trim()) {
-      alert('Please provide feedback explaining why you are rejecting this deliverable')
+      toast.warning('Please provide feedback explaining why you are rejecting this deliverable')
       return
     }
 
-    if (!window.confirm('Are you sure you want to reject this deliverable? This action cannot be undone.')) {
-      return
-    }
+    const ok = await confirm({
+      title: 'Reject Deliverable',
+      message: 'Are you sure you want to reject this deliverable? This action cannot be undone.',
+      confirmText: 'Reject Deliverable',
+      type: 'danger',
+    })
+    if (!ok) return
 
     setActionLoading(true)
     try {
       await deliverableAPI.rejectDeliverable(deliverableId, feedback, 'reject')
-      alert('Deliverable rejected.')
+      toast.success('Deliverable rejected.')
       navigate(`/client/contracts/${deliverable.contract}`)
     } catch (error) {
       console.error('Error rejecting deliverable:', error)
-      alert('Failed to reject deliverable')
+      toast.error('Failed to reject deliverable')
     } finally {
       setActionLoading(false)
     }

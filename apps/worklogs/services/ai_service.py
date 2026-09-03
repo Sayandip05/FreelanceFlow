@@ -8,6 +8,7 @@ Implements a 3-node stateful workflow:
 """
 import json
 import logging
+import re
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, TypedDict, Literal
 from django.conf import settings
@@ -732,10 +733,10 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
             <table class="meta-table">
                 <tr>
                     <td style="width: 50%;"><strong>Project:</strong> {project.title}</td>
-                    <td style="width: 50%;"><strong>Freelancer:</strong> {freelancer.get_full_name() or freelancer.username}</td>
+                    <td style="width: 50%;"><strong>Freelancer:</strong> {freelancer.get_full_name() or freelancer.email}</td>
                 </tr>
                 <tr>
-                    <td><strong>Client:</strong> {client.get_full_name() or client.username}</td>
+                    <td><strong>Client:</strong> {client.get_full_name() or client.email}</td>
                     <td><strong>Milestone Scope:</strong> <strong style="color: #0f172a;">Milestone {milestone_num} of {total_milestones_count}</strong></td>
                 </tr>
                 <tr>

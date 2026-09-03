@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '../context/AuthContext'
+import { ModalToastProvider } from '../context/ModalToastContext'
 import { NotificationProvider } from '../context/NotificationContext'
 import ClientRoute from './ClientRoute'
 import FreelancerRoute from './FreelancerRoute'
@@ -45,8 +46,9 @@ const AppRouter = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <NotificationProvider>
-          <Routes>
+        <ModalToastProvider>
+          <NotificationProvider>
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<AuthPage />} />
@@ -98,8 +100,9 @@ const AppRouter = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </NotificationProvider>
-      </AuthProvider>
-    </BrowserRouter>
+      </ModalToastProvider>
+    </AuthProvider>
+  </BrowserRouter>
   )
 }
 

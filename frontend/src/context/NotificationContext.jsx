@@ -19,6 +19,8 @@ export function NotificationProvider({ children }) {
   const wsRef = useRef(null)
   const reconnectTimer = useRef(null)
   const { user } = useAuth()
+  const toast = useToast()
+  const navigate = useNavigate()
 
   // ── REST fetch (used on mount and as WS fallback) ─────────────────────────
   const fetchNotifications = useCallback(async () => {
@@ -81,11 +83,12 @@ export function NotificationProvider({ children }) {
           
           if (notif.type === 'receipt_pdf_ready') {
             setPdfReadyUrl(notif.pdf_url);
+            toast.success('Your official payment receipt is ready for download!', 'Receipt Generated')
             return; // Don't add to standard notifications list
           }
           
           if (notif.type === 'receipt_pdf_error') {
-            alert(`Receipt generation failed: ${notif.error}`);
+            toast.error(`Receipt generation failed: ${notif.error}`, 'Receipt Error');
             return;
           }
           
@@ -96,6 +99,23 @@ export function NotificationProvider({ children }) {
           if (!notif.is_read) {
             setUnreadCount((prev) => prev + 1)
           }
+
+          // Show in-app interactive notification toast
+          const clickHandler = notif.action_url
+            ? () => {
+                if (notif.action_url.startsWith('http')) {
+                  window.open(notif.action_url, '_blank')
+                } else {
+                  navigate(notif.action_url)
+                }
+              }
+            : null
+
+          toast.notification(
+            notif.body || notif.message || notif.title,
+            notif.title || 'New Notification',
+            clickHandler
+          )
           return
         }
       } catch {

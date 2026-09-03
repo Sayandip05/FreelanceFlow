@@ -14,10 +14,13 @@ import { formatCurrency } from '../../utils/formatCurrency'
 import { formatDate } from '../../utils/formatDate'
 import { getWebSocketUrl } from '../../utils/websocket'
 import { DetailPageSkeleton } from '../../components/common/Skeleton'
+import { useToast, useConfirm } from '../../context/ModalToastContext'
 
 export default function FreelancerContractDetailPage() {
   const { contractId } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
+  const confirm = useConfirm()
 
   // State
   const [contract, setContract] = useState(null)
@@ -56,11 +59,11 @@ export default function FreelancerContractDetailPage() {
           ...prev,
           files_link: res.data.url
         }))
-        alert(`File "${file.name}" uploaded successfully!`)
+        toast.success(`File "${file.name}" uploaded successfully!`)
       }
     } catch (err) {
       console.error('File upload error:', err)
-      alert(err.response?.data?.error || 'Failed to upload file.')
+      toast.error(err.response?.data?.error || 'Failed to upload file.')
     } finally {
       setUploadingFile(false)
       setUploadProgress(0)
@@ -249,13 +252,22 @@ export default function FreelancerContractDetailPage() {
   }
 
   const handleDeclineProposal = async () => {
-    if (!window.confirm('Are you sure you want to decline this contract proposal? This will delete the proposal and reset your bid to pending.')) return
+    const ok = await confirm({
+      title: 'Decline Contract Proposal',
+      message: 'Are you sure you want to decline this contract proposal? This will delete the proposal and reset your bid to pending.',
+      confirmText: 'Decline Proposal',
+      type: 'danger',
+    })
+    if (!ok) return
+
     setActionLoading(true)
     try {
       await contractsAPI.declineProposal(contractId)
+      toast.info('Contract proposal declined.')
       navigate('/freelancer/contracts')
     } catch (e) {
       console.error(e)
+      toast.error('Failed to decline proposal.')
     } finally {
       setActionLoading(false)
     }

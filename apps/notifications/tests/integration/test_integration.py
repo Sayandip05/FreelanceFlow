@@ -30,28 +30,28 @@ class NotificationsIntegrationFlowTest(TestCase):
         )
 
     def test_notification_delivery_and_read_management_flow(self):
-        # 1. System generates notifications for User A
+        # 1. System generates notifications for User A (using recipient, body, type)
         n1 = Notification.objects.create(
-            user=self.user_a,
+            recipient=self.user_a,
             title="Proposal Accepted",
-            message="Your proposal on Project X was accepted!",
-            notification_type="PROPOSAL_ACCEPTED",
+            body="Your proposal on Project X was accepted!",
+            type=Notification.Type.BID_ACCEPTED,
             is_read=False,
         )
         n2 = Notification.objects.create(
-            user=self.user_a,
+            recipient=self.user_a,
             title="Milestone Funded",
-            message="Client funded Milestone 1 ($500).",
-            notification_type="MILESTONE_FUNDED",
+            body="Client funded Milestone 1 ($500).",
+            type=Notification.Type.ESCROW_CREATED,
             is_read=False,
         )
 
         # 2. System generates a notification for User B
         n_b = Notification.objects.create(
-            user=self.user_b,
+            recipient=self.user_b,
             title="New Proposal",
-            message="A freelancer submitted a proposal.",
-            notification_type="PROPOSAL_SUBMITTED",
+            body="A freelancer submitted a proposal.",
+            type=Notification.Type.BID_SUBMITTED,
             is_read=False,
         )
 

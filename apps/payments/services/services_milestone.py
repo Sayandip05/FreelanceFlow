@@ -294,11 +294,16 @@ def reject_milestone(milestone_id, client, feedback=""):
 
     # Reset any submitted Deliverable record on contract
     try:
-        from apps.worklogs.models import Deliverable
+        from apps.worklogs.models import Deliverable, AIReportDraft
         Deliverable.objects.filter(
             contract=milestone.contract,
             status=Deliverable.Status.SUBMITTED
-        ).update(status=Deliverable.Status.REVISION_REQUESTED, pdf_url=None)
+        ).update(status=Deliverable.Status.REVISION_REQUESTED, pdf_url="")
+
+        AIReportDraft.objects.filter(
+            contract=milestone.contract,
+            status=AIReportDraft.Status.APPROVED
+        ).update(status=AIReportDraft.Status.REJECTED)
     except Exception:
         pass
 

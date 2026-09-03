@@ -40,7 +40,7 @@ class PaymentsIntegrationFlowTest(TestCase):
             project=self.project,
             freelancer=self.freelancer_user,
             amount=Decimal("1000.00"),
-            cover_letter="Senior Django engineer.",
+            cover_letter="Senior Django engineer ready to implement full backend.",
             status=Bid.Status.ACCEPTED,
         )
         self.contract = Contract.objects.create(
@@ -50,12 +50,13 @@ class PaymentsIntegrationFlowTest(TestCase):
         )
 
     def test_milestone_escrow_and_approval_payout_flow(self):
-        # 1. Client creates milestone
+        # 1. Client creates milestone (percentage required)
         milestone = PaymentMilestone.objects.create(
             contract=self.contract,
             title="Phase 1: Architecture & Auth",
             description="Initial models and JWT auth endpoints",
             amount=Decimal("500.00"),
+            percentage=Decimal("50.00"),
             order=1,
             status=PaymentMilestone.Status.PENDING,
         )
@@ -71,15 +72,15 @@ class PaymentsIntegrationFlowTest(TestCase):
             payment=payment,
             held_amount=Decimal("500.00"),
         )
-        milestone.status = PaymentMilestone.Status.FUNDED
+        milestone.status = PaymentMilestone.Status.IN_PROGRESS
         milestone.save()
 
-        self.assertEqual(milestone.status, PaymentMilestone.Status.FUNDED)
+        self.assertEqual(milestone.status, PaymentMilestone.Status.IN_PROGRESS)
         self.assertEqual(escrow.held_amount, Decimal("500.00"))
 
         # 3. Freelancer wallet initially starts at 0 balance
-        freelancer_wallet, _ = Wallet.objects.get_or_create(freelancer=self.freelancer_user)
-        initial_balance = freelancer_wallet.balance
+        freelancer_wallet, _ = Wallet.objects.get_or_create(user=self.freelancer_user)
+        initial_balance = Decimal(str(freelancer_wallet.balance))
 
         # 4. Release Escrow with 10% platform fee
         platform_fee_percent = Decimal("0.10")
@@ -87,15 +88,15 @@ class PaymentsIntegrationFlowTest(TestCase):
         fee_amount = gross_amount * platform_fee_percent
         net_payout = gross_amount - fee_amount
 
-        milestone.status = PaymentMilestone.Status.APPROVED
+        milestone.status = PaymentMilestone.Status.PAID
         milestone.save()
         payment.status = Payment.Status.RELEASED
         payment.save()
 
-        freelancer_wallet.balance += net_payout
+        freelancer_wallet.balance = initial_balance + net_payout
         freelancer_wallet.save()
 
         # 5. Assertions
-        self.assertEqual(milestone.status, PaymentMilestone.Status.APPROVED)
+        self.assertEqual(milestone.status, PaymentMilestone.Status.PAID)
         self.assertEqual(payment.status, Payment.Status.RELEASED)
-        self.assertEqual(freelancer_wallet.balance, initial_balance + Decimal("450.00"))
+        self.assertEqual(Decimal(str(freelancer_wallet.balance)), initial_balance + Decimal("450.00"))
