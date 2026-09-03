@@ -155,13 +155,12 @@ def generate_weekly_report(contract_id: int, week_start: Any, interval_days: int
         date__range=[week_start, week_end]
     ).order_by("date"))
 
-    log_bullets = "\n".join([f"- {log.date}: {log.description} ({log.hours_worked}h)" for log in logs]) or "- Regular milestone deliverables development."
+    log_bullets = "\n".join([f"- {log.date}: {log.description}" for log in logs]) or "- Regular milestone deliverables development."
 
     summary = (
-        f"## Weekly Progress Report ({week_start} to {week_end})\n\n"
+        f"## Milestone Progress Report\n\n"
         f"**Project**: {contract.bid.project.title}\n"
-        f"**Client**: {contract.bid.project.client.get_full_name() or contract.bid.project.client.username}\n"
-        f"**Total Hours**: {total_hours} hrs\n\n"
+        f"**Client**: {contract.bid.project.client.get_full_name() or contract.bid.project.client.username}\n\n"
         f"### Completed Work\n{log_bullets}\n\n"
         f"### Next Steps\nContinue deliverable verification and sprint goals."
     )
@@ -235,6 +234,8 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
             target_idx = 0
 
         target_number = target_idx + 1
+        total_milestones = len(milestones_qs) or 1
+        is_final_milestone = (target_number >= total_milestones)
 
         # Universal milestone schedule formatting
         universal_milestones = []
@@ -264,14 +265,6 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
             for m in universal_milestones
         ])
 
-        total_hours = WorkLog.objects.filter(
-            contract=contract
-        ).aggregate(total=Sum("hours_worked"))["total"] or 0
-
-        recent_logs = list(WorkLog.objects.filter(
-            contract=contract
-        ).order_by("-date")[:10])
-
         return {
             "project_title": contract.bid.project.title,
             "project_description": contract.bid.project.description,
@@ -279,8 +272,9 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
             "freelancer_name": contract.bid.freelancer.get_full_name() or contract.bid.freelancer.username,
             "contract_rate": str(getattr(contract, "agreed_amount", 0)),
             "contract_type": getattr(contract, "contract_type", "FIXED"),
-            "total_hours_logged": float(total_hours),
             "target_milestone_number": target_number,
+            "total_milestones": total_milestones,
+            "is_final_milestone": is_final_milestone,
             "target_milestone_id": target_milestone.id if target_milestone else None,
             "target_milestone_title": target_milestone.title if target_milestone else f"Milestone {target_number}",
             "target_milestone_description": target_milestone.description if target_milestone else "",
@@ -297,14 +291,6 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
                     "description": d.description[:150]
                 }
                 for d in deliverables
-            ],
-            "recent_logs": [
-                {
-                    "date": str(log.date),
-                    "hours": float(log.hours_worked),
-                    "description": log.description
-                }
-                for log in recent_logs
             ],
         }
 
@@ -409,16 +395,35 @@ async def report_generator(state: AIWorklogState) -> AIWorklogState:
     q_context = "\n".join([f"- [{item.get('type')}]: {sanitize_sensitive_data(item.get('text', ''))}" for item in state.get("qdrant_context", [])])
     history = state.get("conversation_history", [])
 
+    final_milestone_guidance = ""
+    if pg.get("is_final_milestone"):
+        final_milestone_guidance = f"""
+SPECIAL FINAL MILESTONE INSTRUCTIONS:
+- This is the FINAL milestone of the contract (Milestone {pg['target_milestone_number']} of {pg['total_milestones']}).
+- Section 1 (Executive Summary): Highlight final project completion, full verification, and delivery of all agreed requirements.
+- Section 2 (Deliverables Completed): Focus on final milestone outputs, test verification, production deployment, and project handover artifacts.
+- Section 3 (Next Steps): Focus on final client review, sign-off acceptance, warranty support, and contract closure (do NOT mention upcoming milestones as this is the last one).
+"""
+    else:
+        final_milestone_guidance = f"""
+MILESTONE POSITION:
+- This is Milestone {pg['target_milestone_number']} of {pg['total_milestones']}.
+- Section 3 (Next Steps): Mention upcoming priorities for Milestone {pg['target_milestone_number'] + 1} and client feedback review.
+"""
+
     system_prompt = f"""You are the FreelanceFlow AI Worklog Assistant for the project "{pg['project_title']}".
 Your role is to help the freelancer document technical progress, synthesize deliverables, and draft official milestone reports for their client ({pg['client_name']}).
 
 TARGET ACTIVE MILESTONE:
-- Milestone Number: Milestone {pg['target_milestone_number']}
+- Milestone Position: Milestone {pg['target_milestone_number']} of {pg['total_milestones']}
 - Milestone Title: {pg['target_milestone_title']}
 - Milestone Scope / Requirements: {pg['target_milestone_description']}
 - Milestone Due Date: {pg['target_milestone_due_date']}
 - Milestone Amount: {pg['target_milestone_amount']}
 - Milestone Status: {pg['target_milestone_status']}
+- Is Final Milestone: {'YES (Final Project Milestone)' if pg.get('is_final_milestone') else 'NO'}
+
+{final_milestone_guidance}
 
 ALL PROJECT MILESTONES (Universal Schedule):
 {pg['timeline_bullets']}
@@ -427,32 +432,32 @@ SEMANTIC SCOPE GROUNDING (from Project Context):
 {q_context or 'No specific vector matches.'}
 
 CRITICAL RULES:
-1. STRICT MILESTONE ISOLATION: Focus strictly on **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})**. Do NOT generate deliverables, tasks, or summaries for earlier finished milestones or future unstarted milestones unless explicitly requested.
-2. UNIVERSAL TIMELINES: Milestones follow the universal milestone dates listed above (they can be monthly, bi-weekly, or custom). Do NOT confuse monthly milestones with weekly milestones. Do NOT refer to monthly milestones as "weekly" or say "weekly report". Always refer to this as "Milestone {pg['target_milestone_number']} Progress Report".
-3. DRAFTING RESPONSE: When the freelancer asks to draft or summarize their progress report (e.g. "draft my progress report", "generate report", "here is what I worked on"), output a JSON block formatted exactly as:
+1. STRICT MILESTONE ISOLATION: Focus strictly on **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})**. Do NOT generate deliverables or summaries for earlier finished milestones or future unstarted milestones.
+2. UNIVERSAL TIMELINES: Milestones follow the universal milestone dates (can be monthly, bi-weekly, or custom). Do NOT refer to monthly milestones as "weekly" and never say "weekly report". Always refer to this as "Milestone {pg['target_milestone_number']} Progress Report".
+3. NO HOURS OR TIME LOGS: Do NOT mention or output hours (e.g., no "8 hours", no "12 hours", no time logs). The worklog report is strictly milestone-deliverable-driven.
+4. DRAFTING RESPONSE: When the freelancer asks to draft or summarize their progress report (e.g. "draft my progress report", "generate report", "here is what I worked on"), output a JSON block formatted exactly as:
 ```json
 {{
   "is_draft": true,
-  "reply": "I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into a progress report draft. Review the details below and click Approve to generate the official PDF.",
+  "reply": "I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into an editable progress report draft. You can edit any section below and submit it directly to your client.",
   "draft": {{
     "title": "Milestone {pg['target_milestone_number']} Progress Report – {pg['project_title']}",
     "section_summary": "Executive summary detailing technical progress made for Milestone {pg['target_milestone_number']}.",
     "section_deliverables": [
       {{"title": "Key Deliverable Completed", "description": "Technical implementation and deliverable items verified for Milestone {pg['target_milestone_number']}.", "status": "COMPLETED"}}
     ],
-    "section_next_steps": "Upcoming priorities and next milestone deliverables.",
-    "hours_worked": 8.0
+    "section_next_steps": "{'Final project handover and contract closure sign-off.' if pg.get('is_final_milestone') else f'Upcoming priorities for Milestone {pg['target_milestone_number'] + 1}.'}"
   }}
 }}
 ```
-4. TIMELINE INQUIRIES: When the user asks "what is my timeline of my progress report" or asks about timeline/schedule, output:
+5. TIMELINE INQUIRIES: When the user asks "what is my timeline of my progress report" or asks about timeline/schedule, output:
 ```json
 {{
   "is_draft": false,
   "reply": "Your progress report timeline follows the project milestones:\n\n{pg['timeline_bullets']}"
 }}
 ```
-5. NEVER mention internal backend names (e.g. Qdrant, WeasyPrint, vector DB, PostgreSQL, LLM) in any response. Always return valid JSON.
+6. NEVER mention internal backend names (e.g. Qdrant, WeasyPrint, vector DB, PostgreSQL, LLM) in any response. Always return valid JSON.
 """
 
     llm = get_llm()
@@ -500,17 +505,21 @@ CRITICAL RULES:
     if not parsed:
         # Grounded fallback intelligent generator
         if any(w in user_msg.lower() for w in ["draft", "report", "generate", "summary", "submit", "done", "progress"]):
+            next_steps_text = (
+                f"Coordinate with client {pg['client_name']} for final deliverable verification, project handover, and contract completion sign-off."
+                if pg.get("is_final_milestone")
+                else f"Coordinate with client {pg['client_name']} for milestone sign-off and prepare deliverables for Milestone {pg['target_milestone_number'] + 1}."
+            )
             parsed = {
                 "is_draft": True,
-                "reply": f"I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into a progress report draft. Review the details below and click Approve to generate the official PDF.",
+                "reply": f"I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into an editable progress report draft. Review the details below, edit any section, and click Approve to generate the official PDF.",
                 "draft": {
                     "title": f"Milestone {pg['target_milestone_number']} Progress Report – {pg['project_title']}",
-                    "section_summary": f"Completed technical implementation and deliverables for {pg['target_milestone_title']} on {pg['project_title']}. Deliverables verified against milestone specifications.",
+                    "section_summary": f"Completed technical implementation and key deliverables for Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']}) on {pg['project_title']}. All items verified against contract specifications.",
                     "section_deliverables": [
                         {"title": f"{pg['target_milestone_title']} Core Deliverable", "description": pg['target_milestone_description'] or user_msg, "status": "COMPLETED"}
                     ],
-                    "section_next_steps": f"Coordinate with client {pg['client_name']} for milestone sign-off and proceed to upcoming milestones.",
-                    "hours_worked": max(4.0, float(pg["total_hours_logged"]) or 8.0)
+                    "section_next_steps": next_steps_text
                 }
             }
         elif any(w in user_msg.lower() for w in ["timeline", "schedule", "when", "due", "date"]):
@@ -521,7 +530,7 @@ CRITICAL RULES:
         else:
             parsed = {
                 "is_draft": False,
-                "reply": f"I'm tracking your progress on **Milestone {pg['target_milestone_number']}: {pg['target_milestone_title']}** for {pg['project_title']}. Tell me what tasks you finished today, or click *'draft my progress report'* below to generate a client progress report draft."
+                "reply": f"I'm tracking your progress on **Milestone {pg['target_milestone_number']}: {pg['target_milestone_title']}** for {pg['project_title']}. Tell me what tasks you finished today, or click *'draft my progress report'* below to generate an editable report draft."
             }
 
     state["llm_response"] = parsed.get("reply", "")
@@ -650,6 +659,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         if not active_milestone:
             active_milestone = PaymentMilestone.objects.filter(contract=contract).order_by('order', 'created_at').first()
 
+        total_milestones_count = PaymentMilestone.objects.filter(contract=contract).count() or 1
         milestone_num = active_milestone.order if (active_milestone and active_milestone.order) else 1
 
         # Build clean HTML template for PDF (Solid black headings, clean structure, no purple)
@@ -689,7 +699,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         </head>
         <body>
             <div class="header">
-                <span class="badge">MILESTONE {milestone_num} VERIFIED PROGRESS REPORT</span>
+                <span class="badge">MILESTONE {milestone_num} OF {total_milestones_count} VERIFIED PROGRESS REPORT</span>
                 <h1>{draft.title}</h1>
                 <p style="margin: 0; color: #64748b; font-size: 11.5px;">FreelanceFlow Verified Progress Document • Contract #{contract.id} • Bid #{contract.bid.id}</p>
             </div>
@@ -701,7 +711,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 </tr>
                 <tr>
                     <td><strong>Client:</strong> {client.get_full_name() or client.username}</td>
-                    <td><strong>Hours Logged:</strong> <strong style="color: #0f172a;">{draft.hours_worked} hrs</strong></td>
+                    <td><strong>Milestone Scope:</strong> <strong style="color: #0f172a;">Milestone {milestone_num} of {total_milestones_count}</strong></td>
                 </tr>
                 <tr>
                     <td><strong>Date Generated:</strong> {timezone.now().strftime('%B %d, %Y')}</td>
