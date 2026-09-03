@@ -14,9 +14,10 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
-# CORS - configured via environment variable
+# CORS & CSRF - configured via environment variable
 # CORS_ALLOWED_ORIGINS is set in base.py from env variable
 # Example in .env: CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=CORS_ALLOWED_ORIGINS)
 
 # Storage in production - WhiteNoise for static, Azure Blob Storage for media
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"

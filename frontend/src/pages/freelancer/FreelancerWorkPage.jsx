@@ -22,6 +22,7 @@ import {
   CheckIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
+import { getWebSocketUrl } from '../../utils/websocket'
 import { WorkPageSkeleton } from '../../components/common/Skeleton'
 
 // ─── Milestone status badge helper ───────────────────────────────────────────
@@ -267,15 +268,8 @@ const FreelancerWorkPage = () => {
   useEffect(() => {
     if (!contractId) return
     const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token') || ''
-    let backendHost = 'localhost:8000'
-    const apiUrl = import.meta.env.VITE_API_URL || ''
-    if (apiUrl) {
-      try { backendHost = new URL(apiUrl).host } catch {}
-    } else if (window.location.hostname !== 'localhost') {
-      backendHost = window.location.host
-    }
-    const protocol = (apiUrl.startsWith('https') || window.location.protocol === 'https:') ? 'wss:' : 'ws:'
-    const ws = new WebSocket(`${protocol}//${backendHost}/ws/contract/${contractId}/?token=${token}`)
+    const wsUrl = getWebSocketUrl(`/ws/contract/${contractId}/`, token ? { token } : {})
+    const ws = new WebSocket(wsUrl)
 
     ws.onmessage = (event) => {
       try {
