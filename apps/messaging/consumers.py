@@ -397,6 +397,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if not contract:
                 return False
 
+            if not contract.is_active:
+                logger.info("WebSocket rejected for contract_id=%s: contract is closed/inactive", self.contract_id)
+                return False
+
             allowed_ids = {
                 contract.bid.freelancer_id,
                 contract.bid.project.client_id,

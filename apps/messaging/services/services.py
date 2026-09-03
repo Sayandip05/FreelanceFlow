@@ -19,6 +19,19 @@ def get_or_create_conversation(contract_id: int) -> Conversation:
     return conversation
 
 
+def delete_conversation_for_contract(contract_id: int) -> bool:
+    """
+    Deletes the conversation and its message records when a contract is completed/closed.
+    """
+    try:
+        deleted_count, _ = Conversation.objects.filter(contract_id=contract_id).delete()
+        logger.info("Deleted conversation for completed contract #%s", contract_id)
+        return bool(deleted_count > 0)
+    except Exception as e:
+        logger.warning("Failed to delete conversation for contract #%s: %s", contract_id, e)
+        return False
+
+
 def send_message(sender, conversation_id: int, content: str) -> Message:
     """
     Persist a new message in a conversation.

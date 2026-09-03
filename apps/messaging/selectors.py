@@ -37,13 +37,15 @@ def get_user_conversations(user) -> QuerySet[Conversation]:
     """Get all conversations for a user, ensuring active contracts have a conversation record."""
     from apps.bidding.models import Contract
     missing_contracts = Contract.objects.filter(
-        Q(bid__freelancer=user) | Q(bid__project__client=user)
+        Q(bid__freelancer=user) | Q(bid__project__client=user),
+        is_active=True
     ).filter(conversation__isnull=True)
     for c in missing_contracts:
         Conversation.objects.get_or_create(contract=c)
 
     return Conversation.objects.filter(
-        Q(contract__bid__freelancer=user) | Q(contract__bid__project__client=user)
+        Q(contract__bid__freelancer=user) | Q(contract__bid__project__client=user),
+        contract__is_active=True
     ).select_related(
         'contract',
         'contract__bid__project',

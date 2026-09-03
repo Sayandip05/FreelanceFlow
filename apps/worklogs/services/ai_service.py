@@ -233,6 +233,10 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
         if not target_milestone and milestones_qs:
             target_milestone = milestones_qs[0]
             target_idx = 0
+            
+        next_milestone = None
+        if target_idx + 1 < len(milestones_qs):
+            next_milestone = milestones_qs[target_idx + 1]
 
         target_number = target_idx + 1
         total_milestones = len(milestones_qs) or 1
@@ -282,6 +286,8 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
             "target_milestone_due_date": target_milestone.due_date.strftime("%B %d, %Y") if (target_milestone and target_milestone.due_date) else "Flexible",
             "target_milestone_amount": f"${float(target_milestone.amount):,.2f}" if target_milestone else "$0.00",
             "target_milestone_status": target_milestone.status if target_milestone else "IN_PROGRESS",
+            "next_milestone_title": next_milestone.title if next_milestone else "Final Project Handover & Contract Sign-off",
+            "next_milestone_description": next_milestone.description if next_milestone else "Final staging verification, project sign-off, and repository handover.",
             "universal_milestones": universal_milestones,
             "timeline_bullets": timeline_bullets,
             "deliverables": [
@@ -338,27 +344,22 @@ def sanitize_sensitive_data(text: str) -> str:
     if not text:
         return ""
     # Credit Card pattern (13-19 digits with optional spaces/hyphens)
-    text = re.sub(r"\b(?:\d[ -]*?){13,19}\b", "[REDACTED_CARD_NUMBER]", text)
+    text = re.sub(r"\b(?:\d[ -]*?){13,19}\b", "[REDACTED_CARD]", text)
     # API tokens, Razorpay keys, bearer tokens
     text = re.sub(r"(?:rzp_[a-zA-Z0-9_]+|Bearer\s+[a-zA-Z0-9_\-\.]+|sk-[a-zA-Z0-9]{20,})", "[REDACTED_TOKEN]", text)
     # Private Key blocks
-    text = re.sub(r"-----BEGIN[ A-Z_-]+PRIVATE KEY-----[\s\S]+?-----END[ A-Z_-]+PRIVATE KEY-----", "[REDACTED_PRIVATE_KEY]", text)
+    text = re.sub(r"-----BEGIN[ A-Z_-]+PRIVATE KEY-----[\s\S]+?-----END[ A-Z_-]+PRIVATE KEY-----", "[REDACTED_KEY]", text)
     # Passwords / secrets
     text = re.sub(r"(?:password|passwd|secret)\s*[:=]\s*\S+", "[REDACTED_SECRET]", text, flags=re.IGNORECASE)
     return text
 
 
-def detect_prompt_injection(user_message: str) -> bool:
-    """
-    Basic guardrail detecting prompt injection or unauthorized payment execution attempts.
-    """
-    if not user_message:
+def detect_prompt_injection(text: str) -> bool:
+    """Returns True if user input matches prompt injection patterns."""
+    if not text:
         return False
-    msg_lower = user_message.lower()
-    for pattern in INJECTION_PATTERNS:
-        if re.search(pattern, msg_lower):
-            return True
-    return False
+    lower = text.lower()
+    return any(re.search(pat, lower) for pat in INJECTION_PATTERNS)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -402,23 +403,21 @@ async def report_generator(state: AIWorklogState) -> AIWorklogState:
         final_milestone_guidance = f"""
 SPECIAL FINAL MILESTONE INSTRUCTIONS:
 - This is the FINAL milestone of the contract (Milestone {pg['target_milestone_number']} of {pg['total_milestones']}).
-- Section 1 (Executive Summary): Provide a thorough 4 to 5 line technical overview covering the completion of all core project milestones, final architectural integration, quality verification, and client readiness.
-- Section 2 (Deliverables Completed): Generate 3 to 4 detailed pointed deliverable items detailing final frontend/backend integrations, test suites, end-to-end verification, and release packaging.
-- Section 3 (Next Steps): Provide a comprehensive 4 to 5 line plan covering final project handover, client staging sign-off, deployment verification, warranty period support, and contract closure (do NOT mention upcoming milestones as this is the last one).
+- Section 1 (Milestone Progress Summary): Provide a thorough 4 to 5 line technical overview in natural human language covering the successful completion of all core engineering requirements, final architectural integration, quality verification, and client handover readiness.
+- Section 2 (Upcoming Milestone): Heading must be 'Upcoming Phase: Final Project Handover & Sign-off' covering staging sign-off, repository handover, and contract closure.
 """
     else:
         final_milestone_guidance = f"""
 MILESTONE POSITION:
 - This is Milestone {pg['target_milestone_number']} of {pg['total_milestones']}.
-- Section 1 (Executive Summary): Provide a thorough 4 to 5 line technical overview detailing key engineering tasks accomplished for Milestone {pg['target_milestone_number']}, architectural decisions, design fidelity, and integration checkpoints.
-- Section 2 (Deliverables Completed): Generate 3 to 4 detailed pointed deliverable items, each with 2 to 3 lines of technical implementation notes, components built, and verification steps.
-- Section 3 (Next Steps): Provide a comprehensive 4 to 5 line plan detailing upcoming priorities for Milestone {pg['target_milestone_number'] + 1}, client review checkpoints, and dependency preparation.
+- Section 1 (Milestone Progress Summary): Provide a thorough 4 to 5 line technical overview in natural human language detailing engineering tasks accomplished for Milestone {pg['target_milestone_number']}, architectural decisions, and integration checkpoints.
+- Section 2 (Upcoming Milestone): Heading must be 'Upcoming Milestone: Milestone {pg['target_milestone_number'] + 1} - {pg.get('next_milestone_title')}' detailing upcoming priorities and dependency preparation.
 """
 
     system_prompt = f"""You are the FreelanceFlow AI Worklog Assistant for the project "{pg['project_title']}".
 Your role is to deeply analyze all project technical context, milestone scopes, vector database memories, and freelancer inputs to draft an in-depth, professional, and comprehensive milestone progress report for client {pg['client_name']}.
 
-TARGET ACTIVE MILESTONE:
+TARGET ACTIVE MILESTONE (Ground Truth from PostgreSQL):
 - Milestone Position: Milestone {pg['target_milestone_number']} of {pg['total_milestones']}
 - Milestone Title: {pg['target_milestone_title']}
 - Milestone Scope / Requirements: {pg['target_milestone_description']}
@@ -427,44 +426,37 @@ TARGET ACTIVE MILESTONE:
 - Milestone Status: {pg['target_milestone_status']}
 - Is Final Milestone: {'YES (Final Project Milestone)' if pg.get('is_final_milestone') else 'NO'}
 
+UPCOMING MILESTONE (Ground Truth from PostgreSQL):
+- Title: {pg.get('next_milestone_title', 'Final Project Handover & Sign-off')}
+- Scope: {pg.get('next_milestone_description', 'Final staging verification and handover.')}
+
 {final_milestone_guidance}
 
 ALL PROJECT MILESTONES (Universal Schedule):
 {pg['timeline_bullets']}
 
-SEMANTIC CONTEXT (Retrieved from Qdrant Vector DB):
+SEMANTIC CONTEXT (Project Technical Scope from Qdrant Vector DB):
 {q_context or 'No specific vector matches.'}
 
 CRITICAL RULES:
-1. DEPTH & LENGTH REQUIREMENTS:
-   - Section 1 (Executive Summary): MUST be a comprehensive paragraph of at least 4 to 5 detailed sentences explaining the technical work, architectural achievements, optimizations, and milestone completion.
-   - Section 2 (Deliverables & Tasks Completed): MUST contain at least 3 to 4 granular, pointed deliverable items. Each item must feature a descriptive title, "COMPLETED" status, and a detailed 2 to 3 line technical explanation with verification criteria.
-   - Section 3 (Next Steps & Priorities): MUST be a detailed paragraph of at least 4 to 5 sentences covering client review, staging verification, and upcoming milestone / handover tasks.
+1. REPORT SECTIONS & HUMAN NATURAL LANGUAGE:
+   - Section 1 (Milestone Progress Summary): MUST be a comprehensive paragraph of at least 4 to 5 detailed sentences in natural human language explaining the technical work, architectural achievements, optimizations, and milestone completion for Milestone {pg['target_milestone_number']}.
+   - Section 2 (Upcoming Milestone): MUST be 2 to 4 sentences outlining the upcoming milestone roadmap ({pg.get('next_milestone_title')}) or final project handover sign-off.
 2. STRICT MILESTONE ISOLATION: Focus strictly on **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})**. Do NOT generate deliverables or summaries for earlier finished milestones or future unstarted milestones.
-3. UNIVERSAL TIMELINES: Milestones follow the universal milestone dates (can be monthly, bi-weekly, or custom). Do NOT refer to monthly milestones as "weekly" and never say "weekly report". Always refer to this as "Milestone {pg['target_milestone_number']} Progress Report".
+3. UNIVERSAL TIMELINES: Milestones follow universal milestone dates (monthly, bi-weekly, or custom). Never say "weekly report". Always refer to this as "Milestone {pg['target_milestone_number']} Progress Report".
 4. NO HOURS OR TIME LOGS: Do NOT mention or output hours (e.g., no "8 hours", no "12 hours", no time logs). The worklog report is strictly milestone-deliverable-driven.
 5. DRAFTING RESPONSE: When the freelancer asks to draft or summarize their progress report (e.g. "draft my progress report", "generate report", "here is what I worked on"), output a JSON block formatted exactly as:
 ```json
 {{
   "is_draft": true,
-  "reply": "I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into a comprehensive, editable progress report draft. You can customize any section below and submit it directly to your client.",
+  "reply": "I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into a comprehensive, editable progress report draft. You can customize the summary below and submit it directly to your client.",
   "draft": {{
     "title": "Milestone {pg['target_milestone_number']} Progress Report – {pg['project_title']}",
-    "section_summary": "During this milestone cycle, successfully implemented the core architecture and technical specifications outlined for Milestone {pg['target_milestone_number']}. Engineered responsive UI components, integrated seamless backend API endpoints, and ensured cross-browser compatibility across desktop and mobile viewports. Validated all interactive states with comprehensive unit and integration test coverage, achieving optimal performance and zero critical regressions. The milestone objectives have been thoroughly met and prepared for official client review and approval.",
+    "section_summary": "During this milestone cycle, successfully implemented the core architecture and technical specifications designated for Milestone {pg['target_milestone_number']}. Engineered modular user interface components and integrated backend endpoints while upholding performance and responsiveness standards. Conducted functional testing and validations to ensure seamless cross-device compatibility and system stability. All planned tasks for this milestone have been completed and documented for client verification.",
     "section_deliverables": [
       {{
-        "title": "{pg['target_milestone_title']} - Core Architecture & Implementation",
-        "description": "Engineered the primary functional components and layout modules according to design specifications. Implemented modern state management, optimized rendering lifecycles, and ensured full responsive adaptability across all target screen resolutions.",
-        "status": "COMPLETED"
-      }},
-      {{
-        "title": "API Integration & Data Flow Synchronization",
-        "description": "Connected frontend user workflows with secure backend REST endpoints and WebSocket channels. Implemented robust error handling, loading skeletons, and real-time state synchronization to deliver a frictionless user experience.",
-        "status": "COMPLETED"
-      }},
-      {{
-        "title": "Quality Assurance, Security & Performance Tuning",
-        "description": "Conducted automated testing and manual cross-device audits. Minimized bundle sizes, optimized network payloads, and verified data integrity to guarantee production-ready reliability and strict adherence to project standards.",
+        "title": "{pg['target_milestone_title']} - Implementation & Verification",
+        "description": "Engineered functional components, API endpoints, and data flows according to milestone specifications with full quality validation.",
         "status": "COMPLETED"
       }}
     ],
@@ -688,22 +680,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         total_milestones_count = PaymentMilestone.objects.filter(contract=contract).count() or 1
         milestone_num = active_milestone.order if (active_milestone and active_milestone.order) else 1
 
-        # Build clean HTML template for PDF (Solid black headings, clean structure, no purple)
-        deliverables_html = ""
-        for d in draft.section_deliverables:
-            if isinstance(d, dict):
-                d_title = d.get('title', 'Deliverable')
-                d_status = d.get('status', 'COMPLETED')
-                d_desc = d.get('description', '')
-                deliverables_html += f"""
-                <div style="margin-bottom: 12px; padding: 10px 14px; background: #f8fafc; border-left: 3px solid #0f172a; border-radius: 4px; border: 1px solid #e2e8f0; border-left-width: 3px;">
-                    <div style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
-                        <strong style="color: #0f172a; font-size: 13px;">{d_title}</strong>
-                        <span style="font-size: 10px; background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; padding: 2px 7px; border-radius: 4px; font-weight: bold;">{d_status}</span>
-                    </div>
-                    <p style="margin: 0; color: #475569; font-size: 12px; line-height: 1.45;">{d_desc}</p>
-                </div>
-                """
+        next_heading = "2. Upcoming Phase: Final Project Handover & Sign-off" if is_final_milestone else f"2. Upcoming Milestone (Milestone {milestone_num + 1})"
 
         html_content = f"""
         <!DOCTYPE html>
@@ -745,14 +722,11 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 </tr>
             </table>
 
-            <h2>1. Executive Summary</h2>
-            <p style="color: #334155; margin: 0 0 12px 0; font-size: 12px; line-height: 1.5;">{draft.section_summary}</p>
+            <h2>1. Milestone Progress Summary</h2>
+            <p style="color: #334155; margin: 0 0 16px 0; font-size: 12px; line-height: 1.6;">{draft.section_summary}</p>
 
-            <h2>2. Deliverables & Milestones Completed</h2>
-            {deliverables_html or '<p style="color: #64748b; font-size: 12px;">No discrete deliverables listed for this period.</p>'}
-
-            <h2>3. Next Steps & Upcoming Priorities</h2>
-            <p style="color: #334155; margin: 0 0 12px 0; font-size: 12px; line-height: 1.5;">{draft.section_next_steps}</p>
+            <h2>{next_heading}</h2>
+            <p style="color: #334155; margin: 0 0 16px 0; font-size: 12px; line-height: 1.6;">{draft.section_next_steps}</p>
 
             <div class="footer">
                 <p style="margin: 0; font-weight: 500;">FreelanceFlow • Milestone Verified Progress Audit</p>
@@ -849,61 +823,31 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                 pdf.cell(85, 6, clean_pdf_text('Status: Verified & Approved'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 pdf.ln(6)
 
-                # Section 1: Executive Summary
+                # Section 1: Milestone Progress Summary
                 pdf.set_font('Helvetica', 'B', 11)
                 pdf.set_text_color(15, 23, 42)
-                pdf.cell(0, 6, clean_pdf_text('1. Executive Summary'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.set_draw_color(226, 232, 240)
-                pdf.line(16, pdf.get_y(), 194, pdf.get_y())
-                pdf.ln(2)
-
-                pdf.set_font('Helvetica', '', 9.5)
-                pdf.set_text_color(51, 65, 85)
-                pdf.multi_cell(0, 5.2, clean_pdf_text(draft.section_summary), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.ln(4)
-
-                # Section 2: Deliverables & Tasks Completed
-                pdf.set_font('Helvetica', 'B', 11)
-                pdf.set_text_color(15, 23, 42)
-                pdf.cell(0, 6, clean_pdf_text('2. Deliverables & Tasks Completed'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 6, clean_pdf_text('1. Milestone Progress Summary'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 pdf.set_draw_color(226, 232, 240)
                 pdf.line(16, pdf.get_y(), 194, pdf.get_y())
                 pdf.ln(3)
 
-                for d in (draft.section_deliverables or []):
-                    if isinstance(d, dict):
-                        d_title = d.get('title', 'Deliverable')
-                        d_status = d.get('status', 'COMPLETED')
-                        d_desc = d.get('description', '')
+                pdf.set_font('Helvetica', '', 9.5)
+                pdf.set_text_color(51, 65, 85)
+                pdf.multi_cell(0, 5.4, clean_pdf_text(draft.section_summary), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.ln(5)
 
-                        # Deliverable title and status
-                        pdf.set_font('Helvetica', 'B', 9.5)
-                        pdf.set_text_color(15, 23, 42)
-                        pdf.cell(140, 6, clean_pdf_text(f'* {d_title[:65]}'))
-                        pdf.set_font('Helvetica', 'B', 8)
-                        pdf.set_text_color(22, 163, 74)
-                        pdf.cell(38, 6, clean_pdf_text(f'[{d_status}]'), align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-                        # Deliverable detailed description
-                        if d_desc:
-                            pdf.set_font('Helvetica', '', 9)
-                            pdf.set_text_color(71, 85, 105)
-                            pdf.multi_cell(0, 4.8, clean_pdf_text(f'   {d_desc}'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                        pdf.ln(2.5)
-
-                # Section 3: Next Steps & Priorities
-                pdf.ln(2)
+                # Section 2: Upcoming Milestone / Next Steps
                 pdf.set_font('Helvetica', 'B', 11)
                 pdf.set_text_color(15, 23, 42)
-                pdf.cell(0, 6, clean_pdf_text('3. Next Steps & Priorities'), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 6, clean_pdf_text(next_heading), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 pdf.set_draw_color(226, 232, 240)
                 pdf.line(16, pdf.get_y(), 194, pdf.get_y())
-                pdf.ln(2)
+                pdf.ln(3)
 
                 pdf.set_font('Helvetica', '', 9.5)
                 pdf.set_text_color(51, 65, 85)
-                pdf.multi_cell(0, 5.2, clean_pdf_text(draft.section_next_steps), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.ln(5)
+                pdf.multi_cell(0, 5.4, clean_pdf_text(draft.section_next_steps), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.ln(6)
 
                 # Audit Verification Box
                 pdf.set_fill_color(241, 245, 249)

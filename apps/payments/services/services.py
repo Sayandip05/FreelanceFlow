@@ -306,6 +306,19 @@ def release_payment(contract: Contract, client, payment_id: int = None) -> Payme
             from apps.projects.services import mark_project_completed
             if contract.bid.project.status == Project.Status.IN_PROGRESS:
                 mark_project_completed(contract.bid.project)
+            # Free Qdrant vector DB collection storage
+            try:
+                from apps.worklogs.services.qdrant_service import delete_contract_collection
+                delete_contract_collection(contract.id)
+            except Exception as qe:
+                logger.warning("Failed to delete Qdrant collection on contract close: %s", qe)
+
+            # Auto-delete closed contract messaging conversation
+            try:
+                from apps.messaging.services.services import delete_conversation_for_contract
+                delete_conversation_for_contract(contract.id)
+            except Exception as me:
+                logger.warning("Failed to delete messaging conversation on contract close: %s", me)
         elif not all_milestones.exists():
             contract.is_active = False
             contract.end_date = timezone.now()
@@ -314,6 +327,19 @@ def release_payment(contract: Contract, client, payment_id: int = None) -> Payme
             from apps.projects.services import mark_project_completed
             if contract.bid.project.status == Project.Status.IN_PROGRESS:
                 mark_project_completed(contract.bid.project)
+            # Free Qdrant vector DB collection storage
+            try:
+                from apps.worklogs.services.qdrant_service import delete_contract_collection
+                delete_contract_collection(contract.id)
+            except Exception as qe:
+                logger.warning("Failed to delete Qdrant collection on contract close: %s", qe)
+
+            # Auto-delete closed contract messaging conversation
+            try:
+                from apps.messaging.services.services import delete_conversation_for_contract
+                delete_conversation_for_contract(contract.id)
+            except Exception as me:
+                logger.warning("Failed to delete messaging conversation on contract close: %s", me)
 
     # Trigger notification & delivery proof generation
     try:

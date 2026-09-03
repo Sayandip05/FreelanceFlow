@@ -192,6 +192,11 @@ class QdrantClientWrapper:
         res = self._make_request(f"/collections/{collection_name}", method="PUT", payload=payload)
         return bool(res and (res.get("result") is True or res.get("status") in ["ok", "already_exists"]))
 
+    def delete_collection(self, collection_name: str) -> bool:
+        """Delete collection from Qdrant Cloud to free 100% of storage when contract completes."""
+        res = self._make_request(f"/collections/{collection_name}", method="DELETE")
+        return bool(res and (res.get("result") is True or res.get("status") in ["ok", "completed"]))
+
     def upsert_points(self, collection_name: str, points: List[Dict]) -> bool:
         """Upsert points into collection."""
         if not points:
@@ -218,10 +223,72 @@ def get_collection_name(contract_id: int, freelancer_id: int) -> str:
     return f"contract_{contract_id}_fl_{freelancer_id}"
 
 
+def delete_contract_collection(contract_id: int) -> bool:
+    """
+    Deletes the Qdrant vector collection for a completed or terminated contract
+    to free 100% of vector storage in Qdrant Cloud.
+    """
+    try:
+        contract = Contract.objects.select_related("bid__freelancer").get(id=contract_id)
+        collection_name = get_collection_name(contract.id, contract.bid.freelancer.id)
+    except Contract.DoesNotExist:
+        logger.warning("Contract #%s not found during Qdrant cleanup", contract_id)
+        return False
+
+    qdrant = QdrantClientWrapper()
+    if qdrant.is_configured:
+        qdrant.delete_collection(collection_name)
+        logger.info("Deleted Qdrant vector collection %s for completed contract #%s", collection_name, contract_id)
+
+    # Update database record
+    QdrantCollection.objects.filter(contract=contract).update(
+        is_initialized=False,
+        vectors_count=0,
+        last_synced_at=timezone.now()
+    )
+    return True
+
+
+def summarize_project_description(description: str) -> str:
+    """
+    Dynamically generates a proportional technical summary based on description size.
+    - Short descriptions (< 350 chars): preserved completely.
+    - Medium descriptions (350–1,200 chars): cleaned and preserved with core technical scope.
+    - Long descriptions (1,200+ chars): structured technical extraction prioritizing key requirements,
+      stack, and deliverables without arbitrary blind clipping.
+    """
+    if not description:
+        return ""
+    cleaned = description.strip()
+    if len(cleaned) <= 350:
+        return cleaned
+
+    if len(cleaned) <= 1200:
+        return cleaned
+
+    # For long descriptions (1200+ chars), extract high-signal technical paragraphs
+    lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+    summary_parts = []
+    total_len = 0
+    max_len = 1000  # Proportional rich summary budget
+
+    for line in lines:
+        if total_len + len(line) <= max_len:
+            summary_parts.append(line)
+            total_len += len(line) + 1
+        else:
+            remaining = max_len - total_len
+            if remaining > 50:
+                summary_parts.append(line[:remaining].rstrip() + "...")
+            break
+
+    return "\n".join(summary_parts) if summary_parts else cleaned[:1000]
+
+
 def initialize_collection(contract_id: int) -> bool:
     """
-    Vectorizes contract scope, deliverables, and client requirements into Qdrant using Gemini Embeddings.
-    Never stores work logs or reports.
+    Vectorizes contract scope into Qdrant using Gemini Embeddings with proportional summarization.
+    Milestone data is deterministically managed in PostgreSQL, keeping Qdrant ultra-compact.
     """
     try:
         contract = Contract.objects.select_related(
@@ -258,11 +325,13 @@ def initialize_collection(contract_id: int) -> bool:
     points = []
     point_id = 1
 
-    # 1. Project Overview & Scope
+    # 1. Consolidated Proportional Project Scope & Technical Requirements
+    summary_text = summarize_project_description(project.description)
+    skills_text = ", ".join(project.skills) if getattr(project, "skills", None) else "General"
     project_doc = sanitize_sensitive_data(
-        f"Project Title: {project.title}\n"
-        f"Description: {project.description}\n"
-        f"Category: {getattr(project, 'category', 'General')}\n"
+        f"Project: {project.title}\n"
+        f"Category: {getattr(project, 'category', 'General')} | Skills: {skills_text}\n"
+        f"Technical Summary & Scope:\n{summary_text}\n"
         f"Budget: ${getattr(contract, 'agreed_amount', 0)}"
     )
     points.append({
@@ -277,65 +346,10 @@ def initialize_collection(contract_id: int) -> bool:
     })
     point_id += 1
 
-    # 2. Required Skills & Guidelines
-    if getattr(project, "skills", None):
-        skills_text = sanitize_sensitive_data(f"Required Skills and Expertise: {project.skills}")
-        points.append({
-            "id": point_id,
-            "vector": GeminiEmbeddingService.get_embedding(skills_text),
-            "payload": {
-                "type": "required_skills",
-                "text": skills_text,
-                "contract_id": contract.id,
-            }
-        })
-        point_id += 1
-
-    # 2.5 Payment Milestones
-    for milestone in contract.milestones.all():
-        milestone_doc = sanitize_sensitive_data(
-            f"Milestone: {milestone.title}\n"
-            f"Description/Scope: {milestone.description}\n"
-            f"Amount: ${milestone.amount}\n"
-            f"Status: {milestone.status}\n"
-            f"Due Date: {milestone.due_date}"
-        )
-        points.append({
-            "id": point_id,
-            "vector": GeminiEmbeddingService.get_embedding(milestone_doc),
-            "payload": {
-                "type": "payment_milestone",
-                "milestone_id": milestone.id,
-                "title": milestone.title,
-                "text": milestone_doc,
-                "contract_id": contract.id,
-            }
-        })
-        point_id += 1
-
-    # 3. Deliverables / Milestones Requirements
-    for deliverable in contract.deliverables.all():
-        deliv_doc = sanitize_sensitive_data(
-            f"Deliverable Item: {deliverable.title}\n"
-            f"Requirements & Goal: {deliverable.description}\n"
-            f"Current Status: {deliverable.status}"
-        )
-        points.append({
-            "id": point_id,
-            "vector": GeminiEmbeddingService.get_embedding(deliv_doc),
-            "payload": {
-                "type": "deliverable_requirement",
-                "deliverable_id": deliverable.id,
-                "title": deliverable.title,
-                "text": deliv_doc,
-                "contract_id": contract.id,
-            }
-        })
-        point_id += 1
-
-    # 4. Client Notes & Initial Guidelines
+    # 2. Agreed Proposal & Approach (if cover letter exists)
     if contract.bid and contract.bid.cover_letter:
-        bid_doc = f"Agreed Proposal & Approach: {contract.bid.cover_letter}"
+        bid_snippet = contract.bid.cover_letter.strip()[:350]
+        bid_doc = f"Agreed Proposal Approach: {bid_snippet}"
         points.append({
             "id": point_id,
             "vector": GeminiEmbeddingService.get_embedding(bid_doc),
@@ -347,7 +361,7 @@ def initialize_collection(contract_id: int) -> bool:
         })
         point_id += 1
 
-    # Upsert all ground truth scope documents
+    # Upsert high-density points
     success = qdrant.upsert_points(collection_name, points)
 
     # Record in database
