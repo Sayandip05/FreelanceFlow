@@ -5,6 +5,7 @@ import {
   X, Sparkles, Clock, CheckCircle, TrendingUp, Shield, Users
 } from 'lucide-react'
 import { searchAPI } from '../../api/search'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 /* ── Announcement Banner (same feel as Freelancer home) ─────────────────── */
 const CLIENT_SLIDES = [
@@ -73,9 +74,12 @@ const FreelancerCard = ({ freelancer }) => {
     : profile.average_rating || null
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-gray-200 transition-all duration-200 cursor-pointer group">
+    <div
+      onClick={() => navigate(`/client/freelancers/${freelancer.id}`)}
+      className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-gray-200 transition-all duration-200 cursor-pointer group flex flex-col h-full"
+    >
       {/* Banner */}
-      <div className="relative h-24 w-full bg-slate-100">
+      <div className="relative h-24 w-full bg-slate-100 shrink-0">
         {bannerImage ? (
           <img
             src={bannerImage}
@@ -105,76 +109,94 @@ const FreelancerCard = ({ freelancer }) => {
         )}
       </div>
 
-      {/* Body — 24px top padding to clear the avatar overlap */}
-      <div className="px-4 pt-8 pb-4">
-        {/* Name + meta */}
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <div className="min-w-0">
-            <h3 className="font-bold text-gray-900 group-hover:text-gray-700 transition-colors truncate leading-tight">
-              {name}
-            </h3>
-            <div className="flex items-center gap-2 flex-wrap mt-0.5">
-              {profile.city && (
-                <span className="flex items-center gap-1 text-[11px] text-gray-400">
-                  <MapPin className="w-3 h-3" /> {profile.city}{profile.country ? `, ${profile.country}` : ''}
-                </span>
-              )}
-              {profile.experience_level && (
-                <span className="text-[11px] text-gray-400 capitalize">
-                  · {profile.experience_level.toLowerCase().replace('_', ' ')}
-                </span>
-              )}
+      {/* Body — flex flex-col flex-1 justify-between */}
+      <div className="px-4 pt-8 pb-4 flex flex-col flex-1 justify-between">
+        {/* Main Content Area */}
+        <div className="flex flex-col flex-1">
+          {/* Name + meta */}
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <div className="min-w-0">
+              <h3 className="font-bold text-gray-900 group-hover:text-gray-700 transition-colors truncate leading-tight">
+                {name}
+              </h3>
+              <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                {profile.city && (
+                  <span className="flex items-center gap-1 text-[11px] text-gray-400">
+                    <MapPin className="w-3 h-3" /> {profile.city}{profile.country ? `, ${profile.country}` : ''}
+                  </span>
+                )}
+                {profile.experience_level && (
+                  <span className="text-[11px] text-gray-400 capitalize">
+                    · {profile.experience_level.toLowerCase().replace('_', ' ')}
+                  </span>
+                )}
+              </div>
             </div>
+            {profile.hourly_rate && (
+              <div className="text-right flex-shrink-0">
+                <p className="text-sm font-extrabold text-gray-900">{formatCurrency(profile.hourly_rate)}</p>
+                <p className="text-[10px] text-gray-400 font-medium">/hr</p>
+              </div>
+            )}
           </div>
-          {profile.hourly_rate && (
-            <div className="text-right flex-shrink-0">
-              <p className="text-sm font-extrabold text-gray-900">${profile.hourly_rate}</p>
-              <p className="text-[10px] text-gray-400 font-medium">/hr</p>
-            </div>
-          )}
-        </div>
 
-        {/* Rating + reviews */}
-        {(avgRating || profile.total_reviews > 0) && (
-          <div className="flex items-center gap-1.5 mb-2">
-            {avgRating && (
+          {/* Rating + reviews */}
+          <div className="flex items-center gap-1.5 mb-2 min-h-[1.25rem]">
+            {avgRating ? (
               <span className="flex items-center gap-0.5 text-xs font-bold text-yellow-600">
                 <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" /> {avgRating}
+              </span>
+            ) : (
+              <span className="flex items-center gap-0.5 text-xs font-bold text-yellow-600">
+                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" /> 0.0
               </span>
             )}
             {profile.total_reviews > 0 && (
               <span className="text-[11px] text-gray-400">({profile.total_reviews} review{profile.total_reviews !== 1 ? 's' : ''})</span>
             )}
           </div>
-        )}
 
-        {/* Bio snippet */}
-        {profile.bio && (
-          <p className="text-xs text-gray-500 line-clamp-2 mb-3 leading-relaxed">{profile.bio}</p>
-        )}
+          {/* Bio snippet — fixed 2-line height so all cards align identically */}
+          <div className="h-9 mb-3 overflow-hidden">
+            <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
+              {profile.bio || 'Professional freelancer ready to collaborate on your projects.'}
+            </p>
+          </div>
 
-        {/* Skills */}
-        {skills.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {skills.slice(0, 4).map((skill, i) => (
-              <span key={i} className="text-[11px] bg-gray-100 text-gray-800 border border-gray-200/60 px-2.5 py-0.5 rounded-full font-medium">
-                {skill}
-              </span>
-            ))}
-            {skills.length > 4 && (
-              <span className="text-[11px] bg-gray-100 text-gray-500 border border-gray-200/40 px-2.5 py-0.5 rounded-full font-medium">
-                +{skills.length - 4}
-              </span>
+          {/* Skills — fixed 2-row height container */}
+          <div className="h-14 mb-2 overflow-hidden flex flex-wrap gap-1.5 content-start">
+            {skills.length > 0 ? (
+              <>
+                {skills.slice(0, 4).map((skill, i) => (
+                  <span key={i} className="text-[11px] bg-gray-100 text-gray-800 border border-gray-200/60 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                    {skill}
+                  </span>
+                ))}
+                {skills.length > 4 && (
+                  <span className="text-[11px] bg-gray-100 text-gray-500 border border-gray-200/40 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                    +{skills.length - 4}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-[11px] text-gray-400 italic py-0.5">No skills listed</span>
             )}
           </div>
-        )}
+        </div>
 
-        <button
-          onClick={() => navigate(`/client/freelancers/${freelancer.id}`)}
-          className="w-full flex items-center justify-center gap-2 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:border-gray-300 hover:text-gray-900 hover:bg-gray-50 transition-all"
-        >
-          View Profile <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+        {/* View Profile Button — permanently fixed to the bottom baseline */}
+        <div className="pt-2 mt-auto">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/client/freelancers/${freelancer.id}`)
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:border-gray-300 hover:text-gray-900 hover:bg-gray-50 transition-all cursor-pointer"
+          >
+            View Profile <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   )
