@@ -60,8 +60,8 @@ export default function ClientWalletPage() {
         // Razorpay checkout modal path
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TSUnxYrEPrLAdv',
-          amount: amount * 100,
-          currency: 'USD',
+          amount: Math.round(amount * 100),
+          currency: 'INR',
           name: 'FreelanceFlow',
           description: 'Wallet Pre-funding deposit',
           order_id: order_id,
