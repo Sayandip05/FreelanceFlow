@@ -679,6 +679,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
 
         total_milestones_count = PaymentMilestone.objects.filter(contract=contract).count() or 1
         milestone_num = active_milestone.order if (active_milestone and active_milestone.order) else 1
+        is_final_milestone = bool(milestone_num >= total_milestones_count)
 
         next_heading = "2. Upcoming Phase: Final Project Handover & Sign-off" if is_final_milestone else f"2. Upcoming Milestone (Milestone {milestone_num + 1})"
 
