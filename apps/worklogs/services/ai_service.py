@@ -829,7 +829,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         state["pdf_url"] = None
     else:
         state["pdf_url"] = sas_url
-        state["llm_response"] = f"✅ Your milestone progress report has been approved and compiled into an official PDF! [Download PDF Report]({sas_url})"
+        state["llm_response"] = "Your official milestone deliverable and progress report have been submitted and are now **under review by the client**."
 
     return state
 

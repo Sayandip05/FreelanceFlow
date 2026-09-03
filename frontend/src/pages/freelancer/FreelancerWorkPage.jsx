@@ -283,15 +283,6 @@ const FreelancerWorkPage = () => {
                 ...prev[activeMilestoneId],
                 pdfUrl: pdf_url,
                 activeDraft: { ...(prev[activeMilestoneId]?.activeDraft || {}), status: 'APPROVED', pdf_url },
-                messages: [
-                  ...(prev[activeMilestoneId]?.messages || []),
-                  {
-                    role: 'assistant',
-                    content: `🎉 **Report Approved & Compiled!** Your official client report is ready for download.`,
-                    pdf_url,
-                    timestamp: new Date().toISOString(),
-                  }
-                ]
               }
             }))
             setApproving(false)
@@ -415,7 +406,7 @@ const FreelancerWorkPage = () => {
               ...(prev[activeMilestoneId]?.messages || []),
               {
                 role: 'assistant',
-                content: `🎉 **Report Approved & Submitted!** Your official client worklog report has been generated and submitted to the client.`,
+                content: `Your official milestone deliverable and progress report have been submitted and are now **under review by the client**.`,
                 pdf_url: compiledPdf,
                 timestamp: new Date().toISOString(),
               }
@@ -795,15 +786,10 @@ const FreelancerWorkPage = () => {
                                 {/* Approve / Action Button */}
                                 <div className="pt-2">
                                   {hasApprovedReport ? (
-                                    <a
-                                      href={pdfUrl || '#'}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-                                    >
-                                      <CheckCircleIcon className="w-4 h-4" />
-                                      Report Approved & Submitted — View PDF
-                                    </a>
+                                    <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold shadow-2xs">
+                                      <CheckCircleIcon className="w-4 h-4 text-emerald-600" />
+                                      Deliverable Submitted — Under Client Review
+                                    </div>
                                   ) : (
                                     <button
                                       onClick={() => handleApproveDraft(msg.draft_id)}
