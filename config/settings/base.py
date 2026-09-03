@@ -104,6 +104,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     "core.middleware_shutdown.GracefulShutdownMiddleware",  # Graceful shutdown - must be first
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "core.middleware.SecurityHeadersMiddleware",
     "core.middleware.CacheControlMiddleware",

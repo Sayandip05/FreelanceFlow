@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Bell, Check, CheckCheck, MessageSquare, Briefcase,
   DollarSign, Clock, Sparkles, X, ChevronRight, CheckCircle2, Download
 } from 'lucide-react'
 import { useNotifications } from '../../context/NotificationContext'
+import { useAuth } from '../../context/AuthContext'
 
 const NotificationBell = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuth() || {}
+
   // Pull live state from context (fed by WebSocket + REST)
   const { notifications, unreadCount, markRead, markAllRead, fetchNotifications, setPdfReadyUrl } = useNotifications() || {}
   const safeNotifications = notifications || []
@@ -16,7 +20,6 @@ const NotificationBell = () => {
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
   const closeTimerRef = useRef(null)
-
 
   // Auto open on hover & close when cursor moves away
   const handleMouseEnter = () => {
@@ -63,14 +66,14 @@ const NotificationBell = () => {
 
     setOpen(false)
 
+    // 1. PDF Download Handling
     const pdfUrl = notif.data?.pdf_url || (notif.action_url && notif.action_url.startsWith('http') ? notif.action_url : null)
-
     if (pdfUrl) {
       if (setPdfReadyUrl) {
         setPdfReadyUrl({
           url: pdfUrl,
           title: notif.title || 'Document Ready!',
-          body: notif.body || 'Your PDF document is ready for download.'
+          body: notif.body || notif.message || 'Your PDF document is ready for download.'
         })
       } else {
         window.open(pdfUrl, '_blank')
@@ -78,19 +81,76 @@ const NotificationBell = () => {
       return
     }
 
-    // Route based on notification type or action_url
-    if (notif.action_url) {
-      navigate(notif.action_url)
-    } else if (notif.type === 'MESSAGE' || notif.notification_type === 'MESSAGE') {
-      navigate('/messages')
-    } else if (notif.type?.includes('CONTRACT') || notif.notification_type?.includes('CONTRACT') || notif.type === 'CLIENT_REPORT_READY' || notif.type === 'LOG_SUBMITTED') {
-      const contractId = notif.data?.contract_id
-      navigate(contractId ? `/client/contracts/${contractId}` : '/client/contracts')
-    } else if (notif.type?.includes('PAYMENT') || notif.notification_type?.includes('PAYMENT')) {
-      navigate('/earnings')
-    } else if (notif.type?.includes('BID') || notif.notification_type?.includes('BID')) {
-      const isClient = notif.type?.includes('SUBMITTED') || notif.notification_type?.includes('SUBMITTED')
-      navigate(isClient ? '/client/projects' : '/freelancer/bids')
+    // Determine current user role
+    const isClient = user?.role === 'CLIENT' || location.pathname.startsWith('/client')
+
+    // 2. Direct internal action_url provided by backend
+    if (notif.action_url && notif.action_url.startsWith('/')) {
+      let targetUrl = notif.action_url
+      if (!targetUrl.startsWith('/client/') && !targetUrl.startsWith('/freelancer/')) {
+        if (targetUrl.startsWith('/contracts/')) {
+          targetUrl = isClient ? `/client${targetUrl}` : `/freelancer${targetUrl}`
+        } else if (targetUrl.startsWith('/projects/')) {
+          targetUrl = isClient ? `/client${targetUrl}` : `/freelancer${targetUrl}`
+        } else if (targetUrl === '/messages') {
+          targetUrl = isClient ? '/client/messages' : '/freelancer/messages'
+        } else if (targetUrl === '/earnings' || targetUrl === '/wallet') {
+          targetUrl = isClient ? '/client/wallet' : '/freelancer/earnings'
+        }
+      }
+      navigate(targetUrl)
+      return
+    }
+
+    // 3. Extract IDs from notification data
+    const contractId = notif.data?.contract_id || notif.data?.contractId
+    const projectId = notif.data?.project_id || notif.data?.projectId
+    const deliverableId = notif.data?.deliverable_id || notif.data?.deliverableId
+    const type = (notif.type || notif.notification_type || '').toUpperCase()
+
+    // 4. Role-based smart redirection
+    if (isClient) {
+      // ── Client Redirections ──────────────────────────────────────────
+      if (type.includes('MESSAGE') || type.includes('CHAT')) {
+        navigate('/client/messages')
+      } else if (deliverableId) {
+        navigate(`/client/deliverables/${deliverableId}/review`)
+      } else if (type.includes('LOG') || type.includes('REPORT') || type.includes('PROOF') || type.includes('WORKLOG')) {
+        navigate(contractId ? `/client/contracts/${contractId}` : '/client/contracts')
+      } else if (type.includes('CONTRACT') || type.includes('ESCROW')) {
+        navigate(contractId ? `/client/contracts/${contractId}` : '/client/contracts')
+      } else if (type.includes('PAYMENT')) {
+        navigate(contractId ? `/client/contracts/${contractId}` : '/client/wallet')
+      } else if (type.includes('BID') || type.includes('PROPOSAL')) {
+        navigate(projectId ? `/client/projects/${projectId}` : '/client/projects')
+      } else if (contractId) {
+        navigate(`/client/contracts/${contractId}`)
+      } else if (projectId) {
+        navigate(`/client/projects/${projectId}`)
+      } else {
+        navigate('/client/dashboard')
+      }
+    } else {
+      // ── Freelancer Redirections ──────────────────────────────────────
+      if (type.includes('MESSAGE') || type.includes('CHAT')) {
+        navigate('/freelancer/messages')
+      } else if (type.includes('LOG') || type.includes('REPORT') || type.includes('PROOF') || type.includes('WORKLOG')) {
+        navigate(contractId ? `/freelancer/contracts/${contractId}/work` : '/freelancer/worklogs')
+      } else if (type === 'BID_ACCEPTED') {
+        navigate(contractId ? `/freelancer/contracts/${contractId}` : (projectId ? `/freelancer/projects/${projectId}` : '/freelancer/contracts'))
+      } else if (type.includes('CONTRACT') || type.includes('ESCROW')) {
+        navigate(contractId ? `/freelancer/contracts/${contractId}` : '/freelancer/contracts')
+      } else if (type.includes('PAYMENT')) {
+        navigate('/freelancer/earnings')
+      } else if (type.includes('BID') || type.includes('PROPOSAL')) {
+        navigate(projectId ? `/freelancer/projects/${projectId}` : '/freelancer/bids')
+      } else if (contractId) {
+        navigate(`/freelancer/contracts/${contractId}`)
+      } else if (projectId) {
+        navigate(`/freelancer/projects/${projectId}`)
+      } else {
+        navigate('/freelancer/dashboard')
+      }
     }
   }
 

@@ -1,4 +1,5 @@
 import api from './axiosConfig'
+import { getWebSocketUrl } from '../utils/websocket'
 
 export const messagesAPI = {
   // Get all conversations
@@ -22,18 +23,7 @@ export const messagesAPI = {
   // Build WebSocket URL for contract chat
   getChatWebSocketUrl: (contractId) => {
     const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token') || ''
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
-    
-    try {
-      const urlObj = new URL(apiUrl)
-      const protocol = urlObj.protocol === 'https:' ? 'wss:' : 'ws:'
-      return `${protocol}//${urlObj.host}/ws/chat/${contractId}/?token=${token}`
-    } catch (e) {
-      // Fallback if URL parsing fails
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const host = window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
-      return `${protocol}//${host}/ws/chat/${contractId}/?token=${token}`
-    }
+    return getWebSocketUrl(`/ws/chat/${contractId}/`, token ? { token } : {})
   },
 }
 

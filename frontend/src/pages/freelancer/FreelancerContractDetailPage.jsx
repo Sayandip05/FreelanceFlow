@@ -12,6 +12,7 @@ import { paymentsAPI } from '../../api/payments'
 import { deliverableAPI, uploadAPI } from '../../api/worklogs'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatDate } from '../../utils/formatDate'
+import { getWebSocketUrl } from '../../utils/websocket'
 import { DetailPageSkeleton } from '../../components/common/Skeleton'
 
 export default function FreelancerContractDetailPage() {
@@ -89,10 +90,7 @@ export default function FreelancerContractDetailPage() {
       localStorage.getItem('access_token') ||
       sessionStorage.getItem('access_token') ||
       ''
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host =
-      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
-    const wsUrl = `${protocol}//${host}/ws/contract-draft/${contractId}/?token=${token}`
+    const wsUrl = getWebSocketUrl(`/ws/contract-draft/${contractId}/`, token ? { token } : {})
 
     const ws = new WebSocket(wsUrl)
     draftWsRef.current = ws
@@ -126,10 +124,7 @@ export default function FreelancerContractDetailPage() {
       localStorage.getItem('access_token') ||
       sessionStorage.getItem('access_token') ||
       ''
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host =
-      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
-    const wsUrl = `${protocol}//${host}/ws/contract/${contractId}/?token=${token}`
+    const wsUrl = getWebSocketUrl(`/ws/contract/${contractId}/`, token ? { token } : {})
 
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws

@@ -21,6 +21,7 @@ django-storages
 azure-storage-blob
 groq
 xhtml2pdf
+fpdf2
 razorpay
 django-axes
 drf-spectacular

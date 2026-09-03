@@ -8,6 +8,7 @@ import { projectsAPI } from '../../api/projects'
 import { bidsAPI } from '../../api/bids'
 import { DetailPageSkeleton } from '../../components/common/Skeleton'
 import { formatCurrency } from '../../utils/formatCurrency'
+import { getWebSocketUrl } from '../../utils/websocket'
 
 const ClientProjectDetailPage = () => {
   const { projectId } = useParams()
@@ -32,10 +33,7 @@ const ClientProjectDetailPage = () => {
       localStorage.getItem('access_token') ||
       sessionStorage.getItem('access_token') ||
       ''
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host =
-      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
-    const wsUrl = `${protocol}//${host}/ws/project/${projectId}/?token=${token}`
+    const wsUrl = getWebSocketUrl(`/ws/project/${projectId}/`, token ? { token } : {})
 
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws

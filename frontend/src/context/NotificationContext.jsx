@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import api from '../api/axiosConfig'
 import { useAuth } from './AuthContext'
+import { getWebSocketUrl } from '../utils/websocket'
 
 const NotificationContext = createContext(null)
 
@@ -51,12 +52,7 @@ export function NotificationProvider({ children }) {
       sessionStorage.getItem('access_token') ||
       ''
     if (!token) return
-
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host =
-      window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host
-    const url = `${protocol}//${host}/ws/notifications/?token=${token}`
-
+    const url = getWebSocketUrl('/ws/notifications/', { token })
     const ws = new WebSocket(url)
     wsRef.current = ws
 
