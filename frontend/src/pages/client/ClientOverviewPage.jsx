@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext'
 import { projectsAPI } from '../../api/projects'
 import { paymentsAPI } from '../../api/payments'
 import { DashboardSkeleton } from '../../components/common/Skeleton'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 const StatCard = ({ icon: Icon, label, value, color, bg }) => (
   <div className="bg-white rounded-2xl border border-gray-100 p-6 flex items-center gap-4">
@@ -91,7 +92,7 @@ const ClientOverviewPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <StatCard icon={Briefcase} label="Active Projects" value={loading ? '—' : activeProjects.length} color="text-primary-600" bg="bg-primary-50" />
           <StatCard icon={FileText} label="Total Projects" value={loading ? '—' : projects.length} color="text-indigo-600" bg="bg-indigo-50" />
-          <StatCard icon={Wallet} label="Total Spent" value={loading ? '—' : `$${totalSpent.toLocaleString()}`} color="text-accent-600" bg="bg-green-50" />
+          <StatCard icon={Wallet} label="Total Spent" value={loading ? '—' : formatCurrency(totalSpent)} color="text-accent-600" bg="bg-green-50" />
           <StatCard icon={Clock} label="Pending Payments" value={loading ? '—' : pendingPayments} color="text-yellow-600" bg="bg-yellow-50" />
           <StatCard icon={Star} label="Client Rating" value={loading ? '—' : `★ ${clientRating}`} color="text-amber-600" bg="bg-amber-50" />
         </div>
@@ -133,7 +134,7 @@ const ClientOverviewPage = () => {
                   >
                     <div>
                       <p className="font-medium text-gray-900">{project.title}</p>
-                      <p className="text-sm text-gray-500">Budget: ${project.budget}</p>
+                      <p className="text-sm text-gray-500">Budget: {formatCurrency(project.budget)}</p>
                     </div>
                     <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                       project.status === 'OPEN' ? 'bg-green-100 text-green-700' :

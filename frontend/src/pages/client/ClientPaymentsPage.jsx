@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { paymentsAPI } from '../../api/payments'
 import { DashboardSkeleton } from '../../components/common/Skeleton'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 const STATUS_CONFIG = {
   ESCROWED: { label: 'In Escrow', color: 'bg-blue-100 text-blue-700', icon: Shield },
@@ -61,7 +62,7 @@ const ClientPaymentsPage = () => {
                 <Wallet className="w-4 h-4 text-green-600" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">${totalSpent.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalSpent)}</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-2">
@@ -70,7 +71,7 @@ const ClientPaymentsPage = () => {
                 <Shield className="w-4 h-4 text-blue-600" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">${totalEscrowed.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalEscrowed)}</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-2">
@@ -123,7 +124,7 @@ const ClientPaymentsPage = () => {
                         <Icon className="w-3.5 h-3.5" /> {config.label}
                       </span>
                       <p className="font-semibold text-gray-900 w-24 text-right">
-                        ${parseFloat(payment.total_amount || 0).toLocaleString()}
+                        {formatCurrency(payment.total_amount || 0)}
                       </p>
                       {payment.status === 'ESCROWED' && (
                         <button

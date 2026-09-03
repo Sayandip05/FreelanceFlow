@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Briefcase, Search, FileText, Clock, DollarSign,
+  Briefcase, Search, FileText, Clock, IndianRupee,
   MessageSquare, LogOut, ChevronRight, User, HelpCircle,
   X, Mail, BookOpen, ShieldCheck, Home, PanelLeftClose, PanelLeftOpen,
   Wallet

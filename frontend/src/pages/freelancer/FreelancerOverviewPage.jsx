@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Search, FileText, Briefcase, DollarSign,
+  Search, FileText, Briefcase, IndianRupee,
   Clock, CheckCircle, ArrowRight, User, Edit3, MapPin, Wrench, Globe,
   Camera, Image as ImageIcon, Upload, Sparkles, AlertCircle, RefreshCw, X, ExternalLink
 } from 'lucide-react'
@@ -10,6 +10,7 @@ import { bidsAPI, contractsAPI } from '../../api/bids'
 import { paymentsAPI } from '../../api/payments'
 import { usersAPI } from '../../api/auth'
 import { DashboardSkeleton } from '../../components/common/Skeleton'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 const POPULAR_SKILLS = [
   'React', 'Node.js', 'Python', 'TypeScript', 'Next.js',
@@ -188,7 +189,7 @@ export default function FreelancerOverviewPage() {
     if (hourlyRate !== '' && hourlyRate !== null) {
       const rateNum = parseFloat(hourlyRate)
       if (isNaN(rateNum) || rateNum < 0 || rateNum > 1000) {
-        setSaveError('Hourly rate must be between $0 and $1,000 / hr.')
+        setSaveError('Hourly rate must be between ₹0 and ₹1,000 / hr.')
         return
       }
     }
@@ -327,12 +328,12 @@ export default function FreelancerOverviewPage() {
 
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-            <DollarSign className="w-6 h-6" />
+            <IndianRupee className="w-6 h-6" />
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Earned</p>
             <p className="text-2xl font-black text-gray-900 my-0.5">
-              {loadingMetrics ? '—' : `$${totalEarned.toLocaleString()}`}
+              {loadingMetrics ? '—' : formatCurrency(totalEarned)}
             </p>
             <p className="text-xs text-gray-500 font-medium">{releasedPayments.length} released payments</p>
           </div>
@@ -345,7 +346,7 @@ export default function FreelancerOverviewPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Pending in Escrow</p>
             <p className="text-2xl font-black text-gray-900 my-0.5">
-              {loadingMetrics ? '—' : `$${pendingEscrow.toLocaleString()}`}
+              {loadingMetrics ? '—' : formatCurrency(pendingEscrow)}
             </p>
             <p className="text-xs text-gray-500 font-medium">Awaiting milestone approval</p>
           </div>
@@ -636,11 +637,11 @@ export default function FreelancerOverviewPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-gray-700">Hourly Rate ($ / hr)</label>
-                  {isEditing && <span className="text-[10px] text-gray-400">Max $1,000 / hr</span>}
+                  <label className="block text-xs font-semibold text-gray-700">Hourly Rate (₹ / hr)</label>
+                  {isEditing && <span className="text-[10px] text-gray-400">Max ₹1,000 / hr</span>}
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">$</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">₹</span>
                   <input
                     type="number"
                     step="0.01"

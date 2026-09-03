@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Search, FileText, Briefcase, DollarSign,
+  Search, FileText, Briefcase, IndianRupee,
   MessageSquare, Clock, CheckCircle, XCircle, AlertCircle
 } from 'lucide-react'
 import { bidsAPI } from '../../api/bids'
 import { Skeleton } from '../../components/common/Skeleton'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 const STATUS_CONFIG = {
   PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -120,7 +121,7 @@ const FreelancerBidsPage = () => {
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${config.color}`}>
                       <StatusIcon className="w-3.5 h-3.5" /> {config.label}
                     </span>
-                    <span className="text-lg font-bold text-gray-900">${bid.amount}</span>
+                    <span className="text-lg font-bold text-gray-900">{formatCurrency(bid.amount)}</span>
                   </div>
                 </div>
 

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, MapPin, Briefcase, Star, DollarSign, Mail, Globe, CheckCircle, ExternalLink
+  ArrowLeft, MapPin, Briefcase, Star, IndianRupee, Mail, Globe, CheckCircle, ExternalLink
 } from 'lucide-react'
 import { usersAPI } from '../../api/auth'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 const ClientFreelancerProfilePage = () => {
   const { freelancerId } = useParams()
@@ -126,7 +127,7 @@ const ClientFreelancerProfilePage = () => {
               <div className="flex items-center gap-6 sm:text-right">
                 {profile.hourly_rate && (
                   <div>
-                    <p className="text-2xl font-black text-gray-900">${profile.hourly_rate}</p>
+                    <p className="text-2xl font-black text-gray-900">{formatCurrency(profile.hourly_rate)}</p>
                     <p className="text-xs text-gray-400 font-medium">Hourly Rate</p>
                   </div>
                 )}

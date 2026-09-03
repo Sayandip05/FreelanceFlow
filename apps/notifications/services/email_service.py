@@ -134,7 +134,7 @@ def send_payment_released_email(freelancer_email: str, amount: float, project_ti
         message=f"""
 Hi,
 
-Great news! Payment of ${amount:.2f} has been released for your work on '{project_title}'.
+Great news! Payment of ₹{amount:.2f} has been released for your work on '{project_title}'.
 
 The funds will be transferred to your account within 2-3 business days.
 

@@ -303,8 +303,8 @@ const LandingPage = () => {
                 <div className="text-xs font-medium text-gray-500 z-10 pb-2">Experts</div>
                 
                 {/* Price tags */}
-                <div className="absolute left-[22%] top-[25%] bg-gray-900 border border-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full z-20 shadow-lg">$30/hr</div>
-                <div className="absolute right-[22%] top-[25%] bg-gray-900 border border-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full z-20 shadow-lg">$50/hr</div>
+                <div className="absolute left-[22%] top-[25%] bg-gray-900 border border-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full z-20 shadow-lg">₹500/hr</div>
+                <div className="absolute right-[22%] top-[25%] bg-gray-900 border border-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full z-20 shadow-lg">₹1,500/hr</div>
               </div>
             </div>
           </div>

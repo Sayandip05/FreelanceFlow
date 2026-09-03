@@ -104,7 +104,7 @@ def notify_escrow_created(freelancer, project_title: str, amount: float):
     return create_notification(
         recipient=freelancer,
         title=f"Escrow funded for '{project_title}'",
-        body=f"Client has funded ${amount:,.2f} in escrow for your project. You can start working!",
+        body=f"Client has funded ₹{amount:,.2f} in escrow for your project. You can start working!",
         notification_type=Notification.Type.ESCROW_CREATED
     )
 
@@ -134,7 +134,7 @@ def notify_payment_released(freelancer, project_title: str, amount: float):
     return create_notification(
         recipient=freelancer,
         title=f"Payment released for '{project_title}'",
-        body=f"${amount:,.2f} has been released to your account.",
+        body=f"₹{amount:,.2f} has been released to your account.",
         notification_type=Notification.Type.PAYMENT_RELEASED
     )
 

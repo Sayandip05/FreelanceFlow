@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, FileText, Briefcase, DollarSign,
+import { Search, FileText, Briefcase, IndianRupee,
   MessageSquare, Clock, TrendingUp, ArrowUpRight, Calendar, CheckCircle,
   Wallet, ArrowDownRight, RefreshCw, AlertCircle, X, Download
 } from 'lucide-react'
@@ -8,6 +8,7 @@ import { paymentsAPI } from '../../api/payments'
 import { usersAPI } from '../../api/auth'
 import { useNotifications } from '../../context/NotificationContext'
 import { DashboardSkeleton } from '../../components/common/Skeleton'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 const FreelancerEarningsPage = () => {
   const { notifications } = useNotifications() || { notifications: [] }
@@ -175,7 +176,7 @@ const FreelancerEarningsPage = () => {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-blue-100 text-sm font-semibold">Total Earned (Net)</p>
-                <h3 className="text-3xl font-bold mt-1">${totalEarned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+                <h3 className="text-3xl font-bold mt-1">{formatCurrency(totalEarned)}</h3>
               </div>
               <div className="p-2 bg-white/10 rounded-lg">
                 <TrendingUp className="w-5 h-5 text-white" />
@@ -189,7 +190,7 @@ const FreelancerEarningsPage = () => {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-gray-500 text-sm font-semibold">Wallet Balance</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-1">${parseFloat(wallet.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+                <h3 className="text-3xl font-bold text-gray-900 mt-1">{formatCurrency(wallet.balance)}</h3>
               </div>
               <div className="p-2 bg-blue-50 rounded-lg">
                 <Wallet className="w-5 h-5 text-blue-600" />
@@ -212,7 +213,7 @@ const FreelancerEarningsPage = () => {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-gray-500 text-sm font-semibold">Pending in Escrow</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-1">${pendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+                <h3 className="text-3xl font-bold text-gray-900 mt-1">{formatCurrency(pendingAmount)}</h3>
               </div>
               <div className="p-2 bg-yellow-50 rounded-lg">
                 <Clock className="w-5 h-5 text-yellow-600" />
@@ -244,7 +245,7 @@ const FreelancerEarningsPage = () => {
               <h3 className="text-lg font-bold text-gray-900 mb-6">Transaction History</h3>
               {releasedPayments.length === 0 ? (
                 <div className="text-center py-12">
-                  <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <IndianRupee className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 font-semibold text-sm">No transaction history found</p>
                 </div>
               ) : (
@@ -371,7 +372,7 @@ const FreelancerEarningsPage = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900">${parseFloat(w.amount).toLocaleString()}</p>
+                        <p className="font-bold text-gray-900">{formatCurrency(w.amount)}</p>
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                           w.status === 'COMPLETED' ? 'bg-green-50 text-green-700' :
                           w.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700'
@@ -436,11 +437,11 @@ const FreelancerEarningsPage = () => {
 
                   <div>
                     <div className="flex justify-between text-xs font-bold text-gray-700 mb-2">
-                      <span>Amount to Withdraw ($)</span>
-                      <span className="text-gray-400">Available: ${parseFloat(wallet.balance).toLocaleString()}</span>
+                      <span>Amount to Withdraw (₹)</span>
+                      <span className="text-gray-400">Available: {formatCurrency(wallet.balance)}</span>
                     </div>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                       <input
                         type="number"
                         step="0.01"

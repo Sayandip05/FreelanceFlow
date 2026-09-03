@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  MapPin, Wrench, DollarSign, Globe, Briefcase,
+  MapPin, Wrench, IndianRupee, Globe, Briefcase,
   CheckCircle, ArrowRight, ArrowLeft, SkipForward, Plus, X,
   Camera, Image as ImageIcon, Upload
 } from 'lucide-react'
@@ -98,7 +98,7 @@ export default function FreelancerOnboardingPage() {
     if (hourlyRate !== '' && hourlyRate !== null) {
       const rateNum = parseFloat(hourlyRate)
       if (isNaN(rateNum) || rateNum < 0 || rateNum > 1000) {
-        setError('Hourly rate must be between $0 and $1,000 / hr.')
+        setError('Hourly rate must be between ₹0 and ₹1,000 / hr.')
         return
       }
     }
@@ -414,12 +414,12 @@ export default function FreelancerOnboardingPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
-                  Hourly Rate ($ / hour)
+                  Hourly Rate (₹ / hour)
                 </label>
-                <span className="text-[11px] text-gray-400 font-medium">Max $1,000 / hr</span>
+                <span className="text-[11px] text-gray-400 font-medium">Max ₹1,000 / hr</span>
               </div>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-base">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-base">₹</span>
                 <input
                   type="number"
                   step="0.01"
@@ -437,7 +437,7 @@ export default function FreelancerOnboardingPage() {
               </div>
               {parseFloat(hourlyRate) > 1000 && (
                 <p className="text-red-600 text-xs mt-1.5 font-medium">
-                  Hourly rate cannot exceed $1,000 / hr.
+                  Hourly rate cannot exceed ₹1,000 / hr.
                 </p>
               )}
               {parseFloat(hourlyRate) < 0 && (
