@@ -52,8 +52,16 @@ def _es_delete(model_name: str, instance_id: int, label: str) -> None:
 
 @receiver(post_save, sender=Project)
 def update_project_document(sender, instance, **kwargs):
-    """Update project document in Elasticsearch when a project is saved."""
-    _es_update("Project", "projects", instance.id, label="Project")
+    """
+    Elasticsearch project lifecycle:
+    - If project is OPEN: index/update in Elasticsearch so freelancers can discover and bid.
+    - If project is accepted on both sides (IN_PROGRESS), COMPLETED, or CANCELLED:
+      immediately remove/delete from Elasticsearch to free storage and hide taken projects.
+    """
+    if instance.status == Project.Status.OPEN:
+        _es_update("Project", "projects", instance.id, label="Project (OPEN)")
+    else:
+        _es_delete("Project", instance.id, label=f"Project ({instance.status} - Removed from ES)")
 
 
 @receiver(post_delete, sender=Project)
