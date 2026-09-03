@@ -64,7 +64,10 @@ export const contractsAPI = {
 // Review APIs
 export const reviewsAPI = {
   // List reviews (given or received by current user)
-  getReviews: () => api.get('/bidding/reviews/'),
+  getReviews: (params = {}) => api.get('/bidding/reviews/', { params }),
+
+  // Get reviews for a specific contract
+  getContractReviews: (contractId) => api.get(`/bidding/reviews/?contract=${contractId}`),
 
   // Create a review for a completed contract
   createReview: (data) => api.post('/bidding/reviews/', data),

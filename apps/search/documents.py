@@ -6,10 +6,12 @@ from apps.users.models import User, FreelancerProfile
 
 @registry.register_document
 class ProjectDocument(Document):
-    """Elasticsearch document for Project model."""
+    """Elasticsearch document for Project model with lightweight indexing."""
     
+    title = fields.TextField()
+    description = fields.TextField()
     client_name = fields.TextField(attr="client.get_full_name")
-    client_email = fields.KeywordField(attr="client.email")
+    client_email = fields.KeywordField(attr="client.email", index=False)
     skills = fields.KeywordField(multi=True, normalizer="lowercase_normalizer")
     status = fields.KeywordField()
     
@@ -33,19 +35,22 @@ class ProjectDocument(Document):
         model = Project
         fields = [
             "id",
-            "title",
-            "description",
             "budget",
             "deadline",
             "approx_duration",
             "created_at",
-            "updated_at",
         ]
         related_models = [User]
 
         def get_queryset(self):
             return super().get_queryset().select_related('client').prefetch_related('skills')
     
+    def prepare_description(self, instance):
+        """Index only first 400 characters of description to save index size."""
+        if not instance.description:
+            return ""
+        return instance.description[:400]
+
     def prepare_skills(self, instance):
         """Prepare skills from related ProjectSkill model."""
         return [skill.skill_name for skill in instance.skills.all()]
@@ -58,19 +63,20 @@ class ProjectDocument(Document):
 
 @registry.register_document
 class FreelancerDocument(Document):
-    """Elasticsearch document for Freelancer profiles."""
+    """Elasticsearch document for Freelancer profiles with lightweight indexing."""
     
     user_id = fields.IntegerField(attr="user_id")
     email = fields.KeywordField(attr="user.email")
     first_name = fields.TextField(attr="user.first_name")
     last_name = fields.TextField(attr="user.last_name")
     full_name = fields.TextField(attr="user.get_full_name")
+    bio = fields.TextField()
     skills = fields.KeywordField(multi=True, normalizer="lowercase_normalizer")
-    avatar = fields.TextField(attr="avatar")
-    banner_image = fields.TextField(attr="banner_image")
-    city = fields.TextField(attr="city")
-    country = fields.TextField(attr="country")
-    experience_level = fields.TextField(attr="experience_level")
+    avatar = fields.KeywordField(attr="avatar", index=False)
+    banner_image = fields.KeywordField(attr="banner_image", index=False)
+    city = fields.KeywordField(attr="city")
+    country = fields.KeywordField(attr="country")
+    experience_level = fields.KeywordField(attr="experience_level")
     average_rating = fields.FloatField(attr="average_rating")
     total_reviews = fields.IntegerField(attr="total_reviews")
     is_onboarded = fields.BooleanField(attr="is_onboarded")
@@ -95,7 +101,6 @@ class FreelancerDocument(Document):
         model = FreelancerProfile
         fields = [
             "id",
-            "bio",
             "hourly_rate",
             "subscription_tier",
             "total_earned",
@@ -106,6 +111,12 @@ class FreelancerDocument(Document):
         def get_queryset(self):
             return super().get_queryset().select_related('user')
     
+    def prepare_bio(self, instance):
+        """Index only first 300 characters of bio to keep index lightweight."""
+        if not instance.bio:
+            return ""
+        return instance.bio[:300]
+
     def prepare_skills(self, instance):
         """Prepare skills from JSON field."""
         return instance.skills if instance.skills else []

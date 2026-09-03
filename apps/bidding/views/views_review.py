@@ -40,7 +40,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Show reviews given by user or received by user
-        return Review.objects.filter(
+        qs = Review.objects.filter(
             models.Q(reviewer=user) | models.Q(reviewee=user)
         ).select_related(
             'reviewer',
@@ -52,6 +52,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
             'contract',
             'contract__bid__project',
         )
+        
+        contract_id = self.request.query_params.get('contract') or self.request.query_params.get('contract_id')
+        if contract_id:
+            qs = qs.filter(contract_id=contract_id)
+        return qs
     
     def get_serializer_class(self):
         if self.action == 'create':
