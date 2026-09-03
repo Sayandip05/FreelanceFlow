@@ -349,8 +349,8 @@ export default function FreelancerLayout() {
         <SidebarProfileCard collapsed={!isExpanded} onOpenHelp={() => setShowHelp(true)} onOpenPrivacy={openPrivacyView} />
       </aside>
 
-      {/* ── Main Area ───────────────────────────────────────────────────── */}
-      <div className={`flex-1 flex flex-col min-w-0 ${location.pathname.includes('/messages') || location.pathname.includes('/worklogs') || location.pathname.includes('/work') ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+      {/* ── Main Area (Independent smooth scrolling container) ─────────────── */}
+      <div className={`flex-1 flex flex-col min-w-0 ${location.pathname.includes('/messages') || location.pathname.includes('/worklogs') || location.pathname.includes('/work') ? 'h-full overflow-hidden' : 'h-full overflow-y-auto'}`}>
         {/* Top Navbar Header (Height: h-14 / 56px) */}
         <header className="h-14 bg-white/95 backdrop-blur-md border-b border-gray-100 px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-20 shadow-xs">
           <div className="flex items-center gap-2">
@@ -367,7 +367,7 @@ export default function FreelancerLayout() {
         </header>
 
         {/* Page Content */}
-        <main className={`flex-1 min-h-0 ${location.pathname.includes('/messages') || location.pathname.includes('/worklogs') || location.pathname.includes('/work') ? 'p-0 overflow-hidden flex flex-col' : 'p-8'}`}>
+        <main className={`flex-1 ${location.pathname.includes('/messages') || location.pathname.includes('/worklogs') || location.pathname.includes('/work') ? 'p-0 overflow-hidden flex flex-col' : 'p-4 sm:p-6 lg:p-8'}`}>
           <Outlet />
         </main>
       </div>
