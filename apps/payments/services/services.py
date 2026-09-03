@@ -293,6 +293,7 @@ def release_payment(contract: Contract, client, payment_id: int = None) -> Payme
             milestone = payment.milestone
             milestone.status = milestone.Status.PAID
             milestone.paid_at = timezone.now()
+            milestone.client_feedback = ""
             milestone.save()
 
         # Check if all contract milestones are paid to close contract
