@@ -25,6 +25,7 @@ import {
   PencilSquareIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ModalToastContext'
 import { getWebSocketUrl } from '../../utils/websocket'
 import { WorkPageSkeleton } from '../../components/common/Skeleton'
 
@@ -54,6 +55,7 @@ const FreelancerWorkPage = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
+  const toast = useToast()
 
   // Selected milestone from URL query: ?milestone=X
   const urlMilestoneId = searchParams.get('milestone')
@@ -286,7 +288,7 @@ const FreelancerWorkPage = () => {
           }
         } else if (data.type === 'ai_draft_pdf_error') {
           setApproving(false)
-          alert('Failed to compile PDF: ' + (data.payload?.error || 'Unknown error'))
+          toast.error('Failed to compile PDF: ' + (data.payload?.error || 'Unknown error'))
         } else if (['milestone_submitted', 'milestone_approved', 'milestone_funded', 'milestone_rejected'].includes(data.type)) {
           loadContextBundle()
         }
@@ -471,7 +473,7 @@ const FreelancerWorkPage = () => {
       }, 1500)
     } catch (err) {
       console.error(err)
-      alert('Failed to approve report: ' + (err.response?.data?.error || err.message))
+      toast.error('Failed to approve report: ' + (err.response?.data?.error || err.message))
       setApproving(false)
     }
   }

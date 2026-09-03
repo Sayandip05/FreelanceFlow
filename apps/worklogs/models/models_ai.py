@@ -97,6 +97,7 @@ class AIReportDraft(models.Model):
         db_index=True
     )
     pdf_url = models.URLField(
+        max_length=1000,
         blank=True,
         help_text="Azure Blob Storage SAS URL of compiled PDF report"
     )

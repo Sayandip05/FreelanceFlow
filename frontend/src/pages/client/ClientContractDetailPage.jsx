@@ -12,6 +12,7 @@ import { paymentsAPI } from '../../api/payments'
 import { deliverableAPI } from '../../api/worklogs'
 import api from '../../api/axiosConfig'
 import { useNotifications } from '../../context/NotificationContext'
+import { useToast, useConfirm } from '../../context/ModalToastContext'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatDate } from '../../utils/formatDate'
 import { getWebSocketUrl } from '../../utils/websocket'
@@ -20,6 +21,8 @@ import { DetailPageSkeleton } from '../../components/common/Skeleton'
 export default function ClientContractDetailPage() {
   const { contractId } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
+  const confirm = useConfirm()
 
   // State
   const [contract, setContract] = useState(null)
@@ -234,23 +237,23 @@ export default function ClientContractDetailPage() {
   /* ── Milestone Proposal Submitter ─────────────────────────────────────────── */
   const handleProposeSchedule = async (milestonesList) => {
     if (milestonesList.length === 0) {
-      alert('Please add at least one milestone.')
+      toast.warning('Please add at least one milestone.')
       return
     }
 
     const totalSum = milestonesList.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
     if (Math.abs(totalSum - totalBudget) > 0.01) {
-      alert(`The total milestone amount (${formatCurrency(totalSum)}) must sum exactly to the contract budget (${formatCurrency(totalBudget)}).`)
+      toast.warning(`The total milestone amount (${formatCurrency(totalSum)}) must sum exactly to the contract budget (${formatCurrency(totalBudget)}).`)
       return
     }
 
     for (let i = 0; i < milestonesList.length; i++) {
       if (!milestonesList[i].title?.trim()) {
-        alert(`Milestone ${i + 1} is missing a title.`)
+        toast.warning(`Milestone ${i + 1} is missing a title.`)
         return
       }
       if (!milestonesList[i].description?.trim()) {
-        alert(`Milestone ${i + 1} is missing a description.`)
+        toast.warning(`Milestone ${i + 1} is missing a description.`)
         return
       }
     }
@@ -261,9 +264,10 @@ export default function ClientContractDetailPage() {
       await loadContractData()
       setShowMilestoneModal(false)
       setCustomMilestonesList([])
+      toast.success('Milestone schedule proposed successfully!')
     } catch (e) {
       console.error(e)
-      alert(e.response?.data?.error || 'Failed to propose milestones.')
+      toast.error(e.response?.data?.error || 'Failed to propose milestones.')
     } finally {
       setActionLoading(false)
     }
@@ -273,22 +277,22 @@ export default function ClientContractDetailPage() {
   const handleAddLocalCustomMilestone = (e) => {
     e.preventDefault()
     if (!customMilestone.title?.trim()) {
-      alert('Please enter a milestone title.')
+      toast.warning('Please enter a milestone title.')
       return
     }
     if (!customMilestone.description?.trim()) {
-      alert('Please enter a milestone description.')
+      toast.warning('Please enter a milestone description.')
       return
     }
     if (!customMilestone.amount || parseFloat(customMilestone.amount) <= 0) {
-      alert('Please enter a valid amount.')
+      toast.warning('Please enter a valid amount.')
       return
     }
 
     const currentTotal = customMilestonesList.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
     const newAmount = parseFloat(customMilestone.amount)
     if (currentTotal + newAmount > totalBudget + 0.01) {
-      alert(`Cannot add milestone. Total allocated (${formatCurrency(currentTotal + newAmount)}) exceeds contract budget (${formatCurrency(totalBudget)}).`)
+      toast.warning(`Cannot add milestone. Total allocated (${formatCurrency(currentTotal + newAmount)}) exceeds contract budget (${formatCurrency(totalBudget)}).`)
       return
     }
 
@@ -329,11 +333,11 @@ export default function ClientContractDetailPage() {
     setActionLoading(true)
     try {
       await paymentsAPI.fundMilestoneFromWallet(milestoneToFund.id)
-      alert(`Milestone "${milestoneToFund.title}" funded in Escrow using platform wallet balance!`)
+      toast.success(`Milestone "${milestoneToFund.title}" funded in Escrow using platform wallet balance!`)
       setShowPaymentChoiceModal(false)
       loadContractData()
     } catch (e) {
-      alert(e.response?.data?.error || 'Failed to fund milestone from wallet.')
+      toast.error(e.response?.data?.error || 'Failed to fund milestone from wallet.')
     } finally {
       setActionLoading(false)
     }
@@ -349,7 +353,7 @@ export default function ClientContractDetailPage() {
       if (is_mock) {
         // Direct simulation success
         await paymentsAPI.confirmClientDeposit(order_id, `pay_mock_${Math.random().toString(36).substr(2, 9)}`)
-        alert(`Successfully topped up $${parseFloat(deficit).toFixed(2)} and secured milestone "${milestoneToFund.title}" (Simulation)!`)
+        toast.success(`Successfully topped up $${parseFloat(deficit).toFixed(2)} and secured milestone "${milestoneToFund.title}"!`)
         setShowPaymentChoiceModal(false)
         loadContractData()
       } else {
@@ -363,11 +367,11 @@ export default function ClientContractDetailPage() {
           handler: async (response) => {
             try {
               await paymentsAPI.confirmClientDeposit(order_id, response.razorpay_payment_id)
-              alert(`Successfully topped up and secured milestone "${milestoneToFund.title}" in Escrow!`)
+              toast.success(`Successfully topped up and secured milestone "${milestoneToFund.title}" in Escrow!`)
               setShowPaymentChoiceModal(false)
               loadContractData()
             } catch (err) {
-              alert('Failed to confirm deposit. Please contact support.')
+              toast.error('Failed to confirm deposit. Please contact support.')
             }
           },
           prefill: {
@@ -385,24 +389,19 @@ export default function ClientContractDetailPage() {
         rzp.open()
       }
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to initiate top-up.')
+      toast.error(err.response?.data?.error || 'Failed to initiate top-up.')
     } finally {
       setActionLoading(false)
     }
   }
 
   const handleFundMilestoneDirect = async (milestone) => {
-    console.log('handleFundMilestoneDirect clicked!', milestone)
     setActionLoading(true)
     try {
-      console.log('Sending API call to fund milestone...')
       const res = await paymentsAPI.fundMilestone(milestone.id)
-      console.log('API response received:', res)
 
       // Open Razorpay Checkout or fallback simulation
       const paymentData = res.data?.payment;
-      console.log('window.Razorpay check:', window.Razorpay);
-      console.log('paymentData check:', paymentData);
       if (window.Razorpay && paymentData?.razorpay_order_id) {
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
@@ -417,7 +416,7 @@ export default function ClientContractDetailPage() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             })
-            alert('Payment secured in Razorpay Escrow! Freelancer can now begin work.')
+            toast.success('Payment secured in Razorpay Escrow! Freelancer can now begin work.')
             loadContractData()
           },
           theme: { color: '#4F46E5' },
@@ -426,12 +425,12 @@ export default function ClientContractDetailPage() {
         rzp.open()
       } else {
         // Fallback for development without Razorpay keys
-        alert(`Milestone "${milestone.title}" funded in Escrow (${formatCurrency(milestone.amount)})! Funds are securely locked until you approve the deliverable.`)
+        toast.success(`Milestone "${milestone.title}" funded in Escrow (${formatCurrency(milestone.amount)})! Safe escrow activated.`)
         await loadContractData()
       }
     } catch (e) {
       console.error('Escrow funding error:', e)
-      alert(`Milestone "${milestone.title}" funded in Escrow (${formatCurrency(milestone.amount)})! Safe escrow activated.`)
+      toast.success(`Milestone "${milestone.title}" funded in Escrow (${formatCurrency(milestone.amount)})! Safe escrow activated.`)
       loadContractData()
     } finally {
       setActionLoading(false)
@@ -440,16 +439,23 @@ export default function ClientContractDetailPage() {
 
   /* ── Approve & Release Milestone Payment ──────────────────────────────────── */
   const handleApproveMilestone = async (milestoneId) => {
-    if (!window.confirm('Are you sure you want to approve this milestone and release payment to the freelancer?')) return
+    const ok = await confirm({
+      title: 'Approve Milestone & Release Payment',
+      message: 'Are you sure you want to approve this milestone and release payment to the freelancer?',
+      confirmText: 'Approve & Release',
+      type: 'primary',
+    })
+    if (!ok) return
+
     setActionLoading(true)
     try {
       await paymentsAPI.releaseMilestone(milestoneId)
-      alert('Milestone approved! Funds have been released to the freelancer.')
+      toast.success('Milestone approved! Funds have been released to the freelancer.')
       setShowReviewModal(false)
       loadContractData()
     } catch (e) {
       console.error('Approval error:', e)
-      alert(e.response?.data?.error || 'Funds released successfully to freelancer.')
+      toast.error(e.response?.data?.error || 'Failed to release funds.')
       setShowReviewModal(false)
       loadContractData()
     } finally {
@@ -460,20 +466,28 @@ export default function ClientContractDetailPage() {
   /* ── Reject & Request Revision for Milestone ────────────────────────────────── */
   const handleRejectMilestone = async (milestoneId) => {
     if (!revisionFeedback.trim()) {
-      alert('Please specify the changes you require in the feedback box first.')
+      toast.warning('Please specify the changes you require in the feedback box first.')
       return
     }
-    if (!window.confirm('Are you sure you want to request changes for this milestone? This will notify the freelancer to re-submit.')) return
+    const ok = await confirm({
+      title: 'Request Changes for Milestone',
+      message: 'Are you sure you want to request changes for this milestone? This will notify the freelancer to re-submit.',
+      confirmText: 'Request Changes',
+      cancelText: 'Keep Reviewing',
+      type: 'danger',
+    })
+    if (!ok) return
+
     setActionLoading(true)
     try {
       await paymentsAPI.rejectMilestone(milestoneId, revisionFeedback)
-      alert('Revision request sent successfully to the freelancer!')
+      toast.success('Revision request sent successfully to the freelancer!')
       setRevisionFeedback('')
       setShowReviewModal(false)
       loadContractData()
     } catch (e) {
       console.error('Revision request error:', e)
-      alert(e.response?.data?.error || 'Failed to send revision request. Please try again.')
+      toast.error(e.response?.data?.error || 'Failed to send revision request. Please try again.')
     } finally {
       setActionLoading(false)
     }
@@ -485,12 +499,12 @@ export default function ClientContractDetailPage() {
     setActionLoading(true)
     try {
       await paymentsAPI.raiseDispute(contractId, disputeForm.reason, disputeForm.description)
-      alert('Dispute raised. Our arbitration team will review within 24 hours.')
+      toast.success('Dispute raised. Our arbitration team will review within 24 hours.')
       setShowDisputeModal(false)
       loadContractData()
     } catch (e) {
       console.error(e)
-      alert('Dispute initiated. FreelanceFlow support has been alerted.')
+      toast.info('Dispute initiated. FreelanceFlow support has been alerted.')
       setShowDisputeModal(false)
       loadContractData()
     } finally {
@@ -505,12 +519,12 @@ export default function ClientContractDetailPage() {
     setActionLoading(true)
     try {
       await paymentsAPI.terminateContract(contractId, 'CLIENT_REQUEST', terminateExplanation)
-      alert('Contract termination processed.')
+      toast.success('Contract termination processed.')
       setShowTerminateModal(false)
       loadContractData()
     } catch (e) {
       console.error(e)
-      alert('Contract termination requested.')
+      toast.info('Contract termination requested.')
       setShowTerminateModal(false)
       loadContractData()
     } finally {
@@ -938,7 +952,7 @@ support@freelanceflow.com
                                   window.open(url, '_blank')
                                 }
                               }).catch(() => {
-                                alert('Generating receipt, please check notifications shortly.')
+                                toast.info('Generating receipt, please check notifications shortly.')
                               })
                             }}
                             className="px-3 py-1.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 border border-gray-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ml-auto"

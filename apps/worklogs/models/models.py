@@ -114,6 +114,7 @@ class WeeklyReport(models.Model):
     week_end = models.DateField()
     ai_summary = models.TextField(help_text="AI-generated report content")
     pdf_url = models.URLField(
+        max_length=1000,
         blank=True,
         help_text="Azure Blob Storage SAS URL to generated PDF (7-day expiry)"
     )
@@ -182,6 +183,7 @@ class Deliverable(models.Model):
         help_text="List of attached file URLs"
     )
     pdf_url = models.URLField(
+        max_length=1000,
         blank=True,
         help_text="Azure Blob Storage SAS URL to generated Deliverable PDF"
     )
@@ -243,6 +245,7 @@ class DeliveryProof(models.Model):
         related_name="delivery_proof"
     )
     pdf_url = models.URLField(
+        max_length=1000,
         help_text="Azure Blob Storage SAS URL to generated PDF"
     )
     generated_at = models.DateTimeField(auto_now_add=True)

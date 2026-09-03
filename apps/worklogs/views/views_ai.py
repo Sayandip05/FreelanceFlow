@@ -2,8 +2,11 @@
 API Views for AI Worklog & Weekly Report System.
 Supports async agent execution, context bundle assembly, and draft approval.
 """
+import logging
 from rest_framework import views, permissions, status
 from rest_framework.response import Response
+
+logger = logging.getLogger("apps.worklogs")
 from asgiref.sync import async_to_sync
 from apps.bidding.models import Contract
 from apps.worklogs.serializers.serializers_ai import (
