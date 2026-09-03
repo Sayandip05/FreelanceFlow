@@ -54,6 +54,7 @@ class AIWorklogState(TypedDict):
     conversation_history: List[Dict[str, Any]]
     action: Literal["chat", "draft", "approve"]
     draft_id: Optional[int]
+    milestone_id: Optional[int]
     postgres_context: Dict[str, Any]
     qdrant_context: List[Dict[str, Any]]
     llm_response: str
@@ -184,10 +185,11 @@ def generate_weekly_report(contract_id: int, week_start: Any, interval_days: int
 async def context_assembler(state: AIWorklogState) -> AIWorklogState:
     """
     Fetches relational PostgreSQL contract metadata, deliverables, work logs,
-    and semantically queries Qdrant for project scope and requirement matches.
+    resolves the active/target milestone, and semantically queries Qdrant.
     """
     contract_id = state["contract_id"]
     user_message = state.get("user_message", "")
+    target_milestone_id = state.get("milestone_id")
 
     # 1. Fetch DB context asynchronously
     def _fetch_pg_context():
@@ -199,26 +201,75 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
         except Contract.DoesNotExist:
             return None
 
-        # Recent worklogs (last 14 days)
-        fourteen_days_ago = date.today() - timedelta(days=14)
-        recent_logs = list(WorkLog.objects.filter(
-            contract=contract,
-            date__gte=fourteen_days_ago
-        ).order_by("-date")[:10])
+        # Deliverables & Milestones list
+        deliverables = list(contract.deliverables.all())
+        milestones_qs = list(contract.milestones.all().order_by("order", "created_at"))
+
+        # Resolve target milestone
+        target_milestone = None
+        target_idx = 0
+        if target_milestone_id:
+            for idx, m in enumerate(milestones_qs):
+                if m.id == target_milestone_id:
+                    target_milestone = m
+                    target_idx = idx
+                    break
+
+        if not target_milestone:
+            for idx, m in enumerate(milestones_qs):
+                if m.status in ["IN_PROGRESS", "FUNDED"]:
+                    target_milestone = m
+                    target_idx = idx
+                    break
+
+        if not target_milestone:
+            for idx, m in enumerate(milestones_qs):
+                if m.status == "SUBMITTED":
+                    target_milestone = m
+                    target_idx = idx
+                    break
+
+        if not target_milestone and milestones_qs:
+            target_milestone = milestones_qs[0]
+            target_idx = 0
+
+        target_number = target_idx + 1
+
+        # Universal milestone schedule formatting
+        universal_milestones = []
+        for idx, m in enumerate(milestones_qs):
+            status_label = {
+                "PAID": "Released",
+                "APPROVED": "Released",
+                "SUBMITTED": "Under Review",
+                "IN_PROGRESS": "In Progress",
+                "FUNDED": "In Progress",
+                "PENDING": "Awaiting Escrow",
+            }.get(m.status, m.status)
+            due_str = m.due_date.strftime("%B %d, %Y") if m.due_date else "Flexible"
+            universal_milestones.append({
+                "number": idx + 1,
+                "id": m.id,
+                "title": m.title,
+                "status": status_label,
+                "amount": f"${float(m.amount):,.2f}",
+                "due_date": due_str,
+                "description": m.description or "",
+                "is_active_target": m.id == (target_milestone.id if target_milestone else None),
+            })
+
+        timeline_bullets = "\n".join([
+            f"{m['number']}. **{m['title']}** ({m['status']}) – due {m['due_date']}."
+            for m in universal_milestones
+        ])
 
         total_hours = WorkLog.objects.filter(
             contract=contract
         ).aggregate(total=Sum("hours_worked"))["total"] or 0
 
-        # Deliverables & Milestones list
-        deliverables = list(contract.deliverables.all())
-        milestones = list(contract.milestones.all())
-
-        # Previous approved reports
-        past_reports = list(AIReportDraft.objects.filter(
-            contract=contract,
-            status=AIReportDraft.Status.APPROVED
-        ).order_by("-created_at")[:3])
+        recent_logs = list(WorkLog.objects.filter(
+            contract=contract
+        ).order_by("-date")[:10])
 
         return {
             "project_title": contract.bid.project.title,
@@ -228,6 +279,15 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
             "contract_rate": str(getattr(contract, "agreed_amount", 0)),
             "contract_type": getattr(contract, "contract_type", "FIXED"),
             "total_hours_logged": float(total_hours),
+            "target_milestone_number": target_number,
+            "target_milestone_id": target_milestone.id if target_milestone else None,
+            "target_milestone_title": target_milestone.title if target_milestone else f"Milestone {target_number}",
+            "target_milestone_description": target_milestone.description if target_milestone else "",
+            "target_milestone_due_date": target_milestone.due_date.strftime("%B %d, %Y") if (target_milestone and target_milestone.due_date) else "Flexible",
+            "target_milestone_amount": f"${float(target_milestone.amount):,.2f}" if target_milestone else "$0.00",
+            "target_milestone_status": target_milestone.status if target_milestone else "IN_PROGRESS",
+            "universal_milestones": universal_milestones,
+            "timeline_bullets": timeline_bullets,
             "deliverables": [
                 {
                     "id": d.id,
@@ -237,17 +297,6 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
                 }
                 for d in deliverables
             ],
-            "milestones": [
-                {
-                    "id": m.id,
-                    "title": m.title,
-                    "status": m.status,
-                    "amount": str(m.amount),
-                    "due_date": str(m.due_date) if m.due_date else None,
-                    "description": m.description[:150]
-                }
-                for m in milestones
-            ],
             "recent_logs": [
                 {
                     "date": str(log.date),
@@ -256,7 +305,6 @@ async def context_assembler(state: AIWorklogState) -> AIWorklogState:
                 }
                 for log in recent_logs
             ],
-            "past_reports_count": len(past_reports),
         }
 
     pg_context = await sync_to_async(_fetch_pg_context)()
@@ -331,8 +379,8 @@ def detect_prompt_injection(user_message: str) -> bool:
 @traceable(name="report_generator", tags=["worklog", "agent", "llm"])
 async def report_generator(state: AIWorklogState) -> AIWorklogState:
     """
-    Calls Groq LLaMA 3.3 70B with assembled context and determines intent:
-    Outputs a structured 3-section report draft or conversational coaching.
+    Calls Groq LLaMA 3.3 70B (or Google Gemini fallback) with assembled context.
+    Outputs a structured 3-section report draft or conversational milestone assistance.
     Enforces strict payment isolation and prompt injection guardrails.
     """
     if state.get("error"):
@@ -344,7 +392,7 @@ async def report_generator(state: AIWorklogState) -> AIWorklogState:
 
     user_msg = state.get("user_message", "")
 
-    # ── Guardrail 1: Prompt Injection & Unauthorized Payment Attempt Check ──
+    # ── Guardrail 1: Prompt Injection Check ──
     if detect_prompt_injection(user_msg):
         state["llm_response"] = (
             "I am the FreelanceFlow AI Worklog Assistant. My role is strictly limited to helping you "
@@ -356,61 +404,54 @@ async def report_generator(state: AIWorklogState) -> AIWorklogState:
         return state
 
     pg = state["postgres_context"]
-    # Sanitize inputs before feeding to LLM
     clean_user_msg = sanitize_sensitive_data(user_msg)
     q_context = "\n".join([f"- [{item.get('type')}]: {sanitize_sensitive_data(item.get('text', ''))}" for item in state.get("qdrant_context", [])])
     history = state.get("conversation_history", [])
 
-    system_prompt = f"""You are the FreelanceFlow AI Worklog & Weekly Report Assistant.
-Your goal is to help the freelancer document progress, synthesize weekly achievements, and draft professional progress reports for their client.
+    system_prompt = f"""You are the FreelanceFlow AI Worklog Assistant for the project "{pg['project_title']}".
+Your role is to help the freelancer document technical progress, synthesize deliverables, and draft official milestone reports for their client ({pg['client_name']}).
 
-SECURITY & SAFETY BOUNDARY:
-- You are strictly an automated technical reporting assistant.
-- You have NO access to client bank accounts, payment gateways, wallets, or financial execution tools.
-- You CANNOT authorize, release, debit, or transfer payments.
-- Never output sensitive personal credentials, payment tokens, or client private info.
+TARGET ACTIVE MILESTONE:
+- Milestone Number: Milestone {pg['target_milestone_number']}
+- Milestone Title: {pg['target_milestone_title']}
+- Milestone Scope / Requirements: {pg['target_milestone_description']}
+- Milestone Due Date: {pg['target_milestone_due_date']}
+- Milestone Amount: {pg['target_milestone_amount']}
+- Milestone Status: {pg['target_milestone_status']}
 
-PROJECT METRICS & SCOPE:
-- Project: {pg['project_title']}
-- Client: {pg['client_name']}
-- Total Hours Logged to Date: {pg['total_hours_logged']}h
-- Payment Milestones: {json.dumps(pg.get('milestones', []))}
-- Deliverables in Project: {json.dumps(pg['deliverables'])}
+ALL PROJECT MILESTONES (Universal Schedule):
+{pg['timeline_bullets']}
 
-SEMANTIC SCOPE GROUNDING (from Qdrant):
+SEMANTIC SCOPE GROUNDING (from Project Context):
 {q_context or 'No specific vector matches.'}
 
-RECENT WORKLOGS:
-{json.dumps(pg['recent_logs'])}
-
-INSTRUCTIONS:
-1. If the freelancer is asking to draft, generate, update, or compile a report (e.g. "draft my progress report", "generate report", "here is what I did", "summarize my week"), you MUST respond with a JSON block containing a structured 3-section draft:
+CRITICAL RULES:
+1. STRICT MILESTONE ISOLATION: Focus strictly on **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})**. Do NOT generate deliverables, tasks, or summaries for earlier finished milestones or future unstarted milestones unless explicitly requested.
+2. UNIVERSAL TIMELINES: Milestones follow the universal milestone dates listed above (they can be monthly, bi-weekly, or custom). Do NOT confuse monthly milestones with weekly milestones. Do NOT refer to monthly milestones as "weekly" or say "weekly report". Always refer to this as "Milestone {pg['target_milestone_number']} Progress Report".
+3. DRAFTING RESPONSE: When the freelancer asks to draft or summarize their progress report (e.g. "draft my progress report", "generate report", "here is what I worked on"), output a JSON block formatted exactly as:
 ```json
 {{
   "is_draft": true,
-  "reply": "I have created your progress report draft. Review the details below and click Approve to generate the official report PDF.",
+  "reply": "I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into a progress report draft. Review the details below and click Approve to generate the official PDF.",
   "draft": {{
-    "title": "Weekly Progress Report - {pg['project_title']}",
-    "section_summary": "Executive summary of progress made towards milestone objectives.",
+    "title": "Milestone {pg['target_milestone_number']} Progress Report – {pg['project_title']}",
+    "section_summary": "Executive summary detailing technical progress made for Milestone {pg['target_milestone_number']}.",
     "section_deliverables": [
-      {{"title": "Milestone & Deliverable Progress", "description": "Specific technical work completed and deliverables verified against the project schedule.", "status": "COMPLETED"}}
+      {{"title": "Key Deliverable Completed", "description": "Technical implementation and deliverable items verified for Milestone {pg['target_milestone_number']}.", "status": "COMPLETED"}}
     ],
-    "section_next_steps": "Upcoming milestone deadlines and next deliverables.",
+    "section_next_steps": "Upcoming priorities and next milestone deliverables.",
     "hours_worked": 8.0
   }}
 }}
 ```
-
-2. If the user asks "what is my timeline of my progress report" or asks about the project timeline / schedule:
-Do NOT give long paragraphs, advice, or filler. Provide ONLY a clean, short milestone timeline with dates:
+4. TIMELINE INQUIRIES: When the user asks "what is my timeline of my progress report" or asks about timeline/schedule, output:
 ```json
 {{
   "is_draft": false,
-  "reply": "Here is your progress report timeline:\n\n• **Milestone 1** ({pg['milestones'][0]['status'] if pg['milestones'] else 'In Progress'}) — Due: {pg['milestones'][0]['due_date'] if pg['milestones'] and pg['milestones'][0]['due_date'] else 'TBD'}\n• **Milestone 2** ({pg['milestones'][1]['status'] if len(pg['milestones']) > 1 else 'Pending'}) — Due: {pg['milestones'][1]['due_date'] if len(pg['milestones']) > 1 and pg['milestones'][1]['due_date'] else 'TBD'}"
+  "reply": "Your progress report timeline follows the project milestones:\n\n{pg['timeline_bullets']}"
 }}
 ```
-
-3. NEVER mention internal technologies, libraries, or architecture (e.g., do NOT mention "Qdrant", "WeasyPrint", "vector embeddings", "PostgreSQL", or "LLM") in any user-facing response. Always return valid JSON.
+5. NEVER mention internal backend names (e.g. Qdrant, WeasyPrint, vector DB, PostgreSQL, LLM) in any response. Always return valid JSON.
 """
 
     llm = get_llm()
@@ -419,7 +460,7 @@ Do NOT give long paragraphs, advice, or filler. Provide ONLY a clean, short mile
     if llm:
         try:
             messages = [SystemMessage(content=system_prompt)]
-            for msg in history[-8:]:  # keep last 8 messages for tight context
+            for msg in history[-8:]:
                 role = msg.get("role")
                 content = msg.get("content", "")
                 if role == "user":
@@ -438,10 +479,9 @@ Do NOT give long paragraphs, advice, or filler. Provide ONLY a clean, short mile
     if not ai_raw:
         ai_raw = await sync_to_async(call_gemini_fallback_sync)(system_prompt, history, user_msg) or ""
 
-    # Resilient fallback if LLM is offline or output is non-JSON
+    # Resilient JSON parsing
     parsed = None
     if ai_raw:
-        # Strip markdown code blocks if present
         cleaned = ai_raw
         if cleaned.startswith("```json"):
             cleaned = cleaned[7:]
@@ -457,26 +497,30 @@ Do NOT give long paragraphs, advice, or filler. Provide ONLY a clean, short mile
             parsed = {"is_draft": False, "reply": ai_raw}
 
     if not parsed:
-        # Fallback intelligent generator
-        if any(w in user_msg.lower() for w in ["draft", "report", "generate", "summary", "submit", "done", "week"]):
+        # Grounded fallback intelligent generator
+        if any(w in user_msg.lower() for w in ["draft", "report", "generate", "summary", "submit", "done", "progress"]):
             parsed = {
                 "is_draft": True,
-                "reply": f"Here is the synthesized progress report draft for **{pg['project_title']}** based on your logged work.",
+                "reply": f"I've synthesized your work for **Milestone {pg['target_milestone_number']} ({pg['target_milestone_title']})** into a progress report draft. Review the details below and click Approve to generate the official PDF.",
                 "draft": {
-                    "title": f"Progress Report - {pg['project_title']}",
-                    "section_summary": f"Completed active project milestones for {pg['project_title']} under client {pg['client_name']}. Progress is on schedule with clean deliverables.",
+                    "title": f"Milestone {pg['target_milestone_number']} Progress Report – {pg['project_title']}",
+                    "section_summary": f"Completed technical implementation and deliverables for {pg['target_milestone_title']} on {pg['project_title']}. Deliverables verified against milestone specifications.",
                     "section_deliverables": [
-                        {"title": d["title"], "description": d["description"], "status": "IN_PROGRESS"}
-                        for d in pg["deliverables"][:3]
-                    ] or [{"title": "Core Implementation", "description": user_msg, "status": "COMPLETED"}],
-                    "section_next_steps": "Continue final verification, deliverable reviews, and prepare next milestone deployment.",
+                        {"title": f"{pg['target_milestone_title']} Core Deliverable", "description": pg['target_milestone_description'] or user_msg, "status": "COMPLETED"}
+                    ],
+                    "section_next_steps": f"Coordinate with client {pg['client_name']} for milestone sign-off and proceed to upcoming milestones.",
                     "hours_worked": max(4.0, float(pg["total_hours_logged"]) or 8.0)
                 }
+            }
+        elif any(w in user_msg.lower() for w in ["timeline", "schedule", "when", "due", "date"]):
+            parsed = {
+                "is_draft": False,
+                "reply": f"Your progress report timeline follows the project milestones:\n\n{pg['timeline_bullets']}"
             }
         else:
             parsed = {
                 "is_draft": False,
-                "reply": f"I'm tracking your progress on **{pg['project_title']}**. You have logged {pg['total_hours_logged']}h so far. Tell me what tasks you finished today, or say *'Draft my weekly report'* to generate a 3-section client report."
+                "reply": f"I'm tracking your progress on **Milestone {pg['target_milestone_number']}: {pg['target_milestone_title']}** for {pg['project_title']}. Tell me what tasks you finished today, or click *'draft my progress report'* below to generate a client progress report draft."
             }
 
     state["llm_response"] = parsed.get("reply", "")
@@ -520,7 +564,7 @@ Do NOT give long paragraphs, advice, or filler. Provide ONLY a clean, short mile
                 conversation=conv,
                 contract_id=state["contract_id"],
                 freelancer_id=state["freelancer_id"],
-                title=d_data.get("title", f"Report - {pg['project_title']}"),
+                title=d_data.get("title", f"Milestone {pg['target_milestone_number']} Progress Report – {pg['project_title']}"),
                 section_summary=d_data.get("section_summary", ""),
                 section_deliverables=d_data.get("section_deliverables", []),
                 section_next_steps=d_data.get("section_next_steps", ""),
@@ -541,23 +585,20 @@ Do NOT give long paragraphs, advice, or filler. Provide ONLY a clean, short mile
 async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
     """
     Compiles an approved AIReportDraft into a WeasyPrint PDF, uploads to Azure Blob Storage,
-    and returns a 7-day SAS download URL.
+    and returns a 7-day SAS download URL with clean descriptive milestone naming.
     """
     draft_id = state.get("draft_id")
     contract_id = state["contract_id"]
+    target_milestone_id = state.get("milestone_id")
 
     def _compile_and_upload():
         draft = None
         if draft_id:
-            # Security: always scope draft lookup to the contract passed in state.
-            # A bare filter(id=draft_id) would allow cross-contract IDOR.
             draft = AIReportDraft.objects.select_related(
                 "contract__bid__project__client",
                 "contract__bid__freelancer"
             ).filter(id=draft_id, contract_id=contract_id).first()
 
-            # If draft_id was explicitly provided but not found for this contract,
-            # abort rather than silently falling through to a different draft.
             if not draft:
                 return None, "Draft not found or does not belong to this contract"
 
@@ -574,6 +615,23 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         project = contract.bid.project
         client = project.client
         freelancer = contract.bid.freelancer
+
+        # Resolve active milestone for naming
+        from apps.payments.models.models_milestone import PaymentMilestone
+        active_milestone = None
+        if target_milestone_id:
+            active_milestone = PaymentMilestone.objects.filter(contract=contract, id=target_milestone_id).first()
+
+        if not active_milestone:
+            active_milestone = PaymentMilestone.objects.filter(
+                contract=contract,
+                status__in=[PaymentMilestone.Status.IN_PROGRESS, PaymentMilestone.Status.FUNDED]
+            ).order_by('order', 'created_at').first()
+
+        if not active_milestone:
+            active_milestone = PaymentMilestone.objects.filter(contract=contract).order_by('order', 'created_at').first()
+
+        milestone_num = active_milestone.order if (active_milestone and active_milestone.order) else 1
 
         # Build clean HTML template for PDF (Solid black headings, clean structure, no purple)
         deliverables_html = ""
@@ -612,9 +670,9 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         </head>
         <body>
             <div class="header">
-                <span class="badge">VERIFIED WORKLOG REPORT</span>
+                <span class="badge">MILESTONE {milestone_num} VERIFIED PROGRESS REPORT</span>
                 <h1>{draft.title}</h1>
-                <p style="margin: 0; color: #64748b; font-size: 11.5px;">FreelanceFlow Verified Progress Document • Contract #{contract.id}</p>
+                <p style="margin: 0; color: #64748b; font-size: 11.5px;">FreelanceFlow Verified Progress Document • Contract #{contract.id} • Bid #{contract.bid.id}</p>
             </div>
 
             <table class="meta-table">
@@ -642,198 +700,55 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
             <p style="color: #334155; margin: 0 0 12px 0; font-size: 12px; line-height: 1.5;">{draft.section_next_steps}</p>
 
             <div class="footer">
-                <p class="disclaimer">* Note: This progress report was compiled by FreelanceFlow AI Worklog Assistant and verified by the freelancer.</p>
-                <p style="margin: 2px 0 0 0; color: #94a3b8; font-size: 9.5px;">Document ID: RPT-{draft.id}-{timezone.now().strftime('%Y%m%d%H%M')}</p>
+                <p style="margin: 0; font-weight: 500;">FreelanceFlow • Milestone Verified Progress Audit</p>
+                <p class="disclaimer">Document verified and generated by FreelanceFlow AI Worklog Assistant for Milestone {milestone_num}.</p>
             </div>
         </body>
         </html>
         """
 
-        # Generate PDF bytes via WeasyPrint or FPDF2 fallback
-        pdf_bytes = None
+        # Generate PDF bytes via WeasyPrint, fallback to fpdf2
         try:
             from weasyprint import HTML
             pdf_bytes = HTML(string=html_content).write_pdf()
         except Exception as e:
-            logger.warning("WeasyPrint error, falling back to fpdf2: %s", e)
+            logger.warning("WeasyPrint compilation failed, falling back to clean fpdf2: %s", e)
             try:
                 from fpdf import FPDF
-                
-                def clean_pdf_text(text) -> str:
-                    if not text:
-                        return ""
-                    text_str = str(text)
-                    replacements = {
-                        "\u2011": "-",  # Non-breaking hyphen
-                        "\u2013": "-",  # En dash
-                        "\u2014": "--", # Em dash
-                        "\u2018": "'",  # Smart left single quote
-                        "\u2019": "'",  # Smart right single quote
-                        "\u201c": '"',  # Smart left double quote
-                        "\u201d": '"',  # Smart right double quote
-                        "\u2022": "*",  # Bullet point
-                        "\u2026": "...",# Ellipsis
-                        "\u2027": "-",  # Hyphenation point
-                        "\u2010": "-",  # Hyphen
-                    }
-                    for k, v in replacements.items():
-                        text_str = text_str.replace(k, v)
-                    return text_str.encode("latin-1", errors="replace").decode("latin-1")
-                
-                class ReportPDF(FPDF):
-                    def header(self):
-                        self.set_font("Helvetica", "B", 13)
-                        self.set_text_color(15, 23, 42)  # Solid Black
-                        self.cell(0, 7, "FREELANCEFLOW PROGRESS REPORT", border=0, ln=1, align="L")
-                        self.set_font("Helvetica", "", 9)
-                        self.set_text_color(71, 85, 105)  # Slate
-                        self.cell(0, 5, "Verified Contract Progress & Delivery Summary", border=0, ln=1, align="L")
-                        self.ln(2)
-                        y_line = self.get_y()
-                        self.set_draw_color(226, 232, 240)
-                        self.set_line_width(0.4)
-                        self.line(15, y_line, 195, y_line)
-                        self.ln(4)
-
-                    def footer(self):
-                        self.set_y(-18)
-                        self.set_draw_color(226, 232, 240)
-                        self.set_line_width(0.3)
-                        self.line(15, self.get_y(), 195, self.get_y())
-                        self.set_y(-14)
-                        self.set_font("Helvetica", "I", 8)
-                        self.set_text_color(100, 116, 139)
-                        self.cell(0, 5, f"* Note: Compiled by FreelanceFlow AI | Verified by Freelancer (Page {self.page_no()})", border=0, align="C")
-
-                pdf = ReportPDF()
-                pdf.set_auto_page_break(auto=True, margin=20)
-                pdf.set_margins(15, 15, 15)
+                pdf = FPDF(format='A4', unit='mm')
+                pdf.set_auto_page_break(auto=True, margin=15)
                 pdf.add_page()
 
-                # Metadata Info Card (Solid Black & Gray tones)
-                pdf.set_fill_color(248, 250, 252)
-                pdf.set_draw_color(226, 232, 240)
-                pdf.set_line_width(0.3)
+                def clean_pdf_text(t: str) -> str:
+                    if not t:
+                        return ""
+                    return (
+                        t.replace("\u2013", "-")
+                         .replace("\u2014", "--")
+                         .replace("\u2018", "'")
+                         .replace("\u2019", "'")
+                         .replace("\u201c", '"')
+                         .replace("\u201d", '"')
+                         .replace("\u2022", "*")
+                         .encode("latin-1", "replace")
+                         .decode("latin-1")
+                    )
 
-                # Card Top Row: Project Title
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 7, "Project Title:", border="LT", ln=0, fill=True)
-                pdf.set_font("Helvetica", "B", 9)
+                pdf.set_font("Helvetica", "B", 13)
                 pdf.set_text_color(15, 23, 42)
-                pdf.cell(148, 7, clean_pdf_text(project.title), border="TR", ln=1, fill=True)
-
-                # Card Middle Row: Client & Freelancer
-                pdf.set_font("Helvetica", "B", 9)
+                pdf.cell(0, 7, clean_pdf_text(f"MILESTONE {milestone_num} PROGRESS REPORT"), ln=1)
+                pdf.set_font("Helvetica", "", 10)
                 pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 6, "Client:", border="L", ln=0, fill=True)
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(15, 23, 42)
-                pdf.cell(58, 6, clean_pdf_text(client.get_full_name() or client.email), border=0, ln=0, fill=True)
-
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 6, "Freelancer:", border=0, ln=0, fill=True)
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(15, 23, 42)
-                pdf.cell(58, 6, clean_pdf_text(freelancer.get_full_name() or freelancer.email), border="R", ln=1, fill=True)
-
-                # Card Bottom Row: Hours & Date
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 6, "Hours Logged:", border="LB", ln=0, fill=True)
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(15, 23, 42)
-                pdf.cell(58, 6, f"{draft.hours_worked} hrs", border="B", ln=0, fill=True)
-
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(71, 85, 105)
-                pdf.cell(32, 6, "Date Generated:", border="B", ln=0, fill=True)
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(15, 23, 42)
-                pdf.cell(58, 6, timezone.now().strftime('%B %d, %Y'), border="RB", ln=1, fill=True)
-
-                pdf.ln(5)
-
-                # ── Section 1: Executive Summary (Solid Black Heading) ──
-                pdf.set_x(15)
-                pdf.set_font("Helvetica", "B", 10.5)
-                pdf.set_text_color(15, 23, 42)  # Solid Black
-                pdf.cell(0, 6, "1. Executive Summary", ln=1)
-                pdf.set_draw_color(226, 232, 240)
-                pdf.set_line_width(0.3)
-                y_s1 = pdf.get_y()
-                pdf.line(15, y_s1, 195, y_s1)
-                pdf.ln(3)
-
-                pdf.set_x(15)
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(51, 65, 85)
-                pdf.multi_cell(180, 5, clean_pdf_text(draft.section_summary))
+                pdf.cell(0, 5, clean_pdf_text(f"Project: {project.title} | Contract #{contract.id}"), ln=1)
                 pdf.ln(4)
-
-                # ── Section 2: Deliverables Completed (Solid Black Heading) ──
-                pdf.set_x(15)
-                pdf.set_font("Helvetica", "B", 10.5)
-                pdf.set_text_color(15, 23, 42)  # Solid Black
-                pdf.cell(0, 6, "2. Deliverables & Milestones Completed", ln=1)
-                pdf.set_draw_color(226, 232, 240)
-                pdf.set_line_width(0.3)
-                y_s2 = pdf.get_y()
-                pdf.line(15, y_s2, 195, y_s2)
-                pdf.ln(3)
-
-                if not draft.section_deliverables:
-                    pdf.set_x(15)
-                    pdf.set_font("Helvetica", "I", 9)
-                    pdf.set_text_color(100, 116, 139)
-                    pdf.cell(0, 6, "No discrete deliverables listed for this period.", ln=1)
-                else:
-                    for d in draft.section_deliverables:
-                        if isinstance(d, dict):
-                            d_title = clean_pdf_text(d.get('title', 'Deliverable'))
-                            d_status = clean_pdf_text(d.get('status', 'COMPLETED'))
-                            d_desc = clean_pdf_text(d.get('description', ''))
-
-                            # Item title in bold black
-                            pdf.set_x(15)
-                            pdf.set_font("Helvetica", "B", 9)
-                            pdf.set_text_color(15, 23, 42)
-                            pdf.cell(0, 5, f"* {d_title}  [{d_status}]", ln=1)
-
-                            # Description on cleanly indented line below
-                            if d_desc:
-                                pdf.set_x(20)
-                                pdf.set_font("Helvetica", "", 8.5)
-                                pdf.set_text_color(71, 85, 105)
-                                pdf.multi_cell(170, 4.5, d_desc)
-                            pdf.ln(2)
-
-                pdf.ln(3)
-
-                # ── Section 3: Next Steps & Priorities (Solid Black Heading) ──
-                pdf.set_x(15)
-                pdf.set_font("Helvetica", "B", 10.5)
-                pdf.set_text_color(15, 23, 42)  # Solid Black
-                pdf.cell(0, 6, "3. Next Steps & Upcoming Priorities", ln=1)
-                pdf.set_draw_color(226, 232, 240)
-                pdf.set_line_width(0.3)
-                y_s3 = pdf.get_y()
-                pdf.line(15, y_s3, 195, y_s3)
-                pdf.ln(3)
-
-                pdf.set_x(15)
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(51, 65, 85)
-                pdf.multi_cell(180, 5, clean_pdf_text(draft.section_next_steps))
-
                 pdf_bytes = bytes(pdf.output())
             except Exception as e_fallback:
                 logger.error("fpdf2 fallback generation failed: %s", e_fallback)
                 pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
 
-
-        blob_name = f"reports/{contract.id}/report_{draft.id}_{timezone.now().strftime('%Y%m%d')}.pdf"
+        # Descriptive blob name: milestone_{num}_{slug}_contract_{id}_bid_{id}.pdf
+        clean_proj_slug = re.sub(r'[^a-zA-Z0-9_-]', '_', project.title.lower())[:25].strip('_')
+        blob_name = f"reports/{contract.id}/milestone_{milestone_num}_{clean_proj_slug}_contract_{contract.id}_bid_{contract.bid.id}.pdf"
         sas_url = upload_to_azure_blob(pdf_bytes, blob_name)
 
         # Mark draft as APPROVED and attach URL
@@ -842,8 +757,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         draft.pdf_url = sas_url
         draft.save(update_fields=["status", "approved_at", "pdf_url", "updated_at"])
 
-        # ── ISOLATION FIX: Close the conversation so the next milestone
-        # gets a fresh chat session and doesn't inherit this milestone's history.
+        # ── ISOLATION: Close the conversation so the next milestone gets a fresh session
         try:
             conv = draft.conversation
             if conv and conv.is_active:
@@ -852,7 +766,7 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         except Exception as ce:
             logger.warning("Failed to close AI conversation after approval: %s", ce)
 
-        # Also mirror to WeeklyReport for backward compatibility
+        # Mirror to WeeklyReport for backward compatibility
         week_start = date.today() - timedelta(days=date.today().weekday())
         weekly_report, created = WeeklyReport.objects.update_or_create(
             contract=contract,
@@ -866,21 +780,8 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         )
 
         # Update active milestone to SUBMITTED
-        active_milestone = None
-        try:
-            from apps.payments.models.models_milestone import PaymentMilestone
-            active_milestone = PaymentMilestone.objects.filter(
-                contract=contract,
-                status=PaymentMilestone.Status.IN_PROGRESS
-            ).order_by('order', 'created_at').first()
-
-            if not active_milestone:
-                active_milestone = PaymentMilestone.objects.filter(
-                    contract=contract,
-                    status__in=[PaymentMilestone.Status.IN_PROGRESS, PaymentMilestone.Status.PENDING]
-                ).order_by('order', 'created_at').first()
-
-            if active_milestone:
+        if active_milestone:
+            try:
                 active_milestone.status = PaymentMilestone.Status.SUBMITTED
                 active_milestone.deliverable_description = f"{draft.title} | Link: {sas_url}"
                 active_milestone.submitted_at = timezone.now()
@@ -892,10 +793,10 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
                     "milestone_submitted",
                     {"milestone_id": active_milestone.id, "new_status": PaymentMilestone.Status.SUBMITTED, "pdf_url": sas_url},
                 )
-        except Exception as me:
-            logger.warning("Failed to auto-submit active milestone on AI draft approval: %s", me)
+            except Exception as me:
+                logger.warning("Failed to auto-submit active milestone on AI draft approval: %s", me)
 
-        # Mirror to Deliverable model — use valid fields only (Deliverable has no milestone_id column)
+        # Mirror to Deliverable model
         try:
             from apps.worklogs.models import Deliverable
             Deliverable.objects.update_or_create(
@@ -918,16 +819,17 @@ async def pdf_builder(state: AIWorklogState) -> AIWorklogState:
         try:
             notify_client_new_report.delay(weekly_report.id)
         except Exception as ne:
-            logger.warning("Failed to enqueue notify_client_new_report: %s", ne)
+            logger.warning("Failed to queue client notification: %s", ne)
 
         return sas_url, None
 
     sas_url, err = await sync_to_async(_compile_and_upload)()
     if err:
         state["error"] = err
+        state["pdf_url"] = None
     else:
         state["pdf_url"] = sas_url
-        state["llm_response"] = f"✅ Your progress report has been approved and compiled into an official PDF! [Download PDF Report]({sas_url})"
+        state["llm_response"] = f"✅ Your milestone progress report has been approved and compiled into an official PDF! [Download PDF Report]({sas_url})"
 
     return state
 
@@ -979,6 +881,7 @@ async def run_ai_worklog_agent(
     action: str = "chat",
     conversation_id: Optional[int] = None,
     draft_id: Optional[int] = None,
+    milestone_id: Optional[int] = None,
     history: Optional[List[Dict]] = None
 ) -> Dict[str, Any]:
     """
@@ -992,6 +895,7 @@ async def run_ai_worklog_agent(
         "conversation_history": history or [],
         "action": action,
         "draft_id": draft_id,
+        "milestone_id": milestone_id,
         "postgres_context": {},
         "qdrant_context": [],
         "llm_response": "",

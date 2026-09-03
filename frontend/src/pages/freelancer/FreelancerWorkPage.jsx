@@ -350,7 +350,7 @@ const FreelancerWorkPage = () => {
     setSending(true)
 
     try {
-      const res = await aiWorklogAPI.sendChatMessage(contractId, text, conversationId)
+      const res = await aiWorklogAPI.sendChatMessage(contractId, text, conversationId, activeMilestoneId)
       const data = res.data
 
       setWorkspaceMap(prev => ({
@@ -396,7 +396,7 @@ const FreelancerWorkPage = () => {
     const targetDraftId = draftIdToApprove || activeDraft?.id
     setApproving(true)
     try {
-      const res = await aiWorklogAPI.approveDraft(contractId, targetDraftId)
+      const res = await aiWorklogAPI.approveDraft(contractId, targetDraftId, activeMilestoneId)
       const data = res.data || {}
       const compiledPdf = data.pdf_url
 

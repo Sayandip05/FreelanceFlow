@@ -245,9 +245,10 @@ export default function ClientLayout() {
     setShowPrivacy(true)
   }
 
-  // Persistent sidebar collapse state (only toggled on click)
+  // Persistent sidebar collapse state & hover-to-expand
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true')
-  const isExpanded = !collapsed
+  const [hovered, setHovered] = useState(false)
+  const isExpanded = !collapsed || hovered
 
   const toggleSidebar = () => {
     setCollapsed(prev => {
@@ -259,8 +260,10 @@ export default function ClientLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 w-full">
-      {/* ── Sidebar (Fixed height, never scrolls) ── */}
+      {/* ── Sidebar (Expands automatically on hover, collapses on mouse leave) ── */}
       <aside
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         className={`${isExpanded ? 'w-64' : 'w-20'} bg-white border-r border-gray-100 h-full flex-shrink-0 flex flex-col justify-between z-30 transition-all duration-300 ease-in-out select-none`}
       >
         <div className="flex flex-col flex-1 min-h-0">
