@@ -33,10 +33,12 @@ export type UseOtpInputOptions = {
   length?: number;
   mode?: OtpMode;
   defaultValue?: string;
+  value?: string;
   disabled?: boolean;
   onChange?: (value: string) => void;
   onComplete?: (value: string) => void;
 };
+
 
 export type OtpCellProps = {
   ref: (el: HTMLInputElement | null) => void;
@@ -70,6 +72,7 @@ export function useOtpInput({
   length = 6,
   mode = "numeric",
   defaultValue = "",
+  value: controlledValue,
   disabled = false,
   onChange,
   onComplete,
@@ -86,7 +89,8 @@ export function useOtpInput({
   );
 
   const [chars, setChars] = useState<string[]>(() => {
-    const seed = defaultValue
+    const source = controlledValue !== undefined ? controlledValue : defaultValue;
+    const seed = source
       .split("")
       .filter((c) => ALLOW[mode].test(c))
       .slice(0, length);
@@ -105,6 +109,19 @@ export function useOtpInput({
   completed.current = onComplete;
 
   useEffect(() => {
+    if (controlledValue !== undefined) {
+      const seed = controlledValue
+        .split("")
+        .filter((c) => ALLOW[mode].test(c))
+        .slice(0, length);
+      const next = Array.from({ length }, (_, i) => seed[i] ?? "");
+      charsRef.current = next;
+      setChars(next);
+    }
+  }, [controlledValue, length, mode]);
+
+
+  useEffect(() => {
     setChars((prev) =>
       prev.length === length
         ? prev
@@ -112,6 +129,7 @@ export function useOtpInput({
     );
     refs.current.length = length;
   }, [length]);
+
 
   const commit = useCallback((next: string[]) => {
     charsRef.current = next;
@@ -289,6 +307,7 @@ export type OtpInputProps = {
   length?: number;
   mode?: OtpMode;
   defaultValue?: string;
+  value?: string;
   onChange?: (value: string) => void;
   onComplete?: (value: string) => void;
   status?: OtpStatus;
@@ -308,6 +327,7 @@ export function OtpInput({
   length = 6,
   mode = "numeric",
   defaultValue = "",
+  value,
   onChange,
   onComplete,
   status = "idle",
@@ -329,6 +349,7 @@ export function OtpInput({
     length,
     mode,
     defaultValue,
+    value,
     disabled,
     onChange,
     onComplete,
@@ -337,6 +358,13 @@ export function OtpInput({
   const wasError = useRef(false);
   const error = status === "error";
   const success = status === "success";
+
+  const [shakeKey, setShakeKey] = useState(0);
+  useEffect(() => {
+    if (status === "error") {
+      setShakeKey((k) => k + 1);
+    }
+  }, [status, errorMessage]);
 
   useImperativeHandle(
     ref,
@@ -366,21 +394,31 @@ export function OtpInput({
 
   const message = error ? errorMessage : success ? successMessage : hint;
   const messageTone = error
-    ? "text-red-600 dark:text-red-400"
+    ? "text-red-600 font-semibold"
     : success
-      ? "text-emerald-600 dark:text-emerald-400"
-      : "text-stone-500 dark:text-stone-400";
+      ? "text-emerald-600 font-semibold"
+      : "text-stone-500";
 
   return (
     <div className={`inline-flex flex-col ${className}`}>
       <motion.div
+        key={shakeKey}
         role="group"
         aria-label={label}
         className="relative flex gap-2"
         initial={false}
-        variants={{ idle: { x: 0 }, wrong: { x: [0, -5, 4, -3, 0] } }}
-        animate={error && !reduced ? "wrong" : "idle"}
-        transition={{ duration: 0.32, ease: EASE }}
+        variants={{
+          idle: { x: 0, scale: 1 },
+          wrong: {
+            x: [0, -12, 12, -9, 9, -5, 5, 0],
+            transition: { duration: 0.45, ease: EASE },
+          },
+          correct: {
+            scale: [1, 1.06, 1],
+            transition: { duration: 0.35, ease: EASE },
+          },
+        }}
+        animate={error && !reduced ? "wrong" : success && !reduced ? "correct" : "idle"}
       >
         {Array.from({ length }, (_, i) => {
           const char = chars[i] ?? "";
@@ -396,9 +434,9 @@ export function OtpInput({
                 aria-describedby={hasStatus ? statusId : undefined}
                 className={`h-12 w-10 rounded-[10px] border-2 text-center text-[15px] text-transparent caret-transparent outline-none transition-[background-color,border-color,box-shadow] duration-150 selection:bg-transparent focus-visible:outline-none disabled:opacity-50 ${
                   error
-                    ? "border-red-500 bg-white"
+                    ? "border-red-500 bg-red-50/90 ring-2 ring-red-500/25 shadow-xs"
                     : success
-                      ? "border-emerald-500 bg-white"
+                      ? "border-emerald-500 bg-emerald-50/90 ring-2 ring-emerald-500/25 shadow-xs"
                       : active
                         ? "border-blue-600 bg-white ring-2 ring-blue-500/20 shadow-xs"
                         : char
@@ -406,6 +444,7 @@ export function OtpInput({
                           : "border-gray-200 bg-white hover:border-gray-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]"
                 }`}
               />
+
 
               <span
                 aria-hidden
@@ -442,8 +481,15 @@ export function OtpInput({
                             }
                       }
                       transition={enter}
-                      className="col-start-1 row-start-1 font-mono text-[16px] font-bold tabular-nums text-gray-900"
+                      className={`col-start-1 row-start-1 font-mono text-[16px] font-bold tabular-nums transition-colors duration-150 ${
+                        error
+                          ? "text-red-600"
+                          : success
+                            ? "text-emerald-600"
+                            : "text-gray-900"
+                      }`}
                     >
+
                       {char}
                     </motion.span>
                   ) : null}

@@ -20,6 +20,7 @@ export default function OtpVerificationModal({
 
   // Sub-step for password reset: 'otp' | 'password'
   const [resetStep, setResetStep] = useState('otp')
+  const [status, setStatus] = useState('idle') // 'idle' | 'error' | 'success'
 
   // Password reset specific fields
   const [newPassword, setNewPassword] = useState('')
@@ -32,6 +33,7 @@ export default function OtpVerificationModal({
     setCountdown(initialCooldown)
     setOtp('')
     setError('')
+    setStatus('idle')
     setSuccessNotice('')
     setNewPassword('')
     setConfirmPassword('')
@@ -52,6 +54,7 @@ export default function OtpVerificationModal({
     if (countdown > 0 || resendLoading) return
     setResendLoading(true)
     setError('')
+    setStatus('idle')
     setSuccessNotice('')
 
     try {
@@ -65,6 +68,7 @@ export default function OtpVerificationModal({
       setOtp('')
     } catch (err) {
       const data = err.response?.data
+      setStatus('error')
       setError(data?.detail || data?.error || 'Failed to resend code. Please try again.')
     } finally {
       setResendLoading(false)
@@ -75,6 +79,7 @@ export default function OtpVerificationModal({
   const handleOtpSubmit = async (e) => {
     if (e) e.preventDefault()
     if (!otp || otp.length !== 6) {
+      setStatus('error')
       setError('Please enter the full 6-digit code.')
       return
     }
@@ -86,26 +91,35 @@ export default function OtpVerificationModal({
     try {
       if (flow === 'registration') {
         const resp = await authAPI.verifyRegisterOtp(email, otp)
+        setStatus('success')
         const { tokens, user } = resp.data
         if (tokens?.access) {
           localStorage.setItem('access_token', tokens.access)
           localStorage.setItem('refresh_token', tokens.refresh)
         }
-        if (onSuccess) onSuccess({ user, tokens })
+        setTimeout(() => {
+          if (onSuccess) onSuccess({ user, tokens })
+        }, 600)
       } else {
         // Validate password reset OTP first before revealing new password inputs
         await authAPI.validatePasswordResetOtp(email, otp)
-        setResetStep('password')
-        setError('')
+        setStatus('success')
+        setTimeout(() => {
+          setStatus('idle')
+          setResetStep('password')
+          setError('')
+        }, 600)
       }
     } catch (err) {
+      setStatus('error')
       const data = err.response?.data
-      const msg = data?.detail || data?.error || (typeof data === 'string' ? data : 'Verification failed. Please check the code and try again.')
+      const msg = data?.detail || data?.error || (typeof data === 'string' ? data : 'Invalid OTP code. Please check and try again.')
       setError(msg)
     } finally {
       setLoading(false)
     }
   }
+
 
   // Handle Step 2 Password Reset Submission
   const handlePasswordSubmit = async (e) => {
@@ -193,12 +207,16 @@ export default function OtpVerificationModal({
                 value={otp}
                 onChange={(val) => {
                   setOtp(val)
+                  if (status !== 'idle') setStatus('idle')
                   if (error) setError('')
                 }}
                 length={6}
                 disabled={loading}
+                status={status}
+                errorMessage={error}
               />
             </div>
+
 
             {/* Verify Button */}
             <button

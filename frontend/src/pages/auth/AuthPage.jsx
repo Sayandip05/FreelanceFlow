@@ -203,13 +203,14 @@ export default function AuthPage() {
         {/* Visual Background */}
         <div className="absolute inset-0">
           <img
-            src="/images/sign up banner.jpg"
+            src="/images/sign up banner.png"
             alt="FreelanceFlow Visual"
             className="w-full h-full object-cover object-top"
             onError={(e) => {
               e.target.src = "/images/home image.png"
             }}
           />
+
         </div>
       </div>
 
