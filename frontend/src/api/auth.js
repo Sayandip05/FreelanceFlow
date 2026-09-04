@@ -1,7 +1,7 @@
 import api from './axiosConfig'
 
 export const authAPI = {
-  // Register new user
+  // Register new user (legacy direct)
   register: (email, password, role, firstName, lastName) =>
     api.post('/users/register/', {
       email,
@@ -10,6 +10,36 @@ export const authAPI = {
       first_name: firstName,
       last_name: lastName
     }),
+
+  // OTP Registration
+  initiateRegisterOtp: (email, password, role, firstName, lastName) =>
+    api.post('/users/register/otp/', {
+      email,
+      password,
+      role,
+      first_name: firstName,
+      last_name: lastName,
+    }),
+
+  verifyRegisterOtp: (email, otp) =>
+    api.post('/users/register/verify-otp/', { email, otp }),
+
+  resendRegisterOtp: (email) =>
+    api.post('/users/register/resend-otp/', { email }),
+
+  // OTP Password Reset
+  initiatePasswordResetOtp: (email) =>
+    api.post('/users/password-reset/otp/', { email }),
+
+  verifyPasswordResetOtp: (email, otp, newPassword) =>
+    api.post('/users/password-reset/verify-otp/', {
+      email,
+      otp,
+      new_password: newPassword,
+    }),
+
+  resendPasswordResetOtp: (email) =>
+    api.post('/users/password-reset/resend-otp/', { email }),
 
   // Login user
   login: (email, password) =>
@@ -42,9 +72,9 @@ export const authAPI = {
       image_type: imageType,
       filename: imageFile.name,
     })
-    
+
     const { upload_url, public_url } = tokenRes.data
-    
+
     // 2. Direct Cloud Upload: PUT directly to Azure Blob Storage
     const axios = (await import('axios')).default
     await axios.put(upload_url, imageFile, {
@@ -54,7 +84,7 @@ export const authAPI = {
       },
       onUploadProgress,
     })
-    
+
     // 3. Update profile with the Azure public URL
     let userRes
     if (imageType === 'avatar') {
@@ -62,7 +92,7 @@ export const authAPI = {
     } else {
       userRes = await api.post('/users/banner/', { banner_url: public_url })
     }
-    
+
     return {
       data: {
         url: public_url,

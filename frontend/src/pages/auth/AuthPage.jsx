@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axiosConfig'
+import { authAPI } from '../../api/auth'
+import OtpVerificationModal from '../../components/auth/OtpVerificationModal'
 
 export default function AuthPage() {
   const navigate = useNavigate()
@@ -28,6 +30,18 @@ export default function AuthPage() {
   })
   const [googleLoading, setGoogleLoading] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // OTP Verification Modal State
+  const [otpModalOpen, setOtpModalOpen] = useState(false)
+  const [otpFlow, setOtpFlow] = useState('registration')
+  const [otpEmail, setOtpEmail] = useState('')
+  const [otpCooldown, setOtpCooldown] = useState(30)
+
+  // Forgot Password Modal State
+  const [forgotModalOpen, setForgotModalOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotNotice, setForgotNotice] = useState('')
 
   // Login Form State
   const [loginForm, setLoginForm] = useState({
@@ -106,7 +120,7 @@ export default function AuthPage() {
     }
   }
 
-  /* ── Email/Password Register ──────────────────────────────────────────── */
+  /* ── Email/Password Register (Initiate OTP) ─────────────────────────── */
   const handleRegisterSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -125,24 +139,17 @@ export default function AuthPage() {
 
     setLoading(true)
     try {
-      await api.post('/users/register/', {
-        email: regForm.email,
-        password: regForm.password,
-        password_confirm: regForm.confirmPassword,
-        role: regForm.role,
-        first_name: regForm.firstName,
-        last_name: regForm.lastName,
-      })
-
-      // Auto-login after registration
-      try {
-        const user = await login(regForm.email, regForm.password)
-        navigate(user?.role === 'CLIENT' ? '/client/onboarding' : '/freelancer/onboarding')
-      } catch {
-        setTab('login')
-        setLoginForm({ email: regForm.email, password: '', rememberMe: false })
-        setError('')
-      }
+      const resp = await authAPI.initiateRegisterOtp(
+        regForm.email,
+        regForm.password,
+        regForm.role,
+        regForm.firstName,
+        regForm.lastName
+      )
+      setOtpEmail(regForm.email)
+      setOtpFlow('registration')
+      setOtpCooldown(resp.data?.cooldown || 30)
+      setOtpModalOpen(true)
     } catch (err) {
       const data = err.response?.data
       let msg = 'Registration failed. Please try again.'
@@ -155,6 +162,28 @@ export default function AuthPage() {
       setLoading(false)
     }
   }
+
+  /* ── Forgot Password Request (Initiate OTP) ──────────────────────────── */
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault()
+    if (!forgotEmail) return
+    setForgotLoading(true)
+    setError('')
+    try {
+      const resp = await authAPI.initiatePasswordResetOtp(forgotEmail)
+      setForgotModalOpen(false)
+      setOtpEmail(forgotEmail)
+      setOtpFlow('password_reset')
+      setOtpCooldown(resp.data?.cooldown || 30)
+      setOtpModalOpen(true)
+    } catch (err) {
+      const data = err.response?.data
+      setError(data?.email || data?.detail || data?.error || 'Failed to send password reset code. Please check the email.')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex">
@@ -234,6 +263,14 @@ export default function AuthPage() {
             <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5 text-sm text-red-700">
               <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
               <p className="leading-snug">{error}</p>
+            </div>
+          )}
+
+          {/* Forgot Password Success Notice */}
+          {forgotNotice && (
+            <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-5 text-sm text-green-700">
+              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+              <p className="leading-snug">{forgotNotice}</p>
             </div>
           )}
 
@@ -334,11 +371,16 @@ export default function AuthPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => alert('Password reset link will be sent to your email.')}
+                  onClick={() => {
+                    setForgotModalOpen(true)
+                    setForgotEmail(loginForm.email)
+                    setError('')
+                  }}
                   className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
                 >
                   Forgot password?
                 </button>
+
               </div>
 
               {/* Submit Button */}
@@ -488,6 +530,68 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Forgot Password Request Modal ── */}
+      {forgotModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 sm:p-8 text-gray-900">
+            <button
+              type="button"
+              onClick={() => setForgotModalOpen(false)}
+              className="absolute top-5 right-5 p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 rotate-180" />
+            </button>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Forgot Password</h2>
+            <p className="text-sm text-gray-500 mb-5">
+              Enter your registered email address and we'll send you a 6-digit verification code to reset your password.
+            </p>
+            <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm shadow-2xs"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={forgotLoading || !forgotEmail}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 px-4 rounded-xl font-bold text-sm transition-all shadow-md active:scale-98"
+              >
+                {forgotLoading ? 'Sending OTP...' : 'Send Reset Code'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── OTP Verification Modal ── */}
+      <OtpVerificationModal
+        isOpen={otpModalOpen}
+        onClose={() => setOtpModalOpen(false)}
+        email={otpEmail}
+        flow={otpFlow}
+        initialCooldown={otpCooldown}
+        onSuccess={(data) => {
+          setOtpModalOpen(false)
+          if (otpFlow === 'registration') {
+            const user = data.user
+            navigate(user?.role === 'CLIENT' ? '/client/onboarding' : '/freelancer/onboarding')
+          } else {
+            setForgotNotice('Password reset successfully! Please sign in with your new password.')
+            setTab('login')
+            setLoginForm((prev) => ({ ...prev, email: otpEmail }))
+          }
+        }}
+      />
     </div>
   )
 }
+

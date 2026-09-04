@@ -1,5 +1,5 @@
-import { Navigate } from 'react-router-dom'
+import AuthPage from './AuthPage'
 
-const RegisterPage = () => <Navigate to="/login" replace />
+const RegisterPage = () => <AuthPage />
 
 export default RegisterPage
