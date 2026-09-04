@@ -5,7 +5,6 @@ Coverage:
 - create_user: happy path, duplicate email, missing email, invalid role, weak password
 - change_password: correct old password, wrong old password, weak new password
 - update_profile: freelancer fields, client fields
-- update_subscription_tier: valid tier, invalid tier, client calling it raises error
 - toggle_freelancer_availability: on/off, client raises error
 - deactivate_account / reactivate_account: full soft-delete lifecycle
 """
@@ -17,7 +16,6 @@ from apps.users.services import (
     create_user,
     change_password,
     update_profile,
-    update_subscription_tier,
     toggle_freelancer_availability,
     deactivate_account,
     reactivate_account,
@@ -132,30 +130,6 @@ class UpdateProfileServiceTest(TestCase):
         # email should NOT change
         self.assertNotEqual(freelancer.email, "hacker@test.com")
 
-
-class UpdateSubscriptionTierServiceTest(TestCase):
-
-    def test_upgrade_freelancer_to_pro(self):
-        freelancer = make_freelancer()
-        profile = update_subscription_tier(freelancer, FreelancerProfile.SubscriptionTier.PRO)
-        self.assertEqual(profile.subscription_tier, "PRO")
-
-    def test_downgrade_freelancer_to_free(self):
-        freelancer = make_freelancer()
-        update_subscription_tier(freelancer, "PRO")
-        profile = update_subscription_tier(freelancer, FreelancerProfile.SubscriptionTier.FREE)
-        self.assertEqual(profile.subscription_tier, "FREE")
-
-    def test_raises_if_caller_is_client(self):
-        client = make_client()
-        with self.assertRaises(BusinessError):
-            update_subscription_tier(client, "PRO")
-
-    def test_raises_on_invalid_tier(self):
-        freelancer = make_freelancer()
-        with self.assertRaises(ValidationError) as ctx:
-            update_subscription_tier(freelancer, "ENTERPRISE")
-        self.assertEqual(ctx.exception.field, "tier")
 
 
 class ToggleAvailabilityServiceTest(TestCase):

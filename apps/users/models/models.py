@@ -73,12 +73,8 @@ class User(AbstractUser):
 
 class FreelancerProfile(models.Model):
     """
-    Profile for freelancers with skills, rates, and subscription info.
+    Profile for freelancers with skills, rates, and portfolio details.
     """
-    class SubscriptionTier(models.TextChoices):
-        FREE = "FREE", "Free"
-        PRO = "PRO", "Pro"
-    
     user = models.OneToOneField(
         "users.User", 
         on_delete=models.CASCADE, 
@@ -91,11 +87,6 @@ class FreelancerProfile(models.Model):
         decimal_places=2, 
         null=True, 
         blank=True
-    )
-    subscription_tier = models.CharField(
-        max_length=10,
-        choices=SubscriptionTier.choices,
-        default=SubscriptionTier.FREE
     )
     total_earned = models.DecimalField(
         max_digits=15, 
@@ -167,8 +158,8 @@ class FreelancerProfile(models.Model):
         db_table = "freelancer_profiles"
         indexes = [
             models.Index(
-                fields=['subscription_tier', '-average_rating'],
-                name='freelancer_tier_rating_idx'
+                fields=['-average_rating'],
+                name='freelancer_rating_idx'
             ),
             models.Index(
                 fields=['-total_earned'],

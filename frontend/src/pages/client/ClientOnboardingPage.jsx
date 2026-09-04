@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Building2, MapPin, Briefcase, User, Globe, Users,
@@ -49,27 +49,45 @@ const StepBar = ({ current, total }) => (
 /* ── Main ─────────────────────────────────────────────────────────────────── */
 const ClientOnboardingPage = () => {
   const navigate = useNavigate()
-  const { setUser } = useAuth()
+  const { user, setUser, fetchUser } = useAuth()
 
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   // Step 1 — Personal
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [city, setCity] = useState('')
-  const [country, setCountry] = useState('')
+  const [firstName, setFirstName] = useState(user?.first_name || '')
+  const [lastName, setLastName] = useState(user?.last_name || '')
+  const [city, setCity] = useState(user?.client_profile?.city || '')
+  const [country, setCountry] = useState(user?.client_profile?.country || '')
 
   // Step 2 — Company
-  const [companyName, setCompanyName] = useState('')
-  const [companySize, setCompanySize] = useState('')
-  const [industry, setIndustry] = useState('')
-  const [website, setWebsite] = useState('')
+  const [companyName, setCompanyName] = useState(user?.client_profile?.company_name || '')
+  const [companySize, setCompanySize] = useState(user?.client_profile?.company_size || '')
+  const [industry, setIndustry] = useState(user?.client_profile?.industry || '')
+  const [website, setWebsite] = useState(user?.client_profile?.website || '')
 
   // Step 3 — Background / Hiring intent
   const [hiringFor, setHiringFor] = useState([])
-  const [bio, setBio] = useState('')
+  const [bio, setBio] = useState(user?.client_profile?.bio || '')
+
+  // Sync state when user object loads or updates
+  useEffect(() => {
+    if (user) {
+      if (user.first_name && !firstName) setFirstName(user.first_name)
+      if (user.last_name && !lastName) setLastName(user.last_name)
+      const cp = user.client_profile || {}
+      if (cp.city && !city) setCity(cp.city)
+      if (cp.country && !country) setCountry(cp.country)
+      if (cp.company_name && !companyName) setCompanyName(cp.company_name)
+      if (cp.company_size && !companySize) setCompanySize(cp.company_size)
+      if (cp.industry && !industry) setIndustry(cp.industry)
+      if (cp.website && !website) setWebsite(cp.website)
+      if (cp.bio && !bio) setBio(cp.bio)
+    } else if (fetchUser) {
+      fetchUser()
+    }
+  }, [user, fetchUser])
 
   const canStep1 = firstName.trim() && city.trim() && country.trim()
   const canStep2 = companySize && industry

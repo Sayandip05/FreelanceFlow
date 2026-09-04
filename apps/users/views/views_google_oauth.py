@@ -153,6 +153,23 @@ class GoogleOAuthCallbackView(APIView):
         # ── Step 3: Check existence / Get or create local User ─────────────────
         user = User.objects.filter(email=email).first()
 
+        # Extract name and profile details safely
+        first_name = (user_info.get("given_name") or "").strip()
+        last_name = (user_info.get("family_name") or "").strip()
+        full_name = (user_info.get("name") or "").strip()
+        picture = (user_info.get("picture") or "").strip()
+        email_verified = bool(user_info.get("email_verified", True))
+
+        if not first_name and full_name:
+            parts = full_name.split(" ", 1)
+            first_name = parts[0].strip()
+            last_name = parts[1].strip() if len(parts) > 1 else ""
+        elif not last_name and full_name and (" " in full_name):
+            parts = full_name.split(" ", 1)
+            if first_name == full_name:
+                first_name = parts[0].strip()
+                last_name = parts[1].strip()
+
         # If user is trying to LOG IN, but no account exists in DB:
         if mode == "login" and not user:
             logger.info("Google OAuth login attempted for uncreated account: %s", email)
@@ -169,19 +186,52 @@ class GoogleOAuthCallbackView(APIView):
                 with transaction.atomic():
                     user = User.objects.create(
                         email=email,
-                        first_name=user_info.get("given_name", ""),
-                        last_name=user_info.get("family_name", ""),
+                        first_name=first_name,
+                        last_name=last_name,
                         role=role,
                         is_active=True,
+                        is_email_verified=email_verified,
                     )
                     user.set_unusable_password()
-                    user.save(update_fields=["password"])
-                    logger.info("New user registered via Google OAuth: %s (role=%s)", email, role)
+                    user.save(update_fields=["password", "is_email_verified"])
+
+                    # Save avatar if present
+                    if picture:
+                        if role == "CLIENT" and hasattr(user, "client_profile"):
+                            user.client_profile.avatar = picture
+                            user.client_profile.save(update_fields=["avatar"])
+                        elif role == "FREELANCER" and hasattr(user, "freelancer_profile"):
+                            user.freelancer_profile.avatar = picture
+                            user.freelancer_profile.save(update_fields=["avatar"])
+
+                    logger.info("New user registered via Google OAuth: %s (role=%s, name=%s %s)", email, role, first_name, last_name)
             except Exception as exc:
                 logger.error("User creation failed for %s: %s", email, exc)
                 return HttpResponseRedirect(f"{frontend_callback}?error=user_creation_failed")
         else:
-            logger.info("Existing user authenticated via Google OAuth: %s", email)
+            # Backfill first_name, last_name, email_verified, and avatar if missing
+            updated_fields = []
+            if not user.first_name and first_name:
+                user.first_name = first_name
+                updated_fields.append("first_name")
+            if not user.last_name and last_name:
+                user.last_name = last_name
+                updated_fields.append("last_name")
+            if not user.is_email_verified and email_verified:
+                user.is_email_verified = True
+                updated_fields.append("is_email_verified")
+            if updated_fields:
+                user.save(update_fields=updated_fields)
+
+            if picture:
+                if user.role == "CLIENT" and hasattr(user, "client_profile") and not user.client_profile.avatar:
+                    user.client_profile.avatar = picture
+                    user.client_profile.save(update_fields=["avatar"])
+                elif user.role == "FREELANCER" and hasattr(user, "freelancer_profile") and not user.freelancer_profile.avatar:
+                    user.freelancer_profile.avatar = picture
+                    user.freelancer_profile.save(update_fields=["avatar"])
+
+            logger.info("Existing user authenticated via Google OAuth: %s (name=%s %s)", email, user.first_name, user.last_name)
 
         # ── Step 4: Issue JWT tokens ──────────────────────────────────────────
         refresh = RefreshToken.for_user(user)

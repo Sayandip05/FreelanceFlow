@@ -133,33 +133,6 @@ def update_profile(user: User, data: dict) -> User:
         return user
 
 
-def update_subscription_tier(user: User, tier: str) -> FreelancerProfile:
-    """
-    Update freelancer's subscription tier.
-    
-    Args:
-        user: Freelancer user
-        tier: Either 'FREE' or 'PRO'
-    
-    Returns:
-        Updated FreelancerProfile
-    """
-    if user.role != User.Roles.FREELANCER:
-        raise BusinessError("Only freelancers can have subscription tiers.")
-    
-    if tier not in [FreelancerProfile.SubscriptionTier.FREE, FreelancerProfile.SubscriptionTier.PRO]:
-        raise ValidationError("Invalid subscription tier.", field="tier")
-    
-    profile = user.freelancer_profile
-    old_tier = profile.subscription_tier
-    profile.subscription_tier = tier
-    profile.save()
-
-    logger.info(
-        "Subscription tier updated: user_id=%s %s -> %s",
-        user.id, old_tier, tier,
-    )
-    return profile
 
 
 def change_password(user: User, old_password: str, new_password: str) -> User:

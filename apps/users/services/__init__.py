@@ -2,7 +2,6 @@ from django.core.mail import send_mail  # re-exported so tests can patch apps.us
 from .services import (
     create_user,
     update_profile,
-    update_subscription_tier,
     change_password,
     send_password_reset_email,
     reset_password,

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   MapPin, Wrench, IndianRupee, Globe, Briefcase,
@@ -48,6 +48,24 @@ export default function FreelancerOnboardingPage() {
   const [uploadingBanner, setUploadingBanner] = useState(false)
   const avatarInputRef = useRef(null)
   const bannerInputRef = useRef(null)
+
+  useEffect(() => {
+    if (user?.freelancer_profile) {
+      const p = user.freelancer_profile
+      if (p.city && !city) setCity(p.city)
+      if (p.country && !country) setCountry(p.country)
+      if (p.address && !address) setAddress(p.address)
+      if (p.skills && p.skills.length > 0 && skills.length === 0) setSkills(p.skills)
+      if (p.hourly_rate && !hourlyRate) setHourlyRate(p.hourly_rate)
+      if (p.bio && !bio) setBio(p.bio)
+      if (p.portfolio_website && !portfolioWebsite) setPortfolioWebsite(p.portfolio_website)
+      if (p.experience_level && !experienceLevel) setExperienceLevel(p.experience_level)
+      if (p.avatar && !avatarPreview) setAvatarPreview(p.avatar)
+      if (p.banner_image && !bannerPreview) setBannerPreview(p.banner_image)
+    } else if (fetchUser) {
+      fetchUser()
+    }
+  }, [user, fetchUser])
 
   // Toggle skill selection
   const toggleSkill = (skillName) => {

@@ -80,9 +80,6 @@ class FreelancerProfileModelTest(TestCase):
     def test_str(self):
         self.assertEqual(str(self.profile), "Freelancer: fl@test.com")
 
-    def test_default_subscription_tier_is_free(self):
-        self.assertEqual(self.profile.subscription_tier, FreelancerProfile.SubscriptionTier.FREE)
-
     def test_default_is_available_true(self):
         self.assertTrue(self.profile.is_available)
 
