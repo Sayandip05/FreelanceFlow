@@ -57,4 +57,8 @@ urlpatterns = [
     path("<int:pk>/", UserDetailView.as_view(), name="user-detail"),
     path("<int:pk>/presence/", UserPresenceView.as_view(), name="user-presence"),
 ]
+
+from apps.users.urls.urls_otp import otp_urlpatterns
+urlpatterns += otp_urlpatterns
+
  

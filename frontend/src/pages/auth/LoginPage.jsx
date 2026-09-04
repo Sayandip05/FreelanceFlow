@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
-import { Briefcase, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Briefcase, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axiosConfig'
+import { authAPI } from '../../api/auth'
+import OtpVerificationModal from '../../components/auth/OtpVerificationModal'
+
 
 /* ── Google "G" SVG Logo ──────────────────────────────────────────────────── */
 const GoogleIcon = () => (
@@ -25,12 +28,40 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+
+  // Forgot password & OTP states
+  const [forgotModalOpen, setForgotModalOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotNotice, setForgotNotice] = useState('')
+  const [otpModalOpen, setOtpModalOpen] = useState(false)
+  const [otpCooldown, setOtpCooldown] = useState(30)
+
   const [error, setError] = useState(() => {
     const err = searchParams.get('error')
     if (err === 'oauth_failed') return 'Google sign-in failed. Please try again.'
     if (err === 'no_token') return 'Authentication error. Please try again.'
     return ''
   })
+
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault()
+    if (!forgotEmail) return
+    setForgotLoading(true)
+    setError('')
+    try {
+      const resp = await authAPI.initiatePasswordResetOtp(forgotEmail)
+      setForgotModalOpen(false)
+      setOtpCooldown(resp.data?.cooldown || 30)
+      setOtpModalOpen(true)
+    } catch (err) {
+      const data = err.response?.data
+      setError(data?.email || data?.detail || data?.error || 'Failed to send password reset code. Please check the email.')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
 
   // Role comes from the landing page link e.g. /login?role=CLIENT
   const role = (searchParams.get('role') || 'CLIENT').toUpperCase()
@@ -91,6 +122,14 @@ const LoginPage = () => {
             <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {/* Success banner */}
+          {forgotNotice && (
+            <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-6">
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-700">{forgotNotice}</p>
             </div>
           )}
 
@@ -180,9 +219,17 @@ const LoginPage = () => {
                 <label className="block text-sm font-medium text-gray-700" htmlFor="login-password">
                   Password
                 </label>
-                <a href="#" className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotModalOpen(true)
+                    setForgotEmail(form.email)
+                    setError('')
+                  }}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -242,10 +289,66 @@ const LoginPage = () => {
         </p>
       </div>
 
+      {/* ── Forgot Password Request Modal ── */}
+      {forgotModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 sm:p-8 text-gray-900">
+            <button
+              type="button"
+              onClick={() => setForgotModalOpen(false)}
+              className="absolute top-5 right-5 p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 rotate-180" />
+            </button>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Forgot Password</h2>
+            <p className="text-sm text-gray-500 mb-5">
+              Enter your registered email address and we'll send you a 6-digit verification code to reset your password.
+            </p>
+            <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-sm shadow-2xs"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={forgotLoading || !forgotEmail}
+                className="w-full btn-primary py-3 px-4 rounded-xl font-bold text-sm transition-all shadow-md active:scale-98"
+              >
+                {forgotLoading ? 'Sending OTP...' : 'Send Reset Code'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── OTP Verification Modal ── */}
+      <OtpVerificationModal
+        isOpen={otpModalOpen}
+        onClose={() => setOtpModalOpen(false)}
+        email={forgotEmail}
+        flow="password_reset"
+        initialCooldown={otpCooldown}
+        onSuccess={() => {
+          setOtpModalOpen(false)
+          setForgotNotice('Password reset successfully! Please sign in with your new password.')
+          setForm((prev) => ({ ...prev, email: forgotEmail, password: '' }))
+        }}
+      />
+
       {/* Keyframe for spinner (only needed if Tailwind animate-spin isn't available inline) */}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
+
 
 export default LoginPage
