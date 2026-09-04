@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Briefcase, FileText, IndianRupee, Clock, Plus, ArrowRight,
   User, Edit3, Building2, MapPin, Globe, Users, Sparkles,
-  CheckCircle, AlertCircle, Image as ImageIcon, Upload, MessageSquare, CreditCard, Star
+  CheckCircle, AlertCircle, Upload
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { projectsAPI } from '../../api/projects'
@@ -52,13 +52,10 @@ export default function ClientOverviewPage() {
   const [country, setCountry] = useState(profile.country || '')
   const [bio, setBio] = useState(profile.bio || '')
 
-  // Avatar & Banner State
+  // Avatar / Logo State
   const [avatarFile, setAvatarFile] = useState(null)
-  const [bannerFile, setBannerFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || null)
-  const [bannerPreview, setBannerPreview] = useState(profile.banner_image || null)
   const avatarInputRef = useRef(null)
-  const bannerInputRef = useRef(null)
   const formSectionRef = useRef(null)
 
   // Feedback State
@@ -80,7 +77,6 @@ export default function ClientOverviewPage() {
       setCountry(p.country || '')
       setBio(p.bio || '')
       setAvatarPreview(p.avatar || null)
-      setBannerPreview(p.banner_image || null)
     }
   }, [user])
 
@@ -117,7 +113,7 @@ export default function ClientOverviewPage() {
     .filter(p => p.status === 'ESCROWED')
     .reduce((s, p) => s + parseFloat(p.total_amount || 0), 0)
 
-  const recentProjects = projects.slice(0, 4)
+  const recentProjects = projects.slice(0, 5)
 
   const toggleIndustry = (ind) => {
     if (!isEditing) return
@@ -155,9 +151,7 @@ export default function ClientOverviewPage() {
       setCountry(p.country || '')
       setBio(p.bio || '')
       setAvatarFile(null)
-      setBannerFile(null)
       setAvatarPreview(p.avatar || null)
-      setBannerPreview(p.banner_image || null)
       setSaveError('')
     }
   }
@@ -192,17 +186,7 @@ export default function ClientOverviewPage() {
         }
       }
 
-      // 2. Upload Banner if selected
-      if (bannerFile) {
-        try {
-          const res = await usersAPI.uploadImage(bannerFile, 'banner')
-          if (res?.data?.user) setUser(res.data.user)
-        } catch (imgErr) {
-          console.warn('Banner upload warning:', imgErr)
-        }
-      }
-
-      // 3. Update Profile Details
+      // 2. Update Profile Details
       let formattedWebsite = website.trim()
       if (formattedWebsite && !formattedWebsite.startsWith('http://') && !formattedWebsite.startsWith('https://')) {
         formattedWebsite = `https://${formattedWebsite}`
@@ -229,7 +213,6 @@ export default function ClientOverviewPage() {
 
       setSaveSuccess('Company profile saved successfully!')
       setAvatarFile(null)
-      setBannerFile(null)
       setIsEditing(false)
 
       setTimeout(() => {
@@ -407,59 +390,14 @@ export default function ClientOverviewPage() {
         )}
 
         <form onSubmit={handleSaveProfile} className="space-y-8">
-          {/* 1. Visual Branding (Banner & Logo/Avatar) */}
+          {/* 1. Visual Branding (Logo/Avatar Only) */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-primary-500" /> Visual Branding
+              <Sparkles className="w-3.5 h-3.5 text-primary-500" /> Company Avatar & Logo
             </h3>
 
-            {/* Banner Upload Box */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Cover Banner</label>
-              <div
-                onClick={() => {
-                  if (isEditing) bannerInputRef.current?.click()
-                }}
-                className={`relative w-full h-32 sm:h-36 bg-gray-50 border-2 rounded-2xl overflow-hidden transition-all flex items-center justify-center shadow-inner ${
-                  isEditing
-                    ? 'border-dashed border-gray-300 hover:border-primary-400 cursor-pointer group'
-                    : 'border-solid border-gray-100 cursor-default'
-                }`}
-              >
-                {bannerPreview ? (
-                  <img src={bannerPreview} alt="Cover Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-1.5 text-gray-400 p-4 text-center">
-                    <ImageIcon className="w-7 h-7 text-gray-300" />
-                    <span className="text-xs font-medium">
-                      {isEditing ? 'Click to upload cover banner (1200×300 recommended)' : 'No cover banner uploaded'}
-                    </span>
-                  </div>
-                )}
-                {isEditing && (
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-semibold text-xs">
-                    <Upload className="w-4 h-4" /> Change Banner Image
-                  </div>
-                )}
-              </div>
-              <input
-                ref={bannerInputRef}
-                type="file"
-                accept="image/*"
-                disabled={!isEditing}
-                className="hidden"
-                onChange={e => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    setBannerFile(file)
-                    setBannerPreview(URL.createObjectURL(file))
-                  }
-                }}
-              />
-            </div>
-
             {/* Avatar / Logo Upload */}
-            <div className="flex items-center gap-5 pt-2">
+            <div className="flex items-center gap-5 pt-1">
               <div
                 onClick={() => {
                   if (isEditing) avatarInputRef.current?.click()
@@ -783,46 +721,48 @@ export default function ClientOverviewPage() {
         </form>
       </div>
 
-      {/* ── Recent Projects & Quick Links Grid ────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Projects */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
+      {/* ── Recent Projects (Full Width) ────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-5">
+          <div>
             <h2 className="text-lg font-semibold text-gray-900">Recent Projects</h2>
-            <button
-              onClick={() => navigate('/client/projects')}
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
-            >
-              View all <ArrowRight className="w-4 h-4" />
+            <p className="text-xs text-gray-500 mt-0.5">Manage and view recent project postings and proposals</p>
+          </div>
+          <button
+            onClick={() => navigate('/client/projects')}
+            className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+          >
+            View all projects <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {loadingMetrics ? (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : recentProjects.length === 0 ? (
+          <div className="text-center py-12">
+            <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-600 mb-4">No projects posted yet</p>
+            <button onClick={() => navigate('/client/projects')} className="btn-primary text-sm">
+              Post Your First Project
             </button>
           </div>
-
-          {loadingMetrics ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : recentProjects.length === 0 ? (
-            <div className="text-center py-12">
-              <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-600 mb-4">No projects posted yet</p>
-              <button onClick={() => navigate('/client/projects')} className="btn-primary text-sm">
-                Post Your First Project
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentProjects.map((project) => (
-                <div
-                  key={project.id}
-                  onClick={() => navigate(`/client/projects/${project.id}`)}
-                  className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{project.title}</p>
-                    <p className="text-sm text-gray-500">Budget: {formatCurrency(project.budget)}</p>
-                  </div>
+        ) : (
+          <div className="space-y-3">
+            {recentProjects.map((project) => (
+              <div
+                key={project.id}
+                onClick={() => navigate(`/client/projects/${project.id}`)}
+                className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
+              >
+                <div>
+                  <p className="font-medium text-gray-900">{project.title}</p>
+                  <p className="text-sm text-gray-500">Budget: {formatCurrency(project.budget)}</p>
+                </div>
+                <div className="flex items-center gap-3">
                   <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                     project.status === 'OPEN' ? 'bg-green-100 text-green-700' :
                     project.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
@@ -830,48 +770,12 @@ export default function ClientOverviewPage() {
                   }`}>
                     {project.status}
                   </span>
+                  <ArrowRight className="w-4 h-4 text-gray-400" />
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Quick Links */}
-        <div className="space-y-4">
-          <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-6 text-white shadow-sm">
-            <Sparkles className="w-8 h-8 mb-3 opacity-80" />
-            <h3 className="font-semibold text-lg mb-1">Find Top Talent</h3>
-            <p className="text-primary-100 text-sm mb-4">Post a project and receive bids from skilled freelancers.</p>
-            <button
-              onClick={() => navigate('/client/projects')}
-              className="bg-white text-primary-600 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary-50 transition-colors w-full shadow-sm"
-            >
-              Post a Project
-            </button>
+              </div>
+            ))}
           </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-            <h3 className="font-semibold text-gray-900 mb-4">Quick Links</h3>
-            <div className="space-y-2">
-              {[
-                { icon: Briefcase, label: 'Manage Contracts', path: '/client/contracts', color: 'text-indigo-600' },
-                { icon: CreditCard, label: 'View Payments', path: '/client/payments', color: 'text-green-600' },
-                { icon: MessageSquare, label: 'My Messages', path: '/client/messages', color: 'text-blue-600' },
-                { icon: Star, label: 'Review Center', path: '/client/reviews', color: 'text-yellow-500' },
-              ].map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
-                >
-                  <item.icon className={`w-5 h-5 ${item.color}`} />
-                  <span className="text-sm font-medium text-gray-700">{item.label}</span>
-                  <ArrowRight className="w-4 h-4 text-gray-400 ml-auto" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
