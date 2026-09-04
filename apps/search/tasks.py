@@ -53,12 +53,9 @@ def delete_es_document_task(self, model_name: str, instance_id: int, label: str)
         if not document_cls:
             logger.error("No document class mapping found for model %s", model_name)
             return
-            
-        # Create a mock instance with just the pk
-        class MockInstance:
-            pk = instance_id
-            
-        document_cls().delete(MockInstance(), ignore=404)
+
+        # Correctly delete document by id in Elasticsearch without needing model instance
+        document_cls(meta={"id": instance_id}).delete(ignore=404)
         logger.info("Elasticsearch async delete successful for %s (pk=%s)", label, instance_id)
     except Exception as exc:
         logger.warning("Elasticsearch async delete failed for %s (pk=%s): %s", label, instance_id, exc)
