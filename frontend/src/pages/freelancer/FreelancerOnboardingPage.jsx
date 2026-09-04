@@ -97,8 +97,8 @@ export default function FreelancerOnboardingPage() {
     // Validate hourly rate
     if (hourlyRate !== '' && hourlyRate !== null) {
       const rateNum = parseFloat(hourlyRate)
-      if (isNaN(rateNum) || rateNum < 0 || rateNum > 1000) {
-        setError('Hourly rate must be between ₹0 and ₹1,000 / hr.')
+      if (isNaN(rateNum) || rateNum < 0 || rateNum > 100000) {
+        setError('Hourly rate must be between ₹0 and ₹1,00,000 / hr.')
         return
       }
     }
@@ -416,7 +416,7 @@ export default function FreelancerOnboardingPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
                   Hourly Rate (₹ / hour)
                 </label>
-                <span className="text-[11px] text-gray-400 font-medium">Max ₹1,000 / hr</span>
+                <span className="text-[11px] text-gray-400 font-medium">Max ₹1,00,000 / hr</span>
               </div>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-base">₹</span>
@@ -424,20 +424,38 @@ export default function FreelancerOnboardingPage() {
                   type="number"
                   step="0.01"
                   min="0"
-                  max="1000"
+                  max="100000"
                   value={hourlyRate}
                   onChange={e => setHourlyRate(e.target.value)}
-                  placeholder="e.g. 45.00"
+                  placeholder="e.g. 2500.00"
                   className={`w-full pl-9 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 text-sm bg-gray-50/40 focus:bg-white text-gray-900 font-medium ${
-                    parseFloat(hourlyRate) > 1000 || parseFloat(hourlyRate) < 0
+                    parseFloat(hourlyRate) > 100000 || parseFloat(hourlyRate) < 0
                       ? 'border-red-400 focus:ring-red-500'
                       : 'border-gray-200 focus:ring-gray-900'
                   }`}
                 />
               </div>
-              {parseFloat(hourlyRate) > 1000 && (
+              {/* Quick suggestion chips for INR rates */}
+              <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                <span className="text-[11px] text-gray-400 font-medium mr-1">Popular:</span>
+                {[1500, 2000, 3000, 5000, 7000, 10000].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setHourlyRate(amt.toString())}
+                    className={`text-xs px-2.5 py-1 rounded-lg border transition-all font-medium ${
+                      parseFloat(hourlyRate) === amt
+                        ? 'bg-gray-900 text-white border-gray-900 shadow-xs'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'
+                    }`}
+                  >
+                    ₹{amt.toLocaleString('en-IN')}
+                  </button>
+                ))}
+              </div>
+              {parseFloat(hourlyRate) > 100000 && (
                 <p className="text-red-600 text-xs mt-1.5 font-medium">
-                  Hourly rate cannot exceed ₹1,000 / hr.
+                  Hourly rate cannot exceed ₹1,00,000 / hr.
                 </p>
               )}
               {parseFloat(hourlyRate) < 0 && (
@@ -478,7 +496,7 @@ export default function FreelancerOnboardingPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={parseFloat(hourlyRate) > 1000 || parseFloat(hourlyRate) < 0}
+                  disabled={parseFloat(hourlyRate) > 100000 || parseFloat(hourlyRate) < 0}
                   onClick={() => setStep(4)}
                   className="bg-gray-900 hover:bg-black text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                 >

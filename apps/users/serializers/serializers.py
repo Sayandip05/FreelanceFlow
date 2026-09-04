@@ -151,9 +151,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
         min_value=0,
-        max_value=1000,
+        max_value=100000,
         error_messages={
-            "max_value": "Hourly rate cannot exceed ₹1,000 / hr.",
+            "max_value": "Hourly rate cannot exceed ₹1,00,000 / hr.",
             "min_value": "Hourly rate cannot be negative.",
         }
     )

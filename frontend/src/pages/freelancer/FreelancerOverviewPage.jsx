@@ -188,8 +188,8 @@ export default function FreelancerOverviewPage() {
     }
     if (hourlyRate !== '' && hourlyRate !== null) {
       const rateNum = parseFloat(hourlyRate)
-      if (isNaN(rateNum) || rateNum < 0 || rateNum > 1000) {
-        setSaveError('Hourly rate must be between ₹0 and ₹1,000 / hr.')
+      if (isNaN(rateNum) || rateNum < 0 || rateNum > 100000) {
+        setSaveError('Hourly rate must be between ₹0 and ₹1,00,000 / hr.')
         return
       }
     }
@@ -638,7 +638,7 @@ export default function FreelancerOverviewPage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-semibold text-gray-700">Hourly Rate (₹ / hr)</label>
-                  {isEditing && <span className="text-[10px] text-gray-400">Max ₹1,000 / hr</span>}
+                  {isEditing && <span className="text-[10px] text-gray-400">Max ₹1,00,000 / hr</span>}
                 </div>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">₹</span>
@@ -646,11 +646,11 @@ export default function FreelancerOverviewPage() {
                     type="number"
                     step="0.01"
                     min="0"
-                    max="1000"
+                    max="100000"
                     disabled={!isEditing}
                     value={hourlyRate}
                     onChange={e => setHourlyRate(e.target.value)}
-                    placeholder="45.00"
+                    placeholder="2500.00"
                     className={`w-full pl-8 pr-4 py-2 rounded-xl text-sm transition-all border ${
                       isEditing
                         ? 'border-gray-200 focus:ring-2 focus:ring-primary-500 bg-white'
