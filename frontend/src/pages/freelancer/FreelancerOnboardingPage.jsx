@@ -49,23 +49,46 @@ export default function FreelancerOnboardingPage() {
   const avatarInputRef = useRef(null)
   const bannerInputRef = useRef(null)
 
+  // Sync state whenever user in AuthContext updates
   useEffect(() => {
     if (user?.freelancer_profile) {
       const p = user.freelancer_profile
-      if (p.city && !city) setCity(p.city)
-      if (p.country && !country) setCountry(p.country)
-      if (p.address && !address) setAddress(p.address)
-      if (p.skills && p.skills.length > 0 && skills.length === 0) setSkills(p.skills)
-      if (p.hourly_rate && !hourlyRate) setHourlyRate(p.hourly_rate)
-      if (p.bio && !bio) setBio(p.bio)
-      if (p.portfolio_website && !portfolioWebsite) setPortfolioWebsite(p.portfolio_website)
-      if (p.experience_level && !experienceLevel) setExperienceLevel(p.experience_level)
-      if (p.avatar && !avatarPreview) setAvatarPreview(p.avatar)
-      if (p.banner_image && !bannerPreview) setBannerPreview(p.banner_image)
-    } else if (fetchUser) {
-      fetchUser()
+      if (p.city) setCity(prev => prev || p.city)
+      if (p.country) setCountry(prev => prev || p.country)
+      if (p.address) setAddress(prev => prev || p.address)
+      if (p.skills && p.skills.length > 0) setSkills(prev => prev.length > 0 ? prev : p.skills)
+      if (p.hourly_rate) setHourlyRate(prev => prev || p.hourly_rate)
+      if (p.bio) setBio(prev => prev || p.bio)
+      if (p.portfolio_website) setPortfolioWebsite(prev => prev || p.portfolio_website)
+      if (p.experience_level) setExperienceLevel(prev => prev !== 'Intermediate' ? prev : (p.experience_level || 'Intermediate'))
+      if (p.avatar || user.avatar) setAvatarPreview(prev => prev || p.avatar || user.avatar)
+      if (p.banner_image) setBannerPreview(prev => prev || p.banner_image)
     }
-  }, [user, fetchUser])
+  }, [user])
+
+  // Also fetch fresh profile on mount to guarantee fields are populated
+  useEffect(() => {
+    api.get('/users/me/')
+      .then(res => {
+        if (res.data) {
+          setUser(res.data)
+          const p = res.data.freelancer_profile || {}
+          if (p.city) setCity(prev => prev || p.city)
+          if (p.country) setCountry(prev => prev || p.country)
+          if (p.address) setAddress(prev => prev || p.address)
+          if (p.skills && p.skills.length > 0) setSkills(prev => prev.length > 0 ? prev : p.skills)
+          if (p.hourly_rate) setHourlyRate(prev => prev || p.hourly_rate)
+          if (p.bio) setBio(prev => prev || p.bio)
+          if (p.portfolio_website) setPortfolioWebsite(prev => prev || p.portfolio_website)
+          if (p.experience_level) setExperienceLevel(prev => prev !== 'Intermediate' ? prev : (p.experience_level || 'Intermediate'))
+          if (p.avatar || res.data.avatar) setAvatarPreview(prev => prev || p.avatar || res.data.avatar)
+          if (p.banner_image) setBannerPreview(prev => prev || p.banner_image)
+        }
+      })
+      .catch(err => {
+        console.warn('Could not fetch user profile in freelancer onboarding:', err)
+      })
+  }, [setUser])
 
   // Toggle skill selection
   const toggleSkill = (skillName) => {
