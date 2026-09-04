@@ -32,6 +32,10 @@ def manage_user_profile(sender, instance, created, **kwargs):
     the welcome email task after the transaction commits.
     Also ensures profile exists for existing users without triggering duplicate saves.
     """
+    if instance.is_superuser or instance.is_staff or instance.role == getattr(User.Roles, "ADMIN", "ADMIN"):
+        # Staff and superusers are platform administrators; do not attach freelancer or client profiles
+        return
+
     if instance.role == User.Roles.FREELANCER:
         FreelancerProfile.objects.get_or_create(user=instance)
     elif instance.role == User.Roles.CLIENT:

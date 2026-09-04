@@ -1,0 +1,45 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Deliverable Approved! - FreelanceFlow{% endblock %}
+
+{% block top_brow %}Milestone Completed • Approved{% endblock %}
+
+{% block header_title %}
+    Your deliverable was approved!
+{% endblock %}
+
+{% block header_subtitle %}
+    Great work! The client has approved your milestone deliverable and the payout has been initiated.
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ freelancer_name|default:"Freelancer" }},</div>
+    
+    <p class="paragraph">
+        Congratulations! The client has inspected and approved your submitted work.
+    </p>
+
+    <div class="info-card">
+        <div class="card-header">Milestone Status</div>
+        <div class="info-row">
+            <span class="info-label">Deliverable</span>
+            <span class="info-value">{{ deliverable_title }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Client Decision</span>
+            <span class="info-value" style="color: #16a34a; font-weight: 700;">Approved</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Payout Status</span>
+            <span class="info-value">Released from Escrow</span>
+        </div>
+    </div>
+
+    <div class="instruction-card">
+        To view your updated balance or start working on the next contract milestone, visit <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a>.
+    </div>
+
+    <div class="notice-box">
+        ⭐ <strong>Pro Tip:</strong> Maintaining high milestone approval rates boosts your freelancer search ranking across the marketplace.
+    </div>
+{% endblock %}

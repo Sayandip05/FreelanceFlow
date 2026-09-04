@@ -13,7 +13,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db import transaction
 from apps.projects.models import Project, ProjectSkill
-from apps.users.models import FreelancerProfile
+from apps.users.models import User, FreelancerProfile
 from apps.search.documents import ProjectDocument, FreelancerDocument
 from apps.search.tasks import update_es_document_task, delete_es_document_task
 logger = logging.getLogger(__name__)
@@ -94,3 +94,14 @@ def update_freelancer_document(sender, instance, **kwargs):
 def delete_freelancer_document(sender, instance, **kwargs):
     """Delete freelancer document from Elasticsearch when a profile is deleted."""
     _es_delete("FreelancerProfile", instance.id, label="FreelancerProfile")
+
+
+@receiver(post_save, sender=User)
+def update_freelancer_document_on_user_change(sender, instance, **kwargs):
+    """Sync Elasticsearch when a user's details or deactivation status changes."""
+    if instance.role == User.Roles.FREELANCER and hasattr(instance, "freelancer_profile"):
+        profile = instance.freelancer_profile
+        if instance.is_deactivated or not instance.is_active:
+            _es_delete("FreelancerProfile", profile.id, label="FreelancerProfile (deactivated/inactive)")
+        else:
+            _es_update("FreelancerProfile", "users", profile.id, label="FreelancerProfile (user updated)")

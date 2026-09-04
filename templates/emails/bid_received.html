@@ -1,0 +1,45 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}New Proposal Received - FreelanceFlow{% endblock %}
+
+{% block top_brow %}New Proposal • Project Notification{% endblock %}
+
+{% block header_title %}
+    New proposal received.
+{% endblock %}
+
+{% block header_subtitle %}
+    A freelancer has submitted a new bid on your project with their proposed timeline and rate.
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ client_name|default:"Client" }},</div>
+    
+    <p class="paragraph">
+        Great news! A new proposal has just arrived for your project on FreelanceFlow.
+    </p>
+
+    <div class="info-card">
+        <div class="card-header">Proposal Details</div>
+        <div class="info-row">
+            <span class="info-label">Project Title</span>
+            <span class="info-value">{{ project_title }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Freelancer</span>
+            <span class="info-value">{{ freelancer_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Status</span>
+            <span class="info-value" style="color: #01579B;">Pending Review</span>
+        </div>
+    </div>
+
+    <div class="instruction-card">
+        To review their proposal cover letter, portfolio, and milestones, please log in to your dashboard at <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a>.
+    </div>
+
+    <div class="notice-box">
+        💡 <strong>Tip:</strong> You can interview the freelancer using direct in-app messaging before accepting their bid or funding the escrow.
+    </div>
+{% endblock %}

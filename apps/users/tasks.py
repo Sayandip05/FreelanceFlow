@@ -1,5 +1,7 @@
 from celery import shared_task
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from django.conf import settings
 from .models import User
 
@@ -7,31 +9,30 @@ from .models import User
 @shared_task
 def send_welcome_email_task(user_id: int):
     """
-    Send welcome email to newly registered user.
+    Send beautiful responsive HTML welcome email to newly registered user.
     """
     try:
         user = User.objects.get(id=user_id)
+        action_url = f"{settings.FRONTEND_URL}/freelancer/onboarding" if user.role == User.Roles.FREELANCER else f"{settings.FRONTEND_URL}/client/onboarding"
         
-        subject = "Welcome to FreelanceFlow!"
-        message = f"""
-        Hi {user.first_name or user.email},
-
-        Welcome to FreelanceFlow! We're excited to have you on board.
-
-        {'As a freelancer, you can now browse projects and start bidding on opportunities that match your skills.' if user.role == User.Roles.FREELANCER else 'As a client, you can now post projects and find talented freelancers to bring your ideas to life.'}
-
-        Get started by completing your profile and exploring the platform.
-
-        Best regards,
-        The FreelanceFlow Team
-        """
+        context = {
+            "user_name": user.first_name or user.email.split("@")[0],
+            "is_freelancer": user.role == User.Roles.FREELANCER,
+            "action_url": action_url,
+            "frontend_url": settings.FRONTEND_URL,
+        }
         
-        send_mail(
+        subject = "Welcome to FreelanceFlow! ⚡"
+        html_content = render_to_string("emails/welcome_email.html", context)
+        text_content = strip_tags(html_content)
+        
+        email = EmailMultiAlternatives(
             subject=subject,
-            message=message,
+            body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True,
+            to=[user.email],
         )
+        email.attach_alternative(html_content, "text/html")
+        email.send(fail_silently=True)
     except User.DoesNotExist:
         pass

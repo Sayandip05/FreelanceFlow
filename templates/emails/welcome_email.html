@@ -1,0 +1,80 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Welcome to FreelanceFlow!{% endblock %}
+
+{% block top_brow %}Welcome Onboard • FreelanceFlow Community{% endblock %}
+
+{% block header_title %}
+    Welcome to FreelanceFlow.
+{% endblock %}
+
+{% block header_subtitle %}
+    We are thrilled to have you join our marketplace community. Here is everything you need to know to get started.
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ user_name }},</div>
+
+    {% if is_freelancer %}
+    <p class="paragraph">
+        As a <strong>Freelancer</strong> on FreelanceFlow, you have direct access to high-impact client projects, guaranteed milestone escrow payments in Indian Rupees (₹), and AI-generated weekly work summaries.
+    </p>
+
+    <!-- 2-Column Grid inspired by reference design -->
+    <div class="grid-2">
+        <div class="grid-card">
+            <div class="grid-title">Complete Profile</div>
+            <div class="grid-desc">Add your bio, hourly rate, and top skills to stand out in client searches.</div>
+        </div>
+        <div class="grid-card">
+            <div class="grid-title">Showcase Work</div>
+            <div class="grid-desc">Link your portfolio and highlight past client success stories.</div>
+        </div>
+        <div class="grid-card">
+            <div class="grid-title">Bid on Projects</div>
+            <div class="grid-desc">Submit competitive, detailed proposals on open client listings.</div>
+        </div>
+        <div class="grid-card">
+            <div class="grid-title">Escrow Protected</div>
+            <div class="grid-desc">Work with confidence knowing every milestone is funded upfront.</div>
+        </div>
+    </div>
+
+    <div class="instruction-card">
+        To start exploring, visit <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a> and log in to your dashboard.
+    </div>
+
+    {% else %}
+    <p class="paragraph">
+        As a <strong>Client</strong> on FreelanceFlow, you have access to vetted freelancers, milestone escrow protection, and automated AI contract oversight to keep your projects on schedule and on budget.
+    </p>
+
+    <div class="grid-2">
+        <div class="grid-card">
+            <div class="grid-title">Post Projects</div>
+            <div class="grid-desc">Define your project requirements, deliverables, and milestone budget.</div>
+        </div>
+        <div class="grid-card">
+            <div class="grid-title">Vetted Proposals</div>
+            <div class="grid-desc">Review incoming bids, freelancer portfolios, and client ratings.</div>
+        </div>
+        <div class="grid-card">
+            <div class="grid-title">Milestone Escrow</div>
+            <div class="grid-desc">Fund milestones securely via Razorpay with complete control.</div>
+        </div>
+        <div class="grid-card">
+            <div class="grid-title">AI Worklogs</div>
+            <div class="grid-desc">Receive automated weekly progress digests of actual hours logged.</div>
+        </div>
+    </div>
+
+    <div class="instruction-card">
+        To post your first project, visit <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a> and log in to your account.
+    </div>
+    {% endif %}
+
+    <div class="notice-box">
+        🔒 <strong>Escrow Guarantee:</strong> Funds remain securely held in escrow and are only released when you review and approve completed deliverables.
+    </div>
+{% endblock %}
+

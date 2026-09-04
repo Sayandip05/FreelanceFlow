@@ -1,0 +1,51 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Contract Notice - FreelanceFlow{% endblock %}
+
+{% block top_brow %}Contract Alert • Dispute & Cancellation{% endblock %}
+
+{% block header_title %}
+    Contract cancellation notice.
+{% endblock %}
+
+{% block header_subtitle %}
+    An early termination request has been formally submitted for project "{{ project_title }}".
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ recipient_name|default:"User" }},</div>
+    
+    <p class="paragraph">
+        This notification is to inform you that <strong>{{ requester_name }}</strong> has submitted a request to cancel the project contract.
+    </p>
+
+    <div class="info-card">
+        <div class="card-header">Contract Record</div>
+        <div class="info-row">
+            <span class="info-label">Project</span>
+            <span class="info-value">{{ project_title }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Requested By</span>
+            <span class="info-value">{{ requester_name }}</span>
+        </div>
+        {% if reason %}
+        <div class="info-row">
+            <span class="info-label">Stated Reason</span>
+            <span class="info-value" style="font-weight: 500; color: #475569;">{{ reason }}</span>
+        </div>
+        {% endif %}
+        <div class="info-row">
+            <span class="info-label">Escrow Status</span>
+            <span class="info-value">Protected</span>
+        </div>
+    </div>
+
+    <div class="instruction-card">
+        Please log in to your account at <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a> to review the termination details, address unfinished deliverables, or respond to the counter-party.
+    </div>
+
+    <div class="notice-box">
+        ⚖️ <strong>Dispute Resolution:</strong> If you disagree with this cancellation, our support mediation team is available to help resolve any escrow allocations.
+    </div>
+{% endblock %}

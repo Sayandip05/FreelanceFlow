@@ -1,0 +1,45 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Deliverable Submitted for Review - FreelanceFlow{% endblock %}
+
+{% block top_brow %}Milestone Deliverable • Client Review{% endblock %}
+
+{% block header_title %}
+    Work submitted for review.
+{% endblock %}
+
+{% block header_subtitle %}
+    {{ freelancer_name }} has submitted completed work and deliverables for your inspection.
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ client_name|default:"Client" }},</div>
+    
+    <p class="paragraph">
+        Your freelancer has submitted milestone files and work logs for your project.
+    </p>
+
+    <div class="info-card">
+        <div class="card-header">Submission Overview</div>
+        <div class="info-row">
+            <span class="info-label">Deliverable</span>
+            <span class="info-value">{{ deliverable_title }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Freelancer</span>
+            <span class="info-value">{{ freelancer_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Review Status</span>
+            <span class="info-value" style="color: #01579B;">Pending Client Approval</span>
+        </div>
+    </div>
+
+    <div class="instruction-card">
+        To inspect the uploaded files, view AI worklogs, or request revisions, please log in to your dashboard at <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a>.
+    </div>
+
+    <div class="notice-box">
+        🔒 <strong>Escrow Protected:</strong> Funds remain securely held in escrow until you verify the deliverable meets your exact project requirements.
+    </div>
+{% endblock %}

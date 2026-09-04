@@ -1,0 +1,30 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Verify Your Email Address{% endblock %}
+
+{% block top_brow %}Security Verification • FreelanceFlow{% endblock %}
+
+{% block header_title %}
+    Verify your email address.
+{% endblock %}
+
+{% block header_subtitle %}
+    Please verify your email address to complete your registration and securely activate your FreelanceFlow account.
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ user_name }},</div>
+    
+    <p class="paragraph">
+        Thank you for joining FreelanceFlow. To ensure the security of our platform and confirm your identity, please use the secure verification link below:
+    </p>
+
+    <div class="instruction-card">
+        <div style="font-size: 13px; color: #64748b; margin-bottom: 8px;">Your Verification Link:</div>
+        <a href="{{ verification_url }}" style="color: #01579B; font-weight: 600; font-size: 14px; word-break: break-all; text-decoration: underline;">{{ verification_url }}</a>
+    </div>
+
+    <div class="notice-box">
+        ⏳ <strong>Time Sensitive:</strong> This verification link will safely expire in <strong>24 hours</strong>. If you did not create an account on FreelanceFlow, you can disregard this message.
+    </div>
+{% endblock %}

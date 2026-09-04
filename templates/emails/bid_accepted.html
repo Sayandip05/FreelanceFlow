@@ -1,0 +1,45 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Proposal Accepted! - FreelanceFlow{% endblock %}
+
+{% block top_brow %}Contract Milestone • Congratulations{% endblock %}
+
+{% block header_title %}
+    Your proposal was accepted!
+{% endblock %}
+
+{% block header_subtitle %}
+    Congratulations! The client has selected your bid and drafted the project contract.
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ freelancer_name|default:"Freelancer" }},</div>
+    
+    <p class="paragraph">
+        Fantastic news! Your proposal for <strong>{{ project_title }}</strong> has been officially accepted by the client.
+    </p>
+
+    <div class="info-card">
+        <div class="card-header">Contract Overview</div>
+        <div class="info-row">
+            <span class="info-label">Project</span>
+            <span class="info-value">{{ project_title }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Contract Status</span>
+            <span class="info-value" style="color: #16a34a;">Proposal Created</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Escrow</span>
+            <span class="info-value">Protected (Razorpay ₹)</span>
+        </div>
+    </div>
+
+    <div class="instruction-card">
+        Please log in to your account at <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a> to review the milestone details and collaborate with the client in the project workroom.
+    </div>
+
+    <div class="notice-box">
+        🔒 <strong>Escrow Protection:</strong> Always wait until the client funds the first milestone before beginning work.
+    </div>
+{% endblock %}
