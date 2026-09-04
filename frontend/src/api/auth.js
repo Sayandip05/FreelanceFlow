@@ -31,12 +31,16 @@ export const authAPI = {
   initiatePasswordResetOtp: (email) =>
     api.post('/users/password-reset/otp/', { email }),
 
+  validatePasswordResetOtp: (email, otp) =>
+    api.post('/users/password-reset/validate-otp/', { email, otp }),
+
   verifyPasswordResetOtp: (email, otp, newPassword) =>
     api.post('/users/password-reset/verify-otp/', {
       email,
       otp,
       new_password: newPassword,
     }),
+
 
   resendPasswordResetOtp: (email) =>
     api.post('/users/password-reset/resend-otp/', { email }),

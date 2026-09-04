@@ -396,14 +396,14 @@ export function OtpInput({
                 aria-describedby={hasStatus ? statusId : undefined}
                 className={`h-12 w-10 rounded-[10px] border-2 text-center text-[15px] text-transparent caret-transparent outline-none transition-[background-color,border-color,box-shadow] duration-150 selection:bg-transparent focus-visible:outline-none disabled:opacity-50 ${
                   error
-                    ? "border-red-500 bg-white dark:border-red-400 dark:bg-[#252522]"
+                    ? "border-red-500 bg-white"
                     : success
-                      ? "border-emerald-500 bg-white dark:border-emerald-400 dark:bg-[#252522]"
+                      ? "border-emerald-500 bg-white"
                       : active
-                        ? "border-[#4568FF] bg-white dark:border-[#93B0FF] dark:bg-[#252522]"
+                        ? "border-blue-600 bg-white ring-2 ring-blue-500/20 shadow-xs"
                         : char
-                          ? "border-stone-300 bg-white dark:border-white/20 dark:bg-[#252522]"
-                          : "border-stone-200 bg-stone-100/70 shadow-[inset_0_1px_2px_rgba(28,25,23,0.07)] dark:border-white/[0.08] dark:bg-[#1D1D1A] dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.45)]"
+                          ? "border-gray-400 bg-white"
+                          : "border-gray-200 bg-white hover:border-gray-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]"
                 }`}
               />
 
@@ -442,7 +442,7 @@ export function OtpInput({
                             }
                       }
                       transition={enter}
-                      className="col-start-1 row-start-1 font-mono text-[15px] tabular-nums text-stone-700 dark:text-stone-200"
+                      className="col-start-1 row-start-1 font-mono text-[16px] font-bold tabular-nums text-gray-900"
                     >
                       {char}
                     </motion.span>
@@ -451,7 +451,7 @@ export function OtpInput({
 
                 {active && !char && !disabled ? (
                   <motion.span
-                    className="col-start-1 row-start-1 block h-[17px] w-[1.5px] rounded-[1px] bg-stone-700 dark:bg-stone-200"
+                    className="col-start-1 row-start-1 block h-[18px] w-[2px] rounded-[1px] bg-blue-600"
                     initial={{ opacity: 1 }}
                     animate={
                       reduced ? { opacity: 1 } : { opacity: [1, 1, 0, 0] }
