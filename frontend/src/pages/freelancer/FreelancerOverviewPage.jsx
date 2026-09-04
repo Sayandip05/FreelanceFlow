@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import {
   Search, FileText, Briefcase, IndianRupee,
   Clock, CheckCircle, ArrowRight, User, Edit3, MapPin, Wrench, Globe,
-  Camera, Image as ImageIcon, Upload, Sparkles, AlertCircle, RefreshCw, X, ExternalLink
+  Camera, Image as ImageIcon, Upload, Sparkles, AlertCircle, RefreshCw, X, ExternalLink, Star
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { bidsAPI, contractsAPI } from '../../api/bids'
+import { bidsAPI, contractsAPI, reviewsAPI } from '../../api/bids'
 import { paymentsAPI } from '../../api/payments'
 import { usersAPI } from '../../api/auth'
 import { DashboardSkeleton } from '../../components/common/Skeleton'
@@ -25,6 +25,7 @@ export default function FreelancerOverviewPage() {
   const [bids, setBids] = useState([])
   const [contracts, setContracts] = useState([])
   const [payments, setPayments] = useState([])
+  const [reviews, setReviews] = useState([])
   const [loadingMetrics, setLoadingMetrics] = useState(true)
 
   // Edit Mode Toggle
@@ -84,10 +85,11 @@ export default function FreelancerOverviewPage() {
   const fetchDashboardData = async () => {
     setLoadingMetrics(true)
     try {
-      const [bidsRes, contractsRes, paymentsRes] = await Promise.allSettled([
+      const [bidsRes, contractsRes, paymentsRes, reviewsRes] = await Promise.allSettled([
         bidsAPI.getMyBids(),
         contractsAPI.getContracts(),
         paymentsAPI.getPayments(),
+        reviewsAPI.getReceived(),
       ])
       if (bidsRes.status === 'fulfilled') {
         const d = bidsRes.value.data
@@ -100,6 +102,10 @@ export default function FreelancerOverviewPage() {
       if (paymentsRes.status === 'fulfilled') {
         const d = paymentsRes.value.data
         setPayments(Array.isArray(d) ? d : (d?.results || []))
+      }
+      if (reviewsRes.status === 'fulfilled') {
+        const d = reviewsRes.value.data
+        setReviews(Array.isArray(d) ? d : (d?.results || []))
       }
     } catch (e) {
       console.error('Error fetching metrics:', e)
@@ -287,11 +293,17 @@ export default function FreelancerOverviewPage() {
       {/* ── Page Header ────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-            Freelancer Dashboard
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+              Freelancer Dashboard
+            </h1>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold shadow-2xs">
+              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+              {profile.average_rating ? parseFloat(profile.average_rating).toFixed(1) : (reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '5.0')} ({profile.total_reviews ?? reviews.length} {(profile.total_reviews ?? reviews.length) === 1 ? 'review' : 'reviews'})
+            </span>
+          </div>
           <p className="text-gray-500 text-sm mt-1">
-            Overview of your active work, bids, total earnings, and personal profile
+            Overview of your active work, bids, total earnings, and client ratings
           </p>
         </div>
         <button
@@ -834,6 +846,84 @@ export default function FreelancerOverviewPage() {
             </div>
           )}
         </form>
+      </div>
+
+      {/* ── Client Reviews & Ratings Section ────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 font-bold shrink-0">
+              <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Client Reviews & Ratings</h2>
+              <p className="text-xs text-gray-500">
+                Feedback and ratings received from clients upon milestone completions
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-black">
+            <Star className="w-4 h-4 fill-amber-400 text-amber-500" /> {profile.average_rating ? parseFloat(profile.average_rating).toFixed(1) : (reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '5.0')} / 5.0
+          </span>
+        </div>
+
+        {reviews.length === 0 ? (
+          <div className="text-center py-10">
+            <Star className="w-10 h-10 text-gray-200 fill-gray-100 mx-auto mb-2.5" />
+            <p className="text-sm font-semibold text-gray-700">No client reviews yet</p>
+            <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+              Once clients approve and release payments for your milestone deliverables, their 5-star ratings and reviews will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {reviews.map((r) => {
+              const clientName = r.reviewer?.full_name || r.reviewer?.first_name || 'Client'
+              const clientAvatar = r.reviewer?.avatar
+              const projectTitle = r.contract?.bid?.project?.title || 'Contract Project'
+              return (
+                <div key={r.id} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+                        {clientAvatar ? (
+                          <img src={clientAvatar} alt={clientName} className="w-full h-full object-cover" />
+                        ) : (
+                          clientName[0]?.toUpperCase() || 'C'
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-gray-900 truncate">{clientName}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{projectTitle}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-3.5 h-3.5 ${
+                            s <= r.rating ? 'fill-amber-400 text-amber-500' : 'fill-gray-100 text-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {r.review_text && (
+                    <p className="text-xs text-gray-600 leading-relaxed italic">
+                      "{r.review_text}"
+                    </p>
+                  )}
+                  <div className="flex items-center gap-3 text-[10px] text-gray-400 pt-1 border-t border-gray-100">
+                    {r.communication_rating && <span>Comm: {r.communication_rating}★</span>}
+                    {r.quality_rating && <span>Quality: {r.quality_rating}★</span>}
+                    {r.professionalism_rating && <span>Prof: {r.professionalism_rating}★</span>}
+                    <span className="ml-auto">{new Date(r.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
