@@ -187,32 +187,32 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex">
-      {/* ── Left Panel: Cyber Visual & Brand Asset ───────────────────────── */}
-      <div className="hidden lg:block flex-1 relative overflow-hidden">
+      {/* ── Left Panel: Brand Asset & Graphic ───────────────────────────── */}
+      <div className="hidden lg:flex flex-1 relative bg-gradient-to-b from-[#fdfdfd] via-[#f7faff] to-[#e7f2fd] items-center justify-center p-8 lg:p-12 overflow-hidden border-r border-gray-100">
         {/* Back to Home Button */}
         <div className="absolute top-6 left-6 z-20">
           <button
             onClick={() => navigate('/')}
-            className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/60 transition-all border border-white/20 text-white shadow-lg group"
+            className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white hover:shadow-md transition-all border border-gray-200/80 text-gray-700 shadow-xs group"
             title="Back to home"
           >
             <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
           </button>
         </div>
 
-        {/* Visual Background */}
-        <div className="absolute inset-0">
+        {/* Visual Graphic with Perfect Proportions */}
+        <div className="w-full h-full max-h-[90vh] flex items-center justify-center">
           <img
             src="/images/sign up banner.png"
             alt="FreelanceFlow Visual"
-            className="w-full h-full object-cover object-top"
+            className="w-full h-full max-h-[88vh] object-contain object-center drop-shadow-sm select-none"
             onError={(e) => {
               e.target.src = "/images/home image.png"
             }}
           />
-
         </div>
       </div>
+
 
       {/* ── Right Panel: Form Section ───────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center bg-white p-6 sm:p-10 lg:p-12 relative overflow-y-auto">
