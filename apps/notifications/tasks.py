@@ -1,5 +1,7 @@
 from celery import shared_task
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from django.conf import settings
 from apps.notifications.selectors import get_notification_by_id
 
@@ -7,7 +9,7 @@ from apps.notifications.selectors import get_notification_by_id
 @shared_task(bind=True, max_retries=3)
 def send_notification_email(self, notification_id: int):
     """
-    Send email notification to user.
+    Send responsive HTML email notification to user.
     Called asynchronously when in-app notification is created.
     """
     from apps.notifications.models import Notification
@@ -18,14 +20,25 @@ def send_notification_email(self, notification_id: int):
         # Only send if user has email notifications enabled
         if hasattr(user, 'profile') and not user.profile.email_notifications:
             return
+
+        context = {
+            "title": notification.title,
+            "body": notification.body,
+            "user_name": user.first_name or user.email.split("@")[0],
+            "action_url": getattr(notification, "action_url", "") or f"{settings.FRONTEND_URL}/dashboard",
+            "frontend_url": settings.FRONTEND_URL,
+        }
+        html_content = render_to_string("emails/general_notification.html", context)
+        text_content = strip_tags(html_content)
         
-        send_mail(
-            subject=notification.title,
-            message=notification.body,
+        email = EmailMultiAlternatives(
+            subject=f"{notification.title} - FreelanceFlow",
+            body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True
+            to=[user.email],
         )
+        email.attach_alternative(html_content, "text/html")
+        email.send(fail_silently=True)
     except Exception as exc:
         # Retry with exponential backoff
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))

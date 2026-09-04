@@ -4,8 +4,11 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1", "testserver", ".ngrok.io", ".ngrok-free.app", ".ngrok-free.dev"]
 
-# Email backend for development
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Email backend: use SMTP if EMAIL_HOST_USER is configured, otherwise fallback to console
+if env("EMAIL_HOST_USER", default=""):
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Disable HTTPS requirements for local development
 SECURE_SSL_REDIRECT = False

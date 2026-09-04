@@ -92,129 +92,112 @@ def send_simple_email(
 
 def send_bid_received_email(client_email: str, project_title: str, freelancer_name: str):
     """Send email when client receives a new bid."""
-    return send_simple_email(
+    return send_notification_email(
         recipient_email=client_email,
-        subject=f"New Bid on '{project_title}'",
-        message=f"""
-Hi,
-
-You have received a new bid on your project '{project_title}' from {freelancer_name}.
-
-Log in to FreelanceFlow to review the bid and freelancer profile.
-
-Best regards,
-FreelanceFlow Team
-        """.strip()
+        subject=f"New Proposal on '{project_title}' - FreelanceFlow",
+        template_name="bid_received",
+        context={
+            "project_title": project_title,
+            "freelancer_name": freelancer_name,
+            "action_url": f"{settings.FRONTEND_URL}/client/home",
+            "frontend_url": settings.FRONTEND_URL,
+        }
     )
 
 
 def send_bid_accepted_email(freelancer_email: str, project_title: str):
     """Send email when freelancer's bid is accepted."""
-    return send_simple_email(
+    return send_notification_email(
         recipient_email=freelancer_email,
-        subject=f"Your Bid Was Accepted!",
-        message=f"""
-Hi,
-
-Congratulations! Your bid on '{project_title}' has been accepted.
-
-A contract has been created. Log in to FreelanceFlow to view details and start working.
-
-Best regards,
-FreelanceFlow Team
-        """.strip()
+        subject=f"Your Proposal Was Accepted! - FreelanceFlow",
+        template_name="bid_accepted",
+        context={
+            "project_title": project_title,
+            "action_url": f"{settings.FRONTEND_URL}/freelancer/contracts",
+            "frontend_url": settings.FRONTEND_URL,
+        }
     )
 
 
 def send_payment_released_email(freelancer_email: str, amount: float, project_title: str):
     """Send email when payment is released to freelancer."""
-    return send_simple_email(
+    return send_notification_email(
         recipient_email=freelancer_email,
-        subject="Payment Released",
-        message=f"""
-Hi,
-
-Great news! Payment of ₹{amount:.2f} has been released for your work on '{project_title}'.
-
-The funds will be transferred to your account within 2-3 business days.
-
-Best regards,
-FreelanceFlow Team
-        """.strip()
+        subject=f"Payment Released: ₹{amount:.2f} - FreelanceFlow",
+        template_name="payment_released",
+        context={
+            "amount": f"{amount:.2f}",
+            "project_title": project_title,
+            "action_url": f"{settings.FRONTEND_URL}/freelancer/dashboard",
+            "frontend_url": settings.FRONTEND_URL,
+        }
     )
 
 
 def send_deliverable_submitted_email(client_email: str, deliverable_title: str, freelancer_name: str):
     """Send email when freelancer submits a deliverable."""
-    return send_simple_email(
+    return send_notification_email(
         recipient_email=client_email,
-        subject="New Deliverable Submitted",
-        message=f"""
-Hi,
-
-{freelancer_name} has submitted a deliverable: '{deliverable_title}'.
-
-Please log in to FreelanceFlow to review and approve the work.
-
-Best regards,
-FreelanceFlow Team
-        """.strip()
+        subject=f"Deliverable Submitted: '{deliverable_title}' - FreelanceFlow",
+        template_name="deliverable_submitted",
+        context={
+            "deliverable_title": deliverable_title,
+            "freelancer_name": freelancer_name,
+            "action_url": f"{settings.FRONTEND_URL}/client/home",
+            "frontend_url": settings.FRONTEND_URL,
+        }
     )
 
 
 def send_deliverable_approved_email(freelancer_email: str, deliverable_title: str):
     """Send email when client approves a deliverable."""
-    return send_simple_email(
+    return send_notification_email(
         recipient_email=freelancer_email,
-        subject="Deliverable Approved",
-        message=f"""
-Hi,
-
-Your deliverable '{deliverable_title}' has been approved by the client!
-
-Best regards,
-FreelanceFlow Team
-        """.strip()
+        subject=f"Deliverable Approved: '{deliverable_title}' - FreelanceFlow",
+        template_name="deliverable_approved",
+        context={
+            "deliverable_title": deliverable_title,
+            "action_url": f"{settings.FRONTEND_URL}/freelancer/contracts",
+            "frontend_url": settings.FRONTEND_URL,
+        }
     )
 
 
-def send_review_received_email(user_email: str, rating: int, reviewer_name: str):
+def send_review_received_email(user_email: str, rating: int, reviewer_name: str, review_text: str = ""):
     """Send email when user receives a review."""
-    return send_simple_email(
+    return send_notification_email(
         recipient_email=user_email,
-        subject="New Review Received",
-        message=f"""
-Hi,
-
-{reviewer_name} has left you a {rating}-star review.
-
-Log in to FreelanceFlow to view the review and respond if you'd like.
-
-Best regards,
-FreelanceFlow Team
-        """.strip()
+        subject=f"New {rating}-Star Review Received - FreelanceFlow",
+        template_name="review_received",
+        context={
+            "user_name": user_email.split("@")[0],
+            "rating": rating,
+            "reviewer_name": reviewer_name,
+            "review_text": review_text,
+            "action_url": f"{settings.FRONTEND_URL}/dashboard",
+            "frontend_url": settings.FRONTEND_URL,
+        }
     )
 
 
 def send_contract_termination_request_email(
     recipient_email: str,
     requester_name: str,
-    project_title: str
+    project_title: str,
+    reason: str = ""
 ):
     """Send email when contract termination is requested."""
-    return send_simple_email(
+    return send_notification_email(
         recipient_email=recipient_email,
-        subject="Contract Termination Request",
-        message=f"""
-Hi,
-
-{requester_name} has requested to terminate the contract for '{project_title}'.
-
-Please log in to FreelanceFlow to review the request and respond.
-
-Best regards,
-FreelanceFlow Team
-        """.strip()
+        subject=f"Important: Contract Cancellation Request for '{project_title}'",
+        template_name="contract_termination",
+        context={
+            "requester_name": requester_name,
+            "project_title": project_title,
+            "reason": reason,
+            "action_url": f"{settings.FRONTEND_URL}/dashboard",
+            "frontend_url": settings.FRONTEND_URL,
+        }
     )
 
 

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FreelanceFlow Notification{% endblock %}</title>
+    <style>
+        /* Reset and Base */
+        body, p, h1, h2, h3, h4, h5, h6, table, td, div {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #DAE9FD;
+            color: #0f172a;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            padding: 32px 16px;
+        }
+        table {
+            border-collapse: collapse;
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            border: 0;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+            max-width: 100%;
+        }
+
+        /* Container */
+        .wrapper {
+            width: 100%;
+            table-layout: fixed;
+            background-color: #DAE9FD;
+        }
+        .main-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #bfdbfe;
+            box-shadow: 0 10px 30px -5px rgba(1, 87, 155, 0.08), 0 4px 12px -2px rgba(1, 87, 155, 0.04);
+        }
+
+        /* Top Brow / Sub-header */
+        .top-brow {
+            text-align: center;
+            padding: 16px 24px 0 24px;
+            font-size: 12px;
+            color: #64748b;
+            letter-spacing: 0.2px;
+        }
+
+        /* Centered Minimal Header */
+        .header {
+            padding: 28px 36px 16px 36px;
+            text-align: center;
+        }
+        .brand-logo {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #01579B;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .brand-logo img {
+            width: 32px;
+            height: 32px;
+            vertical-align: middle;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        .brand-dot {
+            color: #0288D1;
+        }
+        .badge {
+            display: inline-block;
+            background-color: #DAE9FD;
+            border: 1px solid #bfdbfe;
+            color: #01579B;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-top: 14px;
+        }
+        .header-title {
+            color: #0f172a;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.6px;
+            margin-top: 16px;
+            line-height: 1.25;
+        }
+        .header-subtitle {
+            font-size: 15px;
+            color: #475569;
+            margin-top: 10px;
+            line-height: 1.6;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Content Area */
+        .content {
+            padding: 16px 36px 28px 36px;
+        }
+        .greeting {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+        .paragraph {
+            font-size: 15px;
+            color: #334155;
+            margin-bottom: 16px;
+            line-height: 1.65;
+        }
+
+        /* Visual Hero / Card */
+        .hero-card {
+            background: linear-gradient(135deg, #01579B 0%, #0288D1 100%);
+            border-radius: 14px;
+            padding: 24px;
+            text-align: center;
+            color: #ffffff;
+            margin: 20px 0;
+            box-shadow: 0 8px 20px -4px rgba(1, 87, 155, 0.25);
+        }
+        .hero-title {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.4px;
+        }
+        .hero-sub {
+            font-size: 13px;
+            color: #e0f2fe;
+            margin-top: 4px;
+        }
+
+        /* Light Blue Info Card */
+        .info-card {
+            background-color: #DAE9FD;
+            border: 1px solid #bfdbfe;
+            border-radius: 14px;
+            padding: 20px 24px;
+            margin: 20px 0;
+        }
+        .card-header {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #01579B;
+            margin-bottom: 12px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 0;
+            border-bottom: 1px solid rgba(191, 219, 254, 0.7);
+            font-size: 14px;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .info-label {
+            color: #475569;
+            font-weight: 500;
+        }
+        .info-value {
+            color: #0f172a;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* 2-Column Grid for Feature/Highlights */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin: 20px 0;
+        }
+        .grid-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .grid-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .grid-desc {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        /* Instructions Text Box (No Button) */
+        .instruction-card {
+            background-color: #f8fafc;
+            border: 1px dashed #94a3b8;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #334155;
+            text-align: center;
+        }
+        .instruction-card strong {
+            color: #01579B;
+        }
+
+        /* Notice / Alert Box */
+        .notice-box {
+            background-color: #DAE9FD;
+            border-left: 4px solid #01579B;
+            padding: 14px 18px;
+            border-radius: 0 10px 10px 0;
+            font-size: 13px;
+            color: #01579B;
+            margin: 20px 0;
+            border-top: 1px solid #bfdbfe;
+            border-right: 1px solid #bfdbfe;
+            border-bottom: 1px solid #bfdbfe;
+        }
+
+        /* Team Sign-off Card */
+        .team-signoff {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px 20px;
+            text-align: center;
+            margin: 24px 0 12px 0;
+        }
+        .team-text {
+            font-size: 13px;
+            color: #475569;
+        }
+        .team-text strong {
+            color: #01579B;
+        }
+
+        /* Minimal Footer */
+        .footer {
+            padding: 24px 36px 32px 36px;
+            background-color: #f1f5f9;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+        .footer p {
+            margin-bottom: 6px;
+        }
+        .footer p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Responsive Mobile adjustments */
+        @media only screen and (max-width: 600px) {
+            .header {
+                padding: 24px 20px 12px 20px;
+            }
+            .header-title {
+                font-size: 22px;
+            }
+            .content {
+                padding: 12px 20px 24px 20px;
+            }
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            .footer {
+                padding: 20px 20px 28px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="main-container">
+            <!-- Top Sub-header -->
+            <div class="top-brow">
+                {% block top_brow %}FreelanceFlow Notification{% endblock %}
+            </div>
+
+            <!-- Centered Header with Logo & Title -->
+            <div class="header">
+                <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" class="brand-logo" target="_blank" rel="noopener noreferrer">
+                    <img src="{{ logo_url|default:'https://freelanceflow.debabrata.site/favicon.png' }}" alt="FreelanceFlow" width="32" height="32" style="vertical-align: middle; border-radius: 6px; display: inline-block;">
+                    <span>FreelanceFlow</span><span class="brand-dot">.</span>
+                </a>
+                <div>{% block badge %}{% endblock %}</div>
+                <h1 class="header-title">{% block header_title %}{% endblock %}</h1>
+                <p class="header-subtitle">{% block header_subtitle %}{% endblock %}</p>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content">
+                {% block content %}{% endblock %}
+
+                <!-- Team Sign-off Card -->
+                <div class="team-signoff">
+                    <div class="team-text">Thanks from our team @ <strong>FreelanceFlow</strong></div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <p>You received this email because you have an account or active contract on FreelanceFlow.</p>
+                <p>FreelanceFlow Platform • Escrow Protection & AI Worklogs</p>
+                <p>&copy; 2026 FreelanceFlow Inc. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

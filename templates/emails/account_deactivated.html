@@ -1,0 +1,41 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Account Deactivated{% endblock %}
+
+{% block top_brow %}Account Status • FreelanceFlow{% endblock %}
+
+{% block header_title %}
+    Account Deactivated.
+{% endblock %}
+
+{% block header_subtitle %}
+    Your FreelanceFlow account has been successfully deactivated per your request.
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ user_name }},</div>
+    
+    <p class="paragraph">
+        This notification confirms that your account on FreelanceFlow has been deactivated. Your profile, active proposals, and listings have been hidden from marketplace searches.
+    </p>
+
+    <div class="info-card">
+        <div class="card-header">Account Record</div>
+        <div class="info-row">
+            <span class="info-label">Account Email</span>
+            <span class="info-value">{{ user_email }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Current Status</span>
+            <span class="info-value" style="color: #dc2626;">Deactivated</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Platform Visibility</span>
+            <span class="info-value">Hidden from Search</span>
+        </div>
+    </div>
+
+    <div class="instruction-card">
+        If you wish to reactivate your account in the future, simply email our support team at <strong>freelanceflow.platform@gmail.com</strong>.
+    </div>
+{% endblock %}

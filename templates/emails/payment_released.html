@@ -1,0 +1,49 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Payment Released - FreelanceFlow{% endblock %}
+
+{% block top_brow %}Milestone Escrow • Payment Receipt{% endblock %}
+
+{% block header_title %}
+    Payment Released: ₹{{ amount }}
+{% endblock %}
+
+{% block header_subtitle %}
+    Your client has approved your milestone deliverable and released the funds to your balance.
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ freelancer_name|default:"Freelancer" }},</div>
+    
+    <p class="paragraph">
+        Great news! The milestone payment for your work has been successfully released from escrow.
+    </p>
+
+    <div class="info-card">
+        <div class="card-header">Transaction Summary</div>
+        <div class="info-row">
+            <span class="info-label">Amount Released</span>
+            <span class="info-value" style="color: #16a34a; font-size: 17px; font-weight: 700;">₹{{ amount }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Project</span>
+            <span class="info-value">{{ project_title }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Payout Destination</span>
+            <span class="info-value">FreelanceFlow Wallet</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Status</span>
+            <span class="info-value" style="color: #16a34a;">Completed</span>
+        </div>
+    </div>
+
+    <div class="instruction-card">
+        The funds are now credited to your FreelanceFlow wallet. To view your transaction history or request a bank withdrawal, visit <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a>.
+    </div>
+
+    <div class="notice-box">
+        💡 <strong>Next Step:</strong> Don't forget to exchange feedback and ratings with your client to strengthen your FreelanceFlow reputation!
+    </div>
+{% endblock %}

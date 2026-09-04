@@ -174,7 +174,9 @@ def send_password_reset_email(email: str) -> bool:
     Returns:
         True if email was sent
     """
-    from django.core.mail import send_mail
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
     from django.conf import settings
     from django.utils.http import urlsafe_base64_encode
     from django.utils.encoding import force_bytes
@@ -192,31 +194,24 @@ def send_password_reset_email(email: str) -> bool:
     # Create reset link (frontend URL)
     reset_link = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
     
-    # Send email
-    subject = "Password Reset Request - FreelanceFlow"
-    message = f"""
-    Hi {user.first_name or user.email},
+    # Send email using responsive HTML template
+    subject = "Reset Your Password - FreelanceFlow"
+    context = {
+        "user_name": user.first_name or user.email.split("@")[0],
+        "reset_url": reset_link,
+        "frontend_url": settings.FRONTEND_URL,
+    }
+    html_content = render_to_string("emails/password_reset.html", context)
+    text_content = strip_tags(html_content)
     
-    You requested a password reset for your FreelanceFlow account.
-    
-    Click the link below to reset your password:
-    {reset_link}
-    
-    This link will expire in 24 hours.
-    
-    If you didn't request this, please ignore this email.
-    
-    Best regards,
-    FreelanceFlow Team
-    """
-    
-    send_mail(
-        subject,
-        message,
-        settings.DEFAULT_FROM_EMAIL,
-        [email],
-        fail_silently=False,
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[email],
     )
+    msg.attach_alternative(html_content, "text/html")
+    msg.send(fail_silently=False)
 
     logger.info("Password reset email sent: user_id=%s", user.id)
     return True
@@ -268,7 +263,9 @@ def send_verification_email(user: User) -> bool:
     Returns:
         True if email was sent
     """
-    from django.core.mail import send_mail
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
     from django.conf import settings
     from django.utils.http import urlsafe_base64_encode
     from django.utils.encoding import force_bytes
@@ -280,29 +277,24 @@ def send_verification_email(user: User) -> bool:
     # Create verification link (frontend URL)
     verification_link = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
     
-    # Send email
-    subject = "Verify Your Email - FreelanceFlow"
-    message = f"""
-    Hi {user.first_name or user.email},
+    # Send email using responsive HTML template
+    subject = "Verify Your Email Address - FreelanceFlow"
+    context = {
+        "user_name": user.first_name or user.email.split("@")[0],
+        "verification_url": verification_link,
+        "frontend_url": settings.FRONTEND_URL,
+    }
+    html_content = render_to_string("emails/email_verification.html", context)
+    text_content = strip_tags(html_content)
     
-    Welcome to FreelanceFlow! Please verify your email address to activate your account.
-    
-    Click the link below to verify:
-    {verification_link}
-    
-    This link will expire in 24 hours.
-    
-    Best regards,
-    FreelanceFlow Team
-    """
-    
-    send_mail(
-        subject,
-        message,
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
     )
+    msg.attach_alternative(html_content, "text/html")
+    msg.send(fail_silently=False)
     
     return True
 
@@ -409,26 +401,29 @@ def deactivate_account(user: User, password: str) -> User:
         user.is_active = False  # Also disable login
         user.save()
         
-        # Send confirmation email
-        from django.core.mail import send_mail
+        # Send confirmation email using responsive HTML template
+        from django.core.mail import EmailMultiAlternatives
+        from django.template.loader import render_to_string
+        from django.utils.html import strip_tags
         from django.conf import settings
         
-        send_mail(
-            subject="Account Deactivated - FreelanceFlow",
-            message=f"""
-Hi {user.first_name or user.email},
-
-Your FreelanceFlow account has been deactivated.
-
-If you wish to reactivate your account, please contact support.
-
-Best regards,
-FreelanceFlow Team
-            """.strip(),
+        context = {
+            "user_name": user.first_name or user.email.split("@")[0],
+            "user_email": user.email,
+            "frontend_url": settings.FRONTEND_URL,
+        }
+        subject = "Your FreelanceFlow Account Has Been Deactivated"
+        html_content = render_to_string("emails/account_deactivated.html", context)
+        text_content = strip_tags(html_content)
+        
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True,
+            to=[user.email],
         )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send(fail_silently=True)
 
     # Security audit: this is a critical lifecycle event.
     logger.warning("Account deactivated: user_id=%s", user.id)

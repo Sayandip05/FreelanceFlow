@@ -1,0 +1,25 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}{{ title }} - FreelanceFlow{% endblock %}
+
+{% block top_brow %}Account Notification • FreelanceFlow{% endblock %}
+
+{% block header_title %}
+    {{ title }}
+{% endblock %}
+
+{% block header_subtitle %}
+    {{ subtitle|default:"Important update regarding your account or active projects on FreelanceFlow." }}
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ user_name }},</div>
+    
+    <div class="info-card" style="font-size: 15px; color: #1e293b; line-height: 1.65;">
+        {{ body|linebreaks }}
+    </div>
+
+    <div class="instruction-card">
+        To view your account details or respond to this update, please log in at <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a>.
+    </div>
+{% endblock %}

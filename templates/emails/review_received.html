@@ -1,0 +1,46 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}You Received a New Review - FreelanceFlow{% endblock %}
+
+{% block top_brow %}Client Feedback • Reputation Score{% endblock %}
+
+{% block header_title %}
+    You received a new review.
+{% endblock %}
+
+{% block header_subtitle %}
+    A new rating and testimonial has been submitted for your work on FreelanceFlow.
+{% endblock %}
+
+{% block content %}
+    <div class="greeting">Hi {{ user_name }},</div>
+    
+    <p class="paragraph">
+        Great work! <strong>{{ reviewer_name }}</strong> has submitted their review for your completed project.
+    </p>
+
+    <!-- Star Rating Box inspired by reference image -->
+    <div class="hero-card">
+        <div style="font-size: 32px; letter-spacing: 6px; color: #fbbf24; margin-bottom: 6px;">
+            {% for i in "12345"|make_list %}
+                {% if forloop.counter <= rating %}★{% else %}☆{% endif %}
+            {% endfor %}
+        </div>
+        <div class="hero-title">{{ rating }} out of 5 Stars</div>
+        <div class="hero-sub">Reviewed by {{ reviewer_name }}</div>
+    </div>
+
+    {% if review_text %}
+    <div class="info-card" style="font-style: italic; color: #1e293b; text-align: center; padding: 18px 24px; font-size: 15px;">
+        "{{ review_text }}"
+    </div>
+    {% endif %}
+
+    <div class="instruction-card">
+        To view this review on your public profile or reply to the client, please visit <a href="{{ frontend_url|default:'https://freelanceflow.debabrata.site' }}" target="_blank" rel="noopener noreferrer" style="color: #01579B; font-weight: 700; text-decoration: underline;">freelanceflow.site</a>.
+    </div>
+
+    <div class="notice-box">
+        🌟 <strong>Reputation Boost:</strong> Stellar ratings increase your visibility in search algorithms and client recommendation lists.
+    </div>
+{% endblock %}
