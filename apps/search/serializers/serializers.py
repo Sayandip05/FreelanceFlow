@@ -35,7 +35,6 @@ class FreelancerSearchSerializer(serializers.Serializer):
     average_rating = serializers.FloatField(required=False, allow_null=True, default=0)
     total_reviews = serializers.IntegerField(required=False, default=0)
     skills = serializers.ListField(child=serializers.CharField(), required=False, default=list)
-    subscription_tier = serializers.CharField(required=False, allow_blank=True, default="FREE")
     total_earned = serializers.DecimalField(max_digits=15, decimal_places=2, required=False, allow_null=True, default=0)
     is_onboarded = serializers.BooleanField(required=False, default=True)
     freelancer_profile = serializers.SerializerMethodField()

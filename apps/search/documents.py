@@ -102,7 +102,6 @@ class FreelancerDocument(Document):
         fields = [
             "id",
             "hourly_rate",
-            "subscription_tier",
             "total_earned",
             "created_at",
         ]

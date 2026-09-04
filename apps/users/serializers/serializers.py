@@ -19,7 +19,6 @@ class FreelancerProfileSerializer(serializers.ModelSerializer):
             'experience_level',
             'is_onboarded',
             'is_available',
-            'subscription_tier',
             'total_earned',
             'average_rating',
             'total_reviews',
