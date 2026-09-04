@@ -134,8 +134,10 @@ class OtpPasswordResetIntegrationTests(APITestCase):
     def setUp(self):
         cache.clear()
         self.init_url = reverse("password-reset-otp-initiate")
+        self.validate_url = reverse("password-reset-otp-validate")
         self.verify_url = reverse("password-reset-otp-verify")
         self.resend_url = reverse("password-reset-otp-resend")
+
 
         self.user = User.objects.create_user(
             email="reset_test@example.com",
@@ -164,13 +166,22 @@ class OtpPasswordResetIntegrationTests(APITestCase):
         otp = cache_data["otp"]
         self.assertEqual(len(otp), 6)
 
-        # 3. Verify OTP and set new password
+        # 3. Validate OTP (Step 1 in frontend)
+        val_res = self.client.post(self.validate_url, {
+            "email": self.user.email,
+            "otp": otp,
+        })
+        self.assertEqual(val_res.status_code, status.HTTP_200_OK)
+        self.assertTrue(val_res.data.get("valid"))
+
+        # 4. Verify OTP and set new password (Step 2 in frontend)
         verify_res = self.client.post(self.verify_url, {
             "email": self.user.email,
             "otp": otp,
             "new_password": "NewBrandPassword456!",
         })
         self.assertEqual(verify_res.status_code, status.HTTP_200_OK)
+
 
         # 4. Verify password was updated in DB
         self.user.refresh_from_db()

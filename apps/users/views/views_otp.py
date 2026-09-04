@@ -15,9 +15,11 @@ from apps.users.services.otp_service import (
     verify_registration_otp,
     resend_registration_otp,
     initiate_password_reset_otp,
+    validate_password_reset_otp,
     verify_password_reset_otp,
     resend_password_reset_otp,
 )
+
 
 
 class RegisterOtpInitiateView(APIView):
@@ -86,6 +88,22 @@ class PasswordResetOtpInitiateView(APIView):
         serializer = PasswordResetOtpInitiateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = initiate_password_reset_otp(email=serializer.validated_data["email"])
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class PasswordResetOtpValidateView(APIView):
+    """Validate that the password reset OTP is correct before prompting for new password."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterOtpVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        result = validate_password_reset_otp(
+            email=data["email"],
+            otp=data["otp"],
+        )
         return Response(result, status=status.HTTP_200_OK)
 
 

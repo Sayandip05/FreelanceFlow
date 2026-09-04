@@ -48,15 +48,19 @@ def _send_otp_email(to_email: str, otp_code: str, flow: str, first_name: str = "
     frontend_url = getattr(settings, "FRONTEND_URL", "https://freelanceflow.debabrata.site")
 
     context = {
+        "otp": otp_code,
+        "otp_code": otp_code,
+        "user_name": display_name,
         "user": {
             "first_name": display_name,
             "username": display_name,
         },
-        "otp_code": otp_code,
         "validity_minutes": 5,
+        "frontend_url": frontend_url,
         "verification_url": frontend_url,
         "reset_url": frontend_url,
     }
+
 
     try:
         html_content = render_to_string(template, context)
@@ -269,6 +273,43 @@ def initiate_password_reset_otp(email: str) -> Dict[str, Any]:
         "email": email,
         "expires_in": OTP_TTL_SECONDS,
         "cooldown": COOLDOWN_TTL_SECONDS,
+    }
+
+
+def validate_password_reset_otp(email: str, otp: str) -> Dict[str, Any]:
+    """
+    Validate that the password reset OTP is correct without consuming it yet,
+    allowing the frontend to proceed to the new password step.
+    """
+    email = email.lower().strip()
+    otp = str(otp).strip()
+    pwd_key = f"otp:pwd:{email}"
+
+    data = cache.get(pwd_key)
+    if not data:
+        raise ValidationError({"detail": "OTP has expired or is invalid. Please request a new OTP."})
+
+    if data.get("attempts", 0) >= MAX_ATTEMPTS:
+        cache.delete(pwd_key)
+        raise ValidationError({"detail": "Too many failed attempts. This OTP has been invalidated. Please request a new OTP."})
+
+    if str(data.get("otp")) != otp:
+        data["attempts"] = data.get("attempts", 0) + 1
+        try:
+            ttl = cache.ttl(pwd_key)
+            ttl = ttl if (ttl and ttl > 0) else OTP_TTL_SECONDS
+        except Exception:
+            ttl = OTP_TTL_SECONDS
+        cache.set(pwd_key, data, timeout=ttl)
+        remaining = MAX_ATTEMPTS - data["attempts"]
+        raise ValidationError({
+            "detail": f"Invalid OTP. {remaining} attempt{'s' if remaining != 1 else ''} remaining.",
+            "attempts_remaining": remaining,
+        })
+
+    return {
+        "message": "OTP verified successfully. Please choose your new password.",
+        "valid": True,
     }
 
 
