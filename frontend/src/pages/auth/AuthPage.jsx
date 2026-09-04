@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom'
 import {
-  Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle2, Briefcase, User
+  Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle2, Briefcase, User, X
 } from 'lucide-react'
+
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axiosConfig'
 import { authAPI } from '../../api/auth'
@@ -186,32 +187,30 @@ export default function AuthPage() {
 
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex">
+    <div className="min-h-screen w-full bg-white flex">
       {/* ── Left Panel: Brand Asset & Graphic ───────────────────────────── */}
-      <div className="hidden lg:flex flex-1 relative bg-gradient-to-b from-[#fdfdfd] via-[#f7faff] to-[#e7f2fd] items-center justify-center p-8 lg:p-12 overflow-hidden border-r border-gray-100">
+      <div className="hidden lg:block lg:w-[820px] max-w-[50vw] h-screen sticky top-0 relative overflow-hidden bg-[#e8f2fc] border-r border-gray-100">
         {/* Back to Home Button */}
         <div className="absolute top-6 left-6 z-20">
           <button
             onClick={() => navigate('/')}
-            className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white hover:shadow-md transition-all border border-gray-200/80 text-gray-700 shadow-xs group"
+            className="w-10 h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white hover:shadow-md transition-all border border-gray-200/80 text-gray-700 shadow-xs group"
             title="Back to home"
           >
             <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
           </button>
         </div>
 
-        {/* Visual Graphic with Perfect Proportions */}
-        <div className="w-full h-full max-h-[90vh] flex items-center justify-center">
-          <img
-            src="/images/sign up banner.png"
-            alt="FreelanceFlow Visual"
-            className="w-full h-full max-h-[88vh] object-contain object-center drop-shadow-sm select-none"
-            onError={(e) => {
-              e.target.src = "/images/home image.png"
-            }}
-          />
-        </div>
+        <img
+          src="/images/sign up banner.png"
+          alt="FreelanceFlow Visual"
+          className="w-full h-full object-cover object-center select-none"
+          onError={(e) => {
+            e.target.src = "/images/home image.png"
+          }}
+        />
       </div>
+
 
 
       {/* ── Right Panel: Form Section ───────────────────────────────────── */}
@@ -541,13 +540,11 @@ export default function AuthPage() {
               onClick={() => setForgotModalOpen(false)}
               className="absolute top-5 right-5 p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 rotate-180" />
+              <X className="w-5 h-5" />
             </button>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Forgot Password</h2>
-            <p className="text-sm text-gray-500 mb-5">
-              Enter your registered email address and we'll send you a 6-digit verification code to reset your password.
-            </p>
+            <h2 className="text-xl font-bold text-gray-900 mb-5">Forgot Password</h2>
             <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">
                   Email Address

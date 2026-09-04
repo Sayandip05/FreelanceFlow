@@ -300,10 +300,7 @@ const LoginPage = () => {
             >
               <ArrowLeft className="w-5 h-5 rotate-180" />
             </button>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Forgot Password</h2>
-            <p className="text-sm text-gray-500 mb-5">
-              Enter your registered email address and we'll send you a 6-digit verification code to reset your password.
-            </p>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Forgot Password</h2>
             <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">
