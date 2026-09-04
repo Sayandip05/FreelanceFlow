@@ -47,6 +47,22 @@ const StepBar = ({ current, total }) => (
 )
 
 /* ── Main ─────────────────────────────────────────────────────────────────── */
+const extractNames = (u) => {
+  if (!u) return { fName: '', lName: '' }
+  let fName = (u.first_name || '').trim()
+  let lName = (u.last_name || '').trim()
+  if (!fName && u.full_name && !u.full_name.includes('@')) {
+    const parts = u.full_name.trim().split(' ')
+    fName = parts[0] || ''
+    lName = parts.slice(1).join(' ') || ''
+  }
+  if (!fName && u.email) {
+    const prefix = u.email.split('@')[0].replace(/[._-]/g, ' ')
+    fName = prefix.charAt(0).toUpperCase() + prefix.slice(1)
+  }
+  return { fName, lName }
+}
+
 const ClientOnboardingPage = () => {
   const navigate = useNavigate()
   const { user, setUser, fetchUser } = useAuth()
@@ -55,42 +71,83 @@ const ClientOnboardingPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const initialNames = extractNames(user)
+
   // Step 1 — Personal
-  const [firstName, setFirstName] = useState(user?.first_name || '')
-  const [lastName, setLastName] = useState(user?.last_name || '')
+  const [firstName, setFirstName] = useState(initialNames.fName)
+  const [lastName, setLastName] = useState(initialNames.lName)
   const [city, setCity] = useState(user?.client_profile?.city || '')
   const [country, setCountry] = useState(user?.client_profile?.country || '')
 
   // Step 2 — Company
   const [companyName, setCompanyName] = useState(user?.client_profile?.company_name || '')
   const [companySize, setCompanySize] = useState(user?.client_profile?.company_size || '')
-  const [industry, setIndustry] = useState(user?.client_profile?.industry || '')
+  const [industries, setIndustries] = useState(
+    user?.client_profile?.industry
+      ? user.client_profile.industry.split(',').map(s => s.trim()).filter(Boolean)
+      : []
+  )
   const [website, setWebsite] = useState(user?.client_profile?.website || '')
 
   // Step 3 — Background / Hiring intent
   const [hiringFor, setHiringFor] = useState([])
   const [bio, setBio] = useState(user?.client_profile?.bio || '')
 
-  // Sync state when user object loads or updates
+  // Sync state whenever user in AuthContext updates
   useEffect(() => {
     if (user) {
-      if (user.first_name && !firstName) setFirstName(user.first_name)
-      if (user.last_name && !lastName) setLastName(user.last_name)
+      const { fName, lName } = extractNames(user)
+      if (fName) setFirstName(prev => prev || fName)
+      if (lName) setLastName(prev => prev || lName)
       const cp = user.client_profile || {}
-      if (cp.city && !city) setCity(cp.city)
-      if (cp.country && !country) setCountry(cp.country)
-      if (cp.company_name && !companyName) setCompanyName(cp.company_name)
-      if (cp.company_size && !companySize) setCompanySize(cp.company_size)
-      if (cp.industry && !industry) setIndustry(cp.industry)
-      if (cp.website && !website) setWebsite(cp.website)
-      if (cp.bio && !bio) setBio(cp.bio)
-    } else if (fetchUser) {
-      fetchUser()
+      if (cp.city) setCity(prev => prev || cp.city)
+      if (cp.country) setCountry(prev => prev || cp.country)
+      if (cp.company_name) setCompanyName(prev => prev || cp.company_name)
+      if (cp.company_size) setCompanySize(prev => prev || cp.company_size)
+      if (cp.industry) {
+        const parsed = cp.industry.split(',').map(s => s.trim()).filter(Boolean)
+        if (parsed.length > 0) setIndustries(prev => prev.length > 0 ? prev : parsed)
+      }
+      if (cp.website) setWebsite(prev => prev || cp.website)
+      if (cp.bio) setBio(prev => prev || cp.bio)
     }
-  }, [user, fetchUser])
+  }, [user])
+
+  // Also fetch fresh profile on mount to guarantee fields are populated
+  useEffect(() => {
+    api.get('/users/me/')
+      .then(res => {
+        if (res.data) {
+          setUser(res.data)
+          const { fName, lName } = extractNames(res.data)
+          if (fName) setFirstName(prev => prev || fName)
+          if (lName) setLastName(prev => prev || lName)
+          const cp = res.data.client_profile || {}
+          if (cp.city) setCity(prev => prev || cp.city)
+          if (cp.country) setCountry(prev => prev || cp.country)
+          if (cp.company_name) setCompanyName(prev => prev || cp.company_name)
+          if (cp.company_size) setCompanySize(prev => prev || cp.company_size)
+          if (cp.industry) {
+            const parsed = cp.industry.split(',').map(s => s.trim()).filter(Boolean)
+            if (parsed.length > 0) setIndustries(prev => prev.length > 0 ? prev : parsed)
+          }
+          if (cp.website) setWebsite(prev => prev || cp.website)
+          if (cp.bio) setBio(prev => prev || cp.bio)
+        }
+      })
+      .catch(err => {
+        console.warn('Could not fetch user profile in onboarding:', err)
+      })
+  }, [setUser])
 
   const canStep1 = firstName.trim() && city.trim() && country.trim()
-  const canStep2 = companySize && industry
+  const canStep2 = companySize && industries.length > 0
+
+  const toggleIndustry = (ind) => {
+    setIndustries(prev =>
+      prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind]
+    )
+  }
 
   const toggleHiringFor = (item) => {
     setHiringFor(prev =>
@@ -109,7 +166,7 @@ const ClientOnboardingPage = () => {
         country,
         company_name: companyName.trim(),
         company_size: companySize,
-        industry,
+        industry: industries.join(', '),
         website: website.trim(),
         bio: skip ? '' : bio.trim(),
         is_onboarded: true,
@@ -301,24 +358,28 @@ const ClientOnboardingPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-3">
-                  Industry <span className="text-red-500">*</span>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                  Industry / Sector <span className="text-red-500">*</span>
                 </label>
+                <p className="text-xs text-gray-400 mb-3">Select all sectors that apply to your company</p>
                 <div className="flex flex-wrap gap-2">
-                  {INDUSTRIES.map(ind => (
-                    <button
-                      key={ind}
-                      type="button"
-                      onClick={() => setIndustry(ind)}
-                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                        industry === ind
-                          ? 'bg-gray-900 text-white border-gray-900'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-400'
-                      }`}
-                    >
-                      {industry === ind && '✓ '}{ind}
-                    </button>
-                  ))}
+                  {INDUSTRIES.map(ind => {
+                    const isSelected = industries.includes(ind)
+                    return (
+                      <button
+                        key={ind}
+                        type="button"
+                        onClick={() => toggleIndustry(ind)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                          isSelected
+                            ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                        }`}
+                      >
+                        {isSelected && '✓ '}{ind}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 

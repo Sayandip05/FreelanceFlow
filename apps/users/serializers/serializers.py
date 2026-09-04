@@ -164,7 +164,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     experience_level = serializers.CharField(required=False, allow_blank=True)
     is_onboarded = serializers.BooleanField(required=False)
     # Client-specific fields
-    industry = serializers.CharField(required=False, allow_blank=True)
+    industry = serializers.CharField(required=False, allow_blank=True, max_length=500)
     company_size = serializers.CharField(required=False, allow_blank=True)
     website = serializers.CharField(required=False, allow_blank=True)
     

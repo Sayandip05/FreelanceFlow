@@ -131,17 +131,40 @@ class GoogleOAuthCallbackView(APIView):
 
         # ── Step 2: Fetch user info from Google ──────────────────────────────
         access_token = google_tokens.get("access_token")
-        try:
-            user_info_resp = requests.get(
-                GOOGLE_USERINFO_URL,
-                headers={"Authorization": f"Bearer {access_token}"},
-                timeout=10,
-            )
-            user_info_resp.raise_for_status()
-            user_info = user_info_resp.json()
-        except Exception as exc:
-            logger.error("Google userinfo fetch failed: %s", exc)
-            return HttpResponseRedirect(f"{frontend_callback}?error=userinfo_failed")
+        id_token = google_tokens.get("id_token")
+        user_info = {}
+
+        # Decode id_token JWT payload if available
+        if id_token:
+            try:
+                import base64
+                import json
+                parts = id_token.split(".")
+                if len(parts) >= 2:
+                    payload = parts[1]
+                    rem = len(payload) % 4
+                    if rem > 0:
+                        payload += "=" * (4 - rem)
+                    id_data = json.loads(base64.urlsafe_b64decode(payload).decode("utf-8"))
+                    if isinstance(id_data, dict):
+                        user_info.update(id_data)
+            except Exception as e:
+                logger.warning("Could not decode Google id_token: %s", e)
+
+        # Call userinfo endpoint
+        if access_token:
+            try:
+                user_info_resp = requests.get(
+                    GOOGLE_USERINFO_URL,
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    timeout=10,
+                )
+                if user_info_resp.status_code == 200:
+                    api_info = user_info_resp.json()
+                    if isinstance(api_info, dict):
+                        user_info.update(api_info)
+            except Exception as exc:
+                logger.warning("Google userinfo fetch failed, relying on id_token: %s", exc)
 
         email = user_info.get("email")
         if not email:
@@ -160,15 +183,19 @@ class GoogleOAuthCallbackView(APIView):
         picture = (user_info.get("picture") or "").strip()
         email_verified = bool(user_info.get("email_verified", True))
 
-        if not first_name and full_name:
+        if not first_name and not last_name:
+            if full_name:
+                parts = full_name.split(" ", 1)
+                first_name = parts[0].strip()
+                last_name = parts[1].strip() if len(parts) > 1 else ""
+            else:
+                first_name = email.split("@")[0].replace(".", " ").title()
+        elif not last_name and full_name and " " in full_name:
+            parts = full_name.split(" ", 1)
+            last_name = parts[1].strip()
+        elif not first_name and full_name:
             parts = full_name.split(" ", 1)
             first_name = parts[0].strip()
-            last_name = parts[1].strip() if len(parts) > 1 else ""
-        elif not last_name and full_name and (" " in full_name):
-            parts = full_name.split(" ", 1)
-            if first_name == full_name:
-                first_name = parts[0].strip()
-                last_name = parts[1].strip()
 
         # If user is trying to LOG IN, but no account exists in DB:
         if mode == "login" and not user:
@@ -209,12 +236,12 @@ class GoogleOAuthCallbackView(APIView):
                 logger.error("User creation failed for %s: %s", email, exc)
                 return HttpResponseRedirect(f"{frontend_callback}?error=user_creation_failed")
         else:
-            # Backfill first_name, last_name, email_verified, and avatar if missing
+            # Backfill first_name, last_name, email_verified, and avatar if missing or empty
             updated_fields = []
-            if not user.first_name and first_name:
+            if first_name and (not user.first_name or not user.first_name.strip()):
                 user.first_name = first_name
                 updated_fields.append("first_name")
-            if not user.last_name and last_name:
+            if last_name and (not user.last_name or not user.last_name.strip()):
                 user.last_name = last_name
                 updated_fields.append("last_name")
             if not user.is_email_verified and email_verified:
