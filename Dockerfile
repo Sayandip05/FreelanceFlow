@@ -43,11 +43,8 @@ ENV PYTHONUNBUFFERED=1
 # Copy application code
 COPY . /app
 
-# Collect static files
-RUN python manage.py collectstatic --noinput 2>/dev/null || true
-
-# Set ownership
-RUN chown -R appuser:appuser /app
+# Ensure directories exist and set ownership
+RUN mkdir -p /app/staticfiles /app/media && chown -R appuser:appuser /app
 
 USER appuser
 
