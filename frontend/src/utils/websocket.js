@@ -4,6 +4,11 @@
  * - In production (e.g. Vercel connecting to EC2 backend): wss://freelanceflow.backend.debabrata.site
  */
 export function getWebSocketBaseUrl() {
+  const explicitWsUrl = import.meta.env.VITE_WS_URL
+  if (explicitWsUrl) {
+    return explicitWsUrl.replace(/\/$/, '')
+  }
+
   const apiUrl = import.meta.env.VITE_API_URL
   if (apiUrl) {
     try {

@@ -113,6 +113,12 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
     stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health/live/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # ──────────────────────────────────────────
   # Celery worker  (background tasks)
@@ -173,6 +179,8 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
     stop_signal: SIGTERM
+    healthcheck:
+      disable: true
 
   # ──────────────────────────────────────────
   # Flower  (Celery monitoring UI → :5555)
@@ -197,6 +205,12 @@ services:
     restart: unless-stopped
     stop_grace_period: 20s
     stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     
   # ──────────────────────────────────────────
   # Caddy (HTTPS & Reverse Proxy)
